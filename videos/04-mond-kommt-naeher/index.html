@@ -1,0 +1,708 @@
+<!doctype html>
+<html lang="de" data-resolution="portrait">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1080, height=1920" />
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+    <script type="importmap">
+      {
+        "imports": {
+          "three": "https://cdn.jsdelivr.net/npm/three@0.181.2/build/three.module.js",
+          "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.181.2/examples/jsm/"
+        }
+      }
+    </script>
+    <style>
+      @font-face { font-family: "EB Garamond"; font-style: normal; font-weight: 400; src: url("assets/fonts/eb-garamond-latin-400-normal.woff2") format("woff2"); }
+      @font-face { font-family: "EB Garamond"; font-style: italic; font-weight: 400; src: url("assets/fonts/eb-garamond-latin-400-italic.woff2") format("woff2"); }
+      @font-face { font-family: "Inter"; font-style: normal; font-weight: 400; src: url("assets/fonts/inter-latin-400-normal.woff2") format("woff2"); }
+      @font-face { font-family: "Inter"; font-style: normal; font-weight: 700; src: url("assets/fonts/inter-latin-700-normal.woff2") format("woff2"); }
+      :root {
+        --ink: #ffffff;
+        --accent: #8db8e8;
+        --outro: #161616;
+        --serif: "EB Garamond", serif;
+        --sans: "Inter", sans-serif;
+      }
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      html, body { width: 1080px; height: 1920px; overflow: hidden; background: #000; }
+      #root { position: relative; width: 100%; height: 100%; overflow: hidden; font-family: var(--serif); color: var(--ink); }
+      #stage { position: absolute; inset: 0; }
+      #stage canvas { position: absolute; left: 0; top: 0; width: 1080px !important; height: 1920px !important; }
+      #fade, #flash { position: absolute; inset: 0; opacity: 0; pointer-events: none; }
+      #fade { background: #000; }
+      #flash { background: #fffaf0; }
+      #hook {
+        position: absolute; left: 90px; right: 90px; top: 360px;
+        font-size: 66px; line-height: 1.12; font-weight: 400; text-align: center;
+        text-shadow: 0 2px 18px rgba(0, 0, 0, 0.35);
+      }
+      .acc { color: var(--accent); }
+      .nb { white-space: nowrap; }
+      #hud { position: absolute; left: 64px; top: 820px; text-shadow: 0 1px 10px rgba(0, 0, 0, 0.5), 0 0 24px rgba(40, 15, 0, 0.5); }
+      #hud-label, #hud-sub {
+        font-family: var(--sans); font-weight: 700; font-size: 24px;
+        letter-spacing: 0.22em; text-transform: uppercase; opacity: 0.82;
+      }
+      #hud-value { font-family: var(--serif); font-size: 80px; line-height: 1.05; margin: 6px 0 8px; font-variant-numeric: tabular-nums; }
+      #hud-sub { font-weight: 400; opacity: 0.72; }
+      .cap {
+        position: absolute; left: 80px; right: 80px; top: 1180px; text-align: center;
+        font-family: var(--serif); font-style: italic; font-size: 48px; line-height: 1.2;
+        text-shadow: 0 2px 14px rgba(0, 0, 0, 0.6), 0 0 28px rgba(40, 15, 0, 0.55);
+      }
+      #outro { position: absolute; inset: 0; background: var(--outro); }
+      #outro-q {
+        position: absolute; left: 90px; right: 90px; top: 760px; text-align: center;
+        font-size: 64px; line-height: 1.15; color: #e9e6df; font-weight: 400;
+      }
+      #outro-sub {
+        position: absolute; left: 50px; right: 50px; top: 960px; text-align: center;
+        font-family: var(--sans); font-size: 22px; letter-spacing: 0.2em; color: #8a8780;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="root" data-composition-id="main" data-start="0" data-duration="72" data-width="1080" data-height="1920">
+      <div id="stage" class="clip" data-start="0" data-duration="66.2" data-track-index="0" data-layout-ignore></div>
+      <div id="flash" data-layout-ignore></div>
+      <div id="fade" data-layout-ignore></div>
+
+      <h1 id="hook" class="clip" data-start="0" data-duration="3.4" data-track-index="1">
+        Was wäre, wenn der <span class="acc">Mond</span> immer näher kommt?
+      </h1>
+
+      <div id="hud" class="clip" data-start="0" data-duration="65.6" data-track-index="2">
+        <div id="hud-label">Entfernung Mond</div>
+        <div id="hud-value">384.400 km</div>
+        <div id="hud-sub">Gezeitenkraft ×1</div>
+      </div>
+
+      <p id="c1" class="clip cap" data-start="3.5" data-duration="2.6" data-track-index="3">Nordsee, Vollmond. Ebbe und Flut: 3 Meter.</p>
+      <p id="c2" class="clip cap" data-start="6.3" data-duration="3.3" data-track-index="3">Jetzt kommt der Mond näher.</p>
+      <p id="c3" class="clip cap" data-start="10.0" data-duration="3.6" data-track-index="3">Halbe Entfernung: Er wirkt doppelt so groß.</p>
+      <p id="c4" class="clip cap" data-start="14.0" data-duration="3.6" data-track-index="3">Die Gezeiten: achtmal so stark.</p>
+      <p id="c5" class="clip cap" data-start="18.0" data-duration="3.6" data-track-index="3">Die Flut: bis zu 24 Meter. Zweimal am Tag.</p>
+      <p id="c6" class="clip cap" data-start="22.0" data-duration="3.6" data-track-index="3">Auch das Land hebt und senkt sich. Meterweise.</p>
+      <p id="c7" class="clip cap" data-start="26.0" data-duration="3.6" data-track-index="3">Nachts ist es hell wie in der Dämmerung.</p>
+      <p id="c8" class="clip cap" data-start="30.0" data-duration="3.6" data-track-index="3">Die Flut: höher als jedes Hochhaus.</p>
+      <p id="c9" class="clip cap" data-start="34.0" data-duration="3.6" data-track-index="3">Die Küste verschwindet. Jeden Tag.</p>
+      <p id="c10" class="clip cap" data-start="38.0" data-duration="3.6" data-track-index="3">18.000 km: die Roche-Grenze.</p>
+      <p id="c11" class="clip cap" data-start="42.0" data-duration="3.8" data-track-index="3">Die Schwerkraft der Erde zerreißt den Mond.</p>
+      <p id="c12" class="clip cap" data-start="46.2" data-duration="3.6" data-track-index="3">Seine Trümmer verteilen sich um die Erde.</p>
+      <p id="c13" class="clip cap" data-start="50.2" data-duration="3.4" data-track-index="3">Die Erde bekommt Ringe. Wie der Saturn.</p>
+      <p id="c14" class="clip cap" data-start="54.3" data-duration="3.4" data-track-index="3">In Wahrheit entfernt sich der Mond.</p>
+      <p id="c15" class="clip cap" data-start="58.1" data-duration="3.6" data-track-index="3">3,8 Zentimeter pro Jahr.</p>
+      <p id="c16" class="clip cap" data-start="62.0" data-duration="3.6" data-track-index="3">In 600 Millionen Jahren: keine totale Sonnenfinsternis mehr.</p>
+
+      <div id="outro" class="clip" data-start="66" data-duration="6" data-track-index="4">
+        <h2 id="outro-q">Was wäre, wenn der <span class="acc">Mond</span> immer näher kommt?</h2>
+        <p id="outro-sub">384.400 KM · ROCHE-GRENZE 18.000 KM · 3,8 CM PRO JAHR</p>
+      </div>
+    </div>
+
+    <script>
+      window.__timelines = window.__timelines || {};
+      const tl = gsap.timeline({ paused: true });
+
+      document.querySelectorAll(".cap").forEach((el) => {
+        const s = parseFloat(el.dataset.start);
+        const d = parseFloat(el.dataset.duration);
+        tl.fromTo(el, { opacity: 0 }, { opacity: 1, duration: 0.4, ease: "sine.out" }, s);
+        tl.to(el, { opacity: 0, duration: 0.4, ease: "sine.in" }, s + d - 0.45);
+      });
+      tl.fromTo("#hook", { opacity: 1 }, { opacity: 0, duration: 0.5, ease: "sine.in" }, 2.85);
+      tl.fromTo("#hud", { opacity: 0 }, { opacity: 1, duration: 0.5, ease: "sine.out" }, 0.3);
+      tl.to("#hud", { opacity: 0, duration: 0.5, ease: "sine.in" }, 65.0);
+
+      // To space and back through black.
+      tl.fromTo("#fade", { opacity: 0 }, { opacity: 1, duration: 0.7, ease: "sine.in" }, 45.8);
+      tl.to("#fade", { opacity: 0, duration: 0.8, ease: "sine.out" }, 46.6);
+      tl.to("#fade", { opacity: 1, duration: 0.7, ease: "sine.in" }, 53.4);
+      tl.to("#fade", { opacity: 0, duration: 0.8, ease: "sine.out" }, 54.2);
+      tl.to("#fade", { opacity: 1, duration: 0.6, ease: "sine.in" }, 65.4);
+
+      tl.fromTo("#outro-q", { opacity: 0 }, { opacity: 1, duration: 0.6, ease: "sine.out" }, 66.2);
+      tl.fromTo("#outro-sub", { opacity: 0 }, { opacity: 1, duration: 0.6, ease: "sine.out" }, 66.8);
+      tl.set({}, {}, 72);
+
+      tl.eventCallback("onUpdate", () => {
+        if (window.__renderAt) window.__renderAt(tl.time());
+      });
+      window.addEventListener("hf-seek", (e) => {
+        const d = e && e.detail;
+        if (d && typeof d.time === "number") {
+          tl.totalTime(Math.min(d.time, tl.totalDuration()), true);
+          if (window.__renderAt) window.__renderAt(d.time);
+        }
+      });
+      window.__timelines["main"] = tl;
+    </script>
+
+    <script type="module">
+      import * as THREE from "three";
+      import { EffectComposer } from "three/addons/postprocessing/EffectComposer.js";
+      import { RenderPass } from "three/addons/postprocessing/RenderPass.js";
+      import { UnrealBloomPass } from "three/addons/postprocessing/UnrealBloomPass.js";
+      import { OutputPass } from "three/addons/postprocessing/OutputPass.js";
+
+      const W = 1080, H = 1920, SCALE = 0.75;
+
+      // ---------- helpers ----------
+      function mulberry32(a) {
+        return function () {
+          a |= 0; a = (a + 0x6d2b79f5) | 0;
+          let t = Math.imul(a ^ (a >>> 15), 1 | a);
+          t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+          return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+        };
+      }
+      const clamp = (x, a = 0, b = 1) => Math.min(b, Math.max(a, x));
+      const ramp = (t, a, b) => clamp((t - a) / (b - a));
+      const smooth = (t, a, b) => { const x = ramp(t, a, b); return x * x * (3 - 2 * x); };
+      const lerp = (a, b, k) => a + (b - a) * k;
+      const col = (h) => new THREE.Color(h);
+      function keys(t, ks, ease = smooth) {
+        if (t <= ks[0][0]) return ks[0][1];
+        for (let i = 1; i < ks.length; i++) {
+          if (t <= ks[i][0]) return lerp(ks[i - 1][1], ks[i][1], ease(t, ks[i - 1][0], ks[i][0]));
+        }
+        return ks[ks.length - 1][1];
+      }
+      const linear = (t, a, b) => ramp(t, a, b);
+      function colKeys(out, t, ks) {
+        if (t <= ks[0][0]) return out.copy(ks[0][1]);
+        for (let i = 1; i < ks.length; i++) {
+          if (t <= ks[i][0]) return out.copy(ks[i - 1][1]).lerp(ks[i][1], smooth(t, ks[i - 1][0], ks[i][0]));
+        }
+        return out.copy(ks[ks.length - 1][1]);
+      }
+      const ck = (arr) => arr.map(([t, h]) => [t, col(h)]);
+      const fmtInt = (n) => Math.round(n).toLocaleString("de-DE");
+
+      // ---------- the Moon's distance ----------
+      const D0 = 384400;
+      // [video seconds, log10(distance km)]; the breakup happens at the Roche limit
+      const DKEYS = [[6.0, D0], [9.6, 192200], [21.0, 175000], [25.0, 96000], [29.0, 62000], [33.0, 45000], [37.0, 27000], [39.5, 18000]]
+        .map(([t, d]) => [t, Math.log10(d)]);
+      const realK = (t) => t >= 53.95; // back to reality
+      const distAt = (t) => (realK(t) ? D0 : Math.pow(10, keys(t, DKEYS, linear)));
+      const forceAt = (t) => Math.pow(D0 / distAt(t), 3);
+
+      const hudLabel = document.getElementById("hud-label");
+      const hudValue = document.getElementById("hud-value");
+      const hudSub = document.getElementById("hud-sub");
+      const setText = (el, s) => { if (el.textContent !== s) el.textContent = s; };
+      function updateHud(t) {
+        setText(hudLabel, "Entfernung Mond");
+        if (realK(t)) {
+          // the real Moon creeps away: 3.8 cm per year
+          setText(hudValue, "384.400 km");
+          setText(hudSub, "+3,8 cm pro Jahr");
+          return;
+        }
+        if (t >= 41.5) {
+          setText(hudValue, "18.000 km");
+          setText(hudSub, t < 46.2 ? "Roche-Grenze" : "Ring um die Erde");
+          return;
+        }
+        const d = distAt(t);
+        setText(hudValue, fmtInt(Math.round(d / 100) * 100) + " km");
+        const f = forceAt(t);
+        setText(hudSub, "Gezeitenkraft ×" + (f < 10 ? f.toFixed(1).replace(".", ",").replace(",0", "") : fmtInt(f)));
+      }
+
+      // ---------- renderer ----------
+      const renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true, powerPreference: "high-performance" });
+      renderer.setPixelRatio(1);
+      renderer.setSize(Math.round(W * SCALE), Math.round(H * SCALE), false);
+      renderer.shadowMap.enabled = true;
+      renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+      renderer.toneMapping = THREE.ACESFilmicToneMapping;
+      document.getElementById("stage").appendChild(renderer.domElement);
+      const camera = new THREE.PerspectiveCamera(58, W / H, 0.3, 4000);
+
+      function canvasTex(w, h, draw, repeat = true) {
+        const c = document.createElement("canvas");
+        c.width = w; c.height = h;
+        draw(c.getContext("2d"), w, h);
+        const tx = new THREE.CanvasTexture(c);
+        if (repeat) tx.wrapS = tx.wrapT = THREE.RepeatWrapping;
+        tx.colorSpace = THREE.SRGBColorSpace;
+        tx.anisotropy = 4;
+        return tx;
+      }
+      const glowTex = canvasTex(256, 256, (g, w, h) => {
+        const gr = g.createRadialGradient(w / 2, h / 2, 0, w / 2, h / 2, w / 2);
+        gr.addColorStop(0, "rgba(255,255,255,1)");
+        gr.addColorStop(0.2, "rgba(255,255,255,0.55)");
+        gr.addColorStop(0.5, "rgba(255,255,255,0.12)");
+        gr.addColorStop(1, "rgba(255,255,255,0)");
+        g.fillStyle = gr; g.fillRect(0, 0, w, h);
+      }, false);
+      const moonTex = canvasTex(512, 512, (g, w, h) => {
+        g.fillStyle = "#e6e4dc"; g.beginPath(); g.arc(256, 256, 254, 0, Math.PI * 2); g.fill();
+        const r2 = mulberry32(99);
+        // maria
+        g.save(); g.beginPath(); g.arc(256, 256, 254, 0, Math.PI * 2); g.clip();
+        // soft maria
+        for (let i = 0; i < 26; i++) {
+          const a = r2() * Math.PI * 2, d = r2() * 170, rr = 30 + r2() * 70;
+          const x = 256 + Math.cos(a) * d - 40, y = 256 + Math.sin(a) * d - 30;
+          const gr = g.createRadialGradient(x, y, 0, x, y, rr);
+          gr.addColorStop(0, "rgba(128,130,134,0.32)"); gr.addColorStop(1, "rgba(128,130,134,0)");
+          g.fillStyle = gr; g.fillRect(x - rr, y - rr, rr * 2, rr * 2);
+        }
+        // small craters with a soft rim
+        for (let i = 0; i < 160; i++) {
+          const a = r2() * Math.PI * 2, d = Math.sqrt(r2()) * 245, rr = 1.5 + Math.pow(r2(), 3) * 14;
+          const x = 256 + Math.cos(a) * d, y = 256 + Math.sin(a) * d;
+          const gr = g.createRadialGradient(x, y, 0, x, y, rr);
+          gr.addColorStop(0, "rgba(150,150,146,0.35)"); gr.addColorStop(0.75, "rgba(150,150,146,0.15)"); gr.addColorStop(1, "rgba(255,255,250,0.25)");
+          g.fillStyle = gr; g.beginPath(); g.arc(x, y, rr, 0, Math.PI * 2); g.fill();
+        }
+        // limb darkening
+        const lg = g.createRadialGradient(256, 256, 150, 256, 256, 256);
+        lg.addColorStop(0, "rgba(0,0,0,0)"); lg.addColorStop(1, "rgba(60,60,70,0.25)");
+        g.fillStyle = lg; g.fillRect(0, 0, 512, 512);
+        g.restore();
+      }, false);
+      const std = (c, o = {}) => new THREE.MeshStandardMaterial(Object.assign({ color: col(c), roughness: 0.9, metalness: 0, flatShading: true }, o));
+      function makeStars(seed, n, radius, minY) {
+        const r = mulberry32(seed), pos = [], cl = [];
+        while (pos.length < n * 3) {
+          const u = r() * 2 - 1, th = r() * Math.PI * 2, s = Math.sqrt(1 - u * u);
+          if (u < minY) continue;
+          pos.push(s * Math.cos(th) * radius, u * radius, s * Math.sin(th) * radius);
+          const b = Math.pow(r(), 3) * 0.6 + 0.12; cl.push(b, b * 0.95, b);
+        }
+        const g = new THREE.BufferGeometry();
+        g.setAttribute("position", new THREE.Float32BufferAttribute(pos, 3));
+        g.setAttribute("color", new THREE.Float32BufferAttribute(cl, 3));
+        return new THREE.Points(g, new THREE.PointsMaterial({ size: 1.6, sizeAttenuation: false, vertexColors: true, transparent: true, depthWrite: false, fog: false }));
+      }
+
+      // =====================================================================
+      // SCENE A — North Sea coast at night
+      // =====================================================================
+      const coast = new THREE.Scene();
+      const rnd = mulberry32(4040);
+      const skyUni = { top: { value: col("#0f1a33") }, horizon: { value: col("#3e5680") } };
+      const sky = new THREE.Mesh(
+        new THREE.SphereGeometry(3000, 48, 24),
+        new THREE.ShaderMaterial({
+          side: THREE.BackSide, depthWrite: false, fog: false, uniforms: skyUni,
+          vertexShader: `varying vec3 vP; void main(){ vP = normalize(position); gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0); }`,
+          fragmentShader: `uniform vec3 top; uniform vec3 horizon; varying vec3 vP;
+            void main(){ float h = clamp(vP.y, -0.1, 1.0); float k = pow(clamp(h*2.0,0.0,1.0), 0.6); gl_FragColor = vec4(mix(horizon, top, k), 1.0); }`,
+        }),
+      );
+      sky.renderOrder = -10;
+      coast.add(sky);
+      const stars = makeStars(7, 4000, 2800, 0.02);
+      stars.renderOrder = -9;
+      coast.add(stars);
+      coast.fog = new THREE.Fog(col("#2a3a58"), 120, 900);
+
+      // moon disc (+ halo) and its fragments
+      const MOON_DIST = 2400;
+      const moonDisc = new THREE.Mesh(new THREE.CircleGeometry(1, 96), new THREE.MeshBasicMaterial({ map: moonTex, transparent: true, fog: false, depthWrite: false }));
+      moonDisc.renderOrder = -6;
+      const moonHalo = new THREE.Sprite(new THREE.SpriteMaterial({ map: glowTex, color: col("#c9d8f0"), transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, fog: false }));
+      moonHalo.renderOrder = -7;
+      coast.add(moonHalo, moonDisc);
+      const FRAG_N = 140;
+      const frags = [];
+      const fragGeo = new THREE.IcosahedronGeometry(1, 0);
+      const fragMat = new THREE.MeshStandardMaterial({ color: col("#c9c6be"), emissive: col("#8a8882"), emissiveIntensity: 0.9, roughness: 1, flatShading: true, fog: false });
+      const frnd = mulberry32(31);
+      for (let i = 0; i < FRAG_N; i++) {
+        const m = new THREE.Mesh(fragGeo, fragMat);
+        m.renderOrder = -6;
+        // start inside the disc, then spread along the orbit (screen-horizontal arc)
+        const a = frnd() * Math.PI * 2, r = Math.sqrt(frnd());
+        frags.push({ m, x0: Math.cos(a) * r, y0: Math.sin(a) * r, s: 0.015 + Math.pow(frnd(), 3) * 0.09, v: (frnd() - 0.5) * 2, rs: frnd() * 3, delay: frnd() * 1.2 });
+        m.visible = false;
+        coast.add(m);
+      }
+
+      const hemi = new THREE.HemisphereLight(col("#6f86b8"), col("#141820"), 0.7);
+      coast.add(hemi);
+      const moonLight = new THREE.DirectionalLight(col("#cfdcf5"), 0.6);
+      moonLight.castShadow = true;
+      moonLight.shadow.mapSize.set(2048, 2048);
+      Object.assign(moonLight.shadow.camera, { left: -60, right: 60, top: 60, bottom: -60, near: 1, far: 600 });
+      moonLight.shadow.bias = -0.0008;
+      coast.add(moonLight, moonLight.target);
+
+      // terrain: beach falling into the sea, dunes behind the village
+      function terrainH(x, z) {
+        let y = z >= -20 ? (z + 20) * 0.1 : Math.max(-34, (z + 20) * 0.07);
+        y += 3.2 * Math.exp(-Math.pow((z - 33) / 7, 2)) * (1 + 0.35 * Math.sin(x * 0.17) + 0.2 * Math.cos(x * 0.31));
+        return y;
+      }
+      const tGeo = new THREE.PlaneGeometry(900, 520, 150, 130);
+      tGeo.rotateX(-Math.PI / 2);
+      {
+        const p = tGeo.attributes.position;
+        const cols = [];
+        const sand = col("#c9b88e"), wet = col("#7d7462"), grassC = col("#6f7f4e"), cc = new THREE.Color();
+        for (let i = 0; i < p.count; i++) {
+          const x = p.getX(i), z = p.getZ(i) - 200;
+          const y = terrainH(x, z);
+          p.setY(i, y); p.setZ(i, z);
+          if (y < -0.5) cc.copy(wet); else cc.copy(sand).lerp(wet, clamp(-y * 0.4 + 0.2));
+          if (z > 24) cc.lerp(grassC, clamp((z - 24) / 6) * 0.8);
+          cols.push(cc.r, cc.g, cc.b);
+        }
+        tGeo.setAttribute("color", new THREE.Float32BufferAttribute(cols, 3));
+        tGeo.computeVertexNormals();
+      }
+      const terrain = new THREE.Mesh(tGeo, new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 1, flatShading: true }));
+      terrain.receiveShadow = true;
+      coast.add(terrain);
+      // dune grass
+      const tuftGeo = new THREE.ConeGeometry(0.25, 0.9, 4);
+      const tufts = new THREE.InstancedMesh(tuftGeo, std("#8a9a5c"), 600);
+      {
+        const m = new THREE.Matrix4();
+        for (let i = 0; i < 600; i++) {
+          const x = -120 + rnd() * 240, z = 26 + rnd() * 20;
+          m.makeTranslation(x, terrainH(x, z) + 0.35, z);
+          tufts.setMatrixAt(i, m);
+        }
+      }
+      coast.add(tufts);
+
+      // sea
+      const seaGeo = new THREE.PlaneGeometry(2600, 2000, 200, 160);
+      seaGeo.rotateX(-Math.PI / 2);
+      seaGeo.translate(0, 0, -800);
+      const seaBase = Float32Array.from(seaGeo.attributes.position.array);
+      const seaMat = std("#1f3a58", { roughness: 0.6, metalness: 0.15, flatShading: false });
+      const sea = new THREE.Mesh(seaGeo, seaMat);
+      sea.receiveShadow = true;
+      coast.add(sea);
+      // moonglade on the water
+      const gladeTex = canvasTex(128, 512, (g, w, h) => {
+        const gr = g.createLinearGradient(0, 0, w, 0);
+        gr.addColorStop(0, "rgba(255,255,255,0)"); gr.addColorStop(0.5, "rgba(255,255,255,1)"); gr.addColorStop(1, "rgba(255,255,255,0)");
+        g.fillStyle = gr; g.fillRect(0, 0, w, h);
+        const r3 = mulberry32(5);
+        g.globalCompositeOperation = "destination-in";
+        for (let y = 0; y < h; y += 4) { g.fillStyle = `rgba(0,0,0,${0.3 + r3() * 0.7})`; g.fillRect(0, y, w, 3); }
+      }, false);
+      const glade = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), new THREE.MeshBasicMaterial({ map: gladeTex, color: col("#b8c8e8"), transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, fog: false }));
+      glade.rotation.x = -Math.PI / 2;
+      coast.add(glade);
+
+      // village
+      const houses = [];
+      const wallCols = ["#e8e2d6", "#d9d2c4", "#f0ebe2", "#cfc6b4"];
+      const roofCols = ["#8a2e24", "#9a3a2a", "#6e2a22", "#4a4a52"];
+      const winTex = canvasTex(64, 64, (g) => {
+        g.fillStyle = "#000"; g.fillRect(0, 0, 64, 64);
+        g.fillStyle = "#ffcf88"; g.fillRect(14, 20, 12, 16); g.fillRect(38, 20, 12, 16);
+      }, true);
+      function addHouse(x, z, rot, w, d) {
+        const g = new THREE.Group();
+        const hgt = 3.2;
+        const wall = new THREE.Mesh(new THREE.BoxGeometry(w, hgt, d), new THREE.MeshStandardMaterial({ color: col(wallCols[Math.floor(rnd() * 4)]), emissiveMap: winTex, emissive: col("#ffffff"), emissiveIntensity: 0.9, roughness: 0.9 }));
+        wall.position.y = hgt / 2;
+        const shape = new THREE.Shape();
+        shape.moveTo(-w * 0.58, 0); shape.lineTo(w * 0.58, 0); shape.lineTo(0, w * 0.5); shape.lineTo(-w * 0.58, 0);
+        const roofGeo = new THREE.ExtrudeGeometry(shape, { depth: d * 1.08, bevelEnabled: false });
+        roofGeo.translate(0, 0, -d * 0.54);
+        const roof = new THREE.Mesh(roofGeo, std(roofCols[Math.floor(rnd() * 4)]));
+        roof.position.y = hgt;
+        g.add(wall, roof);
+        g.position.set(x, terrainH(x, z) - 0.2, z);
+        g.rotation.y = rot;
+        g.traverse((o) => { if (o.isMesh) { o.castShadow = true; o.receiveShadow = true; } });
+        coast.add(g);
+        houses.push(g);
+      }
+      const hs = [[-13, 8], [-6, 11], [-10, 2], [1, 6], [-3, -1], [14, 7], [20, 2], [-19, 5], [7, 14], [-16, 14]];
+      for (const [x, z] of hs) addHouse(x, z, (rnd() - 0.5) * 0.5, 5 + rnd() * 2, 6 + rnd() * 2);
+
+      // lighthouse
+      const lh = new THREE.Group();
+      for (let i = 0; i < 6; i++) {
+        const r0 = 2.2 - i * 0.22, r1 = r0 - 0.22;
+        const seg = new THREE.Mesh(new THREE.CylinderGeometry(r1, r0, 3.4, 20), std(i % 2 ? "#f2f0ea" : "#b8302a", { flatShading: false }));
+        seg.position.y = 1.7 + i * 3.4;
+        lh.add(seg);
+      }
+      const gallery = new THREE.Mesh(new THREE.CylinderGeometry(1.7, 1.7, 0.3, 20), std("#2d3034", { flatShading: false }));
+      gallery.position.y = 20.6;
+      const lantern = new THREE.Mesh(new THREE.CylinderGeometry(0.95, 0.95, 1.8, 16), new THREE.MeshStandardMaterial({ color: col("#332a1a"), emissive: col("#ffd890"), emissiveIntensity: 3 }));
+      lantern.position.y = 21.7;
+      const cap = new THREE.Mesh(new THREE.ConeGeometry(1.2, 1.4, 16), std("#b8302a", { flatShading: false }));
+      cap.position.y = 23.3;
+      lh.add(gallery, lantern, cap);
+      const beamTex = canvasTex(64, 256, (g, w, h) => {
+        const gr = g.createLinearGradient(0, h, 0, 0);
+        gr.addColorStop(0, "rgba(255,240,200,0.55)"); gr.addColorStop(1, "rgba(255,240,200,0)");
+        g.fillStyle = gr; g.fillRect(0, 0, w, h);
+      }, false);
+      const beam = new THREE.Mesh(new THREE.ConeGeometry(9, 160, 24, 1, true), new THREE.MeshBasicMaterial({ map: beamTex, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide, fog: false }));
+      const lampGlow = new THREE.Sprite(new THREE.SpriteMaterial({ map: glowTex, color: col("#ffe2a8"), transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, fog: false }));
+      lampGlow.position.y = 21.7;
+      lh.add(lampGlow);
+      lh.traverse((o) => { if (o.isMesh) { o.castShadow = true; } });
+      lh.position.set(9, terrainH(9, -6) - 0.3, -6);
+      coast.add(lh);
+
+      // jetty and boats
+      const woodMat = std("#5a4634");
+      const jetty = new THREE.Group();
+      const deck = new THREE.Mesh(new THREE.BoxGeometry(2.4, 0.3, 60), woodMat);
+      deck.position.set(0, 1.4, -30);
+      jetty.add(deck);
+      for (let z = -58; z <= 0; z += 6) for (const x of [-1.1, 1.1]) {
+        const post = new THREE.Mesh(new THREE.CylinderGeometry(0.16, 0.16, 12, 6), woodMat);
+        post.position.set(x, -4.5, z); jetty.add(post);
+      }
+      jetty.position.set(-5, 0, -14);
+      coast.add(jetty);
+      const boats = [];
+      for (const [x, z, r] of [[3, -15, 0.4], [-11, -22, -0.3], [14, -26, 1.2]]) {
+        const b = new THREE.Group();
+        const hull = new THREE.Mesh(new THREE.BoxGeometry(2.2, 0.9, 6), std(["#2f5fa8", "#c4322a", "#e8e2d6"][boats.length]));
+        const cabin = new THREE.Mesh(new THREE.BoxGeometry(1.4, 1.0, 1.8), std("#e8e2d6"));
+        cabin.position.set(0, 0.9, -0.6);
+        b.add(hull, cabin);
+        b.position.set(x, 0, z); b.rotation.y = r;
+        coast.add(b);
+        boats.push({ b, x, z, ph: boats.length * 1.3 });
+      }
+
+      // =====================================================================
+      // SCENE B — Earth with a ring
+      // =====================================================================
+      const space = new THREE.Scene();
+      space.background = col("#010205");
+      space.add(makeStars(11, 6000, 1500, -1));
+      const earthGeo = new THREE.IcosahedronGeometry(10, 6);
+      {
+        const p = earthGeo.attributes.position, cols = [];
+        const ocean = col("#1f4f86"), land = col("#4f7a3a"), desert = col("#b49a64"), ice = col("#eef3f8"), c = new THREE.Color();
+        const n3 = (x, y, z) => Math.sin(x * 1.7 + Math.sin(y * 2.3)) * 0.5 + Math.sin(y * 2.9 + Math.cos(z * 1.3)) * 0.3 + Math.sin(z * 3.7 + x * 0.7) * 0.2;
+        for (let i = 0; i < p.count; i++) {
+          const x = p.getX(i) / 10, y = p.getY(i) / 10, z = p.getZ(i) / 10;
+          const n = n3(x * 2.0, y * 2.0, z * 2.0) + 0.45 * n3(x * 5, y * 5, z * 5);
+          if (n > 0.45) c.copy(land).lerp(desert, clamp((Math.abs(y) < 0.35 ? 1 : 0) * (n - 0.45) * 2)); else c.copy(ocean);
+          if (Math.abs(y) > 0.82) c.copy(ice);
+          cols.push(c.r, c.g, c.b);
+        }
+        earthGeo.setAttribute("color", new THREE.Float32BufferAttribute(cols, 3));
+      }
+      const earth = new THREE.Mesh(earthGeo, new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.85, flatShading: true }));
+      space.add(earth);
+      const atmo = new THREE.Mesh(
+        new THREE.SphereGeometry(10.3, 64, 32),
+        new THREE.ShaderMaterial({
+          transparent: true, blending: THREE.AdditiveBlending, depthWrite: false,
+          vertexShader: `varying vec3 vN; varying vec3 vV; void main(){ vec4 mv = modelViewMatrix*vec4(position,1.0); vN = normalize(normalMatrix*normal); vV = normalize(-mv.xyz); gl_Position = projectionMatrix*mv; }`,
+          fragmentShader: `varying vec3 vN; varying vec3 vV; void main(){ float f = pow(clamp(1.0-dot(vN,vV),0.0,1.0), 3.0); gl_FragColor = vec4(vec3(0.4,0.65,1.0)*f*0.9, f); }`,
+        }),
+      );
+      space.add(atmo);
+      const ringTex = canvasTex(1024, 16, (g, w, h) => {
+        const r4 = mulberry32(77);
+        for (let x = 0; x < w; x++) {
+          const u = x / w;
+          const band = 0.35 + 0.5 * Math.abs(Math.sin(u * 37 + Math.sin(u * 11) * 2)) * (0.6 + 0.4 * r4());
+          const edge = smooth(u, 0, 0.08) * (1 - smooth(u, 0.9, 1));
+          const gaps = (u > 0.55 && u < 0.58) ? 0.15 : 1;
+          const a = band * edge * gaps;
+          const c = 190 + Math.floor(r4() * 40);
+          g.fillStyle = `rgba(${c},${c - 6},${c - 14},${a})`; g.fillRect(x, 0, 1, h);
+        }
+      }, false);
+      // ring from 1.3 to 2.8 Earth radii (inside the Roche limit), radial UV
+      const ringGeo = new THREE.RingGeometry(13, 28, 180, 1);
+      {
+        const p = ringGeo.attributes.position, uv = ringGeo.attributes.uv;
+        for (let i = 0; i < p.count; i++) { const r = Math.hypot(p.getX(i), p.getY(i)); uv.setXY(i, (r - 13) / 15, 0.5); }
+      }
+      const ring = new THREE.Mesh(ringGeo, new THREE.MeshStandardMaterial({ map: ringTex, transparent: true, side: THREE.DoubleSide, depthWrite: false, roughness: 1 }));
+      ring.rotation.x = -Math.PI / 2;
+      const ringGroup = new THREE.Group();
+      ringGroup.add(ring);
+      ringGroup.rotation.z = 0.42;
+      space.add(ringGroup);
+      // a few large chunks still orbiting
+      const chunks = [];
+      const crnd = mulberry32(19);
+      const chunkMat = std("#b8b4aa");
+      for (let i = 0; i < 260; i++) {
+        const m = new THREE.Mesh(new THREE.IcosahedronGeometry(0.05 + Math.pow(crnd(), 3) * 0.35, 0), chunkMat);
+        const r = 13.5 + crnd() * 14, a = crnd() * Math.PI * 2;
+        chunks.push({ m, r, a, w: 0.5 * Math.pow(13 / r, 1.5), y: (crnd() - 0.5) * 0.25 });
+        ringGroup.add(m);
+      }
+      space.add(new THREE.AmbientLight(col("#334466"), 0.5));
+      const spaceSun = new THREE.DirectionalLight(col("#fff6e8"), 2.6);
+      spaceSun.position.set(-40, 15, 25);
+      space.add(spaceSun);
+
+      // ---------- post ----------
+      const composer = new EffectComposer(renderer);
+      const renderPass = new RenderPass(coast, camera);
+      composer.addPass(renderPass);
+      const bloom = new UnrealBloomPass(new THREE.Vector2(W * SCALE * 0.5, H * SCALE * 0.5), 0.5, 0.6, 0.82);
+      composer.addPass(bloom);
+      composer.addPass(new OutputPass());
+      composer.setPixelRatio(1);
+      composer.setSize(Math.round(W * SCALE), Math.round(H * SCALE));
+      renderer.domElement.style.width = W + "px";
+      renderer.domElement.style.height = H + "px";
+
+      const SKY_TOP = ck([[0, "#0f1a33"], [20, "#13223f"], [30, "#1f3558"], [38, "#28426a"], [44, "#1a2a48"]]);
+      const SKY_HOR = ck([[0, "#3e5680"], [20, "#4a6390"], [30, "#6280ad"], [38, "#7a96c0"], [44, "#5a7298"]]);
+      const look = new THREE.Vector3(), v3 = new THREE.Vector3(), mdir = new THREE.Vector3(), mposV = new THREE.Vector3(), rightV = new THREE.Vector3(), upV = new THREE.Vector3();
+      const DEG = Math.PI / 180;
+
+      function renderCoast(t) {
+        const real = realK(t);
+        const tt = real ? 0 : t; // the "real" ending uses the opening state
+        const d = distAt(t);
+        const F = forceAt(t);
+        const ang = 1.15 * DEG * (D0 / d); // angular radius (enlarged ~2x for a phone screen)
+        const breakK = real ? 0 : ramp(t, 41.3, 46.0);
+
+        // camera on the dune; rises as the water rises
+        const camY = real ? lerp(15, 16, ramp(t, 54, 66)) : keys(t, [[0, 15], [21, 17], [26, 28], [31, 44], [38, 58], [46, 60]]);
+        const camZ = real ? lerp(46, 43, ramp(t, 54, 66)) : keys(t, [[0, 46], [20, 43], [31, 38], [46, 34]]);
+        camera.position.set(lerp(1.5, -1.0, ramp(tt, 0, 46)), camY, camZ);
+        const moonElev = ang + 7.5 * DEG;
+        mdir.set(Math.sin(-5 * DEG) * Math.cos(moonElev), Math.sin(moonElev), -Math.cos(5 * DEG) * Math.cos(moonElev)).normalize();
+        // look up enough to keep the Moon in frame
+        const lookElev = Math.min(moonElev * 0.85, 30 * DEG) - 6 * DEG;
+        look.copy(camera.position).add(v3.set(0, Math.tan(lookElev) * 100, -100));
+        camera.lookAt(look);
+        camera.updateMatrixWorld();
+
+        // sky and stars
+        colKeys(skyUni.top.value, tt, SKY_TOP);
+        colKeys(skyUni.horizon.value, tt, SKY_HOR);
+        sky.position.copy(camera.position);
+        stars.position.copy(camera.position);
+        stars.material.opacity = 1 - 0.85 * smooth(tt, 18, 34) + 0.6 * smooth(tt, 43, 46);
+        coast.fog.color.copy(skyUni.horizon.value).multiplyScalar(0.7);
+
+        // moon
+        const mpos = mposV.copy(camera.position).addScaledVector(mdir, MOON_DIST);
+        const R = MOON_DIST * Math.tan(ang);
+        moonDisc.position.copy(mpos);
+        moonDisc.lookAt(camera.position);
+        moonDisc.rotateZ(0.3);
+        const discK = 1 - smooth(breakK, 0.05, 0.45);
+        moonDisc.scale.setScalar(R * lerp(1, 0.6, smooth(breakK, 0.05, 0.45)));
+        moonDisc.material.opacity = discK;
+        moonDisc.visible = discK > 0.001;
+        moonHalo.position.copy(mpos);
+        moonHalo.scale.setScalar(R * 6);
+        moonHalo.material.opacity = 0.55 * discK + 0.25 * (1 - discK) * (1 - smooth(breakK, 0.6, 1));
+        // fragments: shear out along the orbit into a glowing arc
+        const right = rightV.set(1, 0, 0).applyQuaternion(camera.quaternion);
+        const up = upV.set(0, 1, 0).applyQuaternion(camera.quaternion);
+        for (const f of frags) {
+          f.m.visible = breakK > 0.02;
+          if (!f.m.visible) continue;
+          const k = clamp((breakK - f.delay * 0.25) / (1 - f.delay * 0.25));
+          const spread = Math.pow(k, 1.6);
+          const along = f.x0 + f.v * spread * 3.2;
+          const arcY = f.y0 * (1 - 0.7 * spread) - Math.pow(along / 3.2, 2) * spread * 0.9;
+          f.m.position.copy(mpos).addScaledVector(right, along * R).addScaledVector(up, arcY * R);
+          f.m.scale.setScalar(R * f.s * (1 - 0.5 * spread));
+          f.m.rotation.set(f.rs + k * 3, f.rs * 2 + k * 2, 0);
+        }
+
+        // light: brightness ∝ 1/d²
+        const B = Math.pow(D0 / d, 2);
+        moonLight.position.copy(mdir).multiplyScalar(200);
+        moonLight.target.position.set(0, 0, 0);
+        moonLight.intensity = Math.min(0.55 * Math.pow(B, 0.35), 2.2) * (1 - 0.6 * breakK);
+        hemi.intensity = Math.min(0.7 + 0.12 * Math.log2(B + 1), 1.5);
+        renderer.toneMappingExposure = keys(tt, [[0, 1.15], [30, 1.05], [44, 1.1]]);
+
+        // tide: sea level oscillates, amplitude ∝ tidal force (capped for the frame)
+        const A = Math.min(1.5 * F, 42);
+        const tideK = real ? 0.25 * Math.sin((t - 54) * 0.6) : Math.sin(tt * 1.55 - 0.5);
+        const level = (real ? 1.5 * 0.25 : A) * (real ? Math.sin((t - 54) * 0.6) : tideK);
+        const sp = seaGeo.attributes.position.array;
+        const waveA = 0.25 + Math.min(F, 60) * 0.02;
+        for (let i = 0; i < sp.length; i += 3) {
+          const x = seaBase[i], z = seaBase[i + 2];
+          sp[i + 1] = level + waveA * (Math.sin(0.11 * x + 1.1 * t) * 0.6 + Math.sin(0.15 * z - 1.4 * t + 0.7) * 0.5 + Math.sin(0.3 * (x + z) + 2.1 * t) * 0.25);
+        }
+        seaGeo.attributes.position.needsUpdate = true;
+        seaGeo.computeVertexNormals();
+        // moonglade from the horizon towards the camera
+        const gw = Math.max(R * 0.35, 8);
+        glade.position.set(camera.position.x + mdir.x * 600, level + 0.6, camera.position.z - 640);
+        glade.scale.set(gw, 1200, 1);
+        glade.material.opacity = 0.07 * discK;
+
+        // village: lit windows, flooded and finally gone
+        const gone = real ? 0 : smooth(t, 33.5, 35.5);
+        for (const h of houses) h.visible = gone < 0.5;
+        for (const b of boats) {
+          b.b.visible = gone < 0.5;
+          const bottom = terrainH(b.x, b.z);
+          b.b.position.y = Math.max(bottom + 0.4, level + 0.25);
+          b.b.rotation.z = Math.sin(t * 1.3 + b.ph) * 0.06;
+        }
+        jetty.visible = gone < 0.5;
+        const flash = Math.pow(Math.max(Math.cos(t * 1.6), 0), 10);
+        lampGlow.scale.setScalar(6 + 26 * flash);
+        lampGlow.material.opacity = 0.5 + 0.5 * flash;
+        lantern.material.emissiveIntensity = 3;
+
+        bloom.strength = 0.55; bloom.threshold = 0.8;
+        renderPass.scene = coast;
+      }
+
+      function renderSpace(t) {
+        const k = ramp(t, 46.0, 54.0);
+        // the ring forms from debris: opacity grows, chunks spread along their orbits
+        ring.material.opacity = smooth(k, 0.0, 0.7);
+        for (const c of chunks) {
+          const a = c.a + t * c.w;
+          c.m.position.set(Math.cos(a) * c.r, c.y, Math.sin(a) * c.r);
+        }
+        camera.position.set(lerp(-6, 4, k), lerp(14, 9, k), lerp(64, 56, k));
+        camera.lookAt(0, -2, 0);
+        camera.updateMatrixWorld();
+        earth.rotation.y = 1.2 + t * 0.05;
+        renderer.toneMappingExposure = 1.0;
+        bloom.strength = 0.4; bloom.threshold = 0.85;
+        renderPass.scene = space;
+      }
+
+      function renderAt(t) {
+        updateHud(t);
+        if (t < 46.55 || t >= 53.95) renderCoast(t);
+        else renderSpace(t);
+        composer.render();
+      }
+      window.__renderAt = renderAt;
+
+      const tlMain = window.__timelines["main"];
+      renderAt(tlMain ? tlMain.time() : 0);
+      window.__hf = window.__hf || {};
+      window.__hf.buildReady = window.__hf.buildReady || {};
+      window.__hf.buildReady["main"] = (async () => {
+        await document.fonts.ready;
+        for (const f of [20, 44, 50]) {
+          await new Promise((r) => setTimeout(r, 0));
+          renderAt(f);
+        }
+        renderAt(tlMain ? tlMain.time() : 0);
+        renderer.getContext().finish();
+      })();
+    </script>
+  </body>
+</html>
