@@ -55,11 +55,8 @@ references. Exact look: `references/style-guide.md`. Working template: `videos/0
 | Twist / ending | ~55–66 s | Return, nature takes over, or life survives somewhere. |
 | Outro | 66–72 s | `#161616` card, hook question centred, below it a tiny summary line in capitals with `·`. |
 
-Captions: **short keywords, no sentences** – nothing that reads like a script to be spoken (the creator's explicit
-wish). 1–5 words, often with `·` or `:`, concrete numbers instead of explanations: "Patagonien · Winter · Meuterei",
-"98 Tage kein Land", "18 von 270", "Flut: 24 m", "−1 Tag". No "Du …" sentences, no subordinate clauses. Each caption
-holds 3–4.5 s, fades in and out in 0.4 s, and never moves while it is read.
-(Videos 01–04 still have sentences; rework them on request.)
+Captions: 3–8 words, dry, laconic, present tense, second person ("Du merkst: nichts."), concrete comparisons
+("8 Meter: höher als ein Haus."). Each caption holds 3–4.5 s, fades in and out in 0.4 s, and never moves while it is read.
 
 HUD (left, top at 820 px): label in capitals (Inter 700, 24 px, 0.22em) → large value (EB Garamond, 80 px)
 → subline in capitals (Inter 400, 24 px). The label changes at the turning point
