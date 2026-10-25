@@ -93,6 +93,28 @@ From `videos/01-sonne-erlischt/index.html`:
 - Helpers in the template: `keys(t, [[t,v],…])` for piecewise interpolation, `smooth`, `ramp`, `mixCol`,
   `canvasTex` for procedural textures, `makeStars`, `glowTex`.
 
+## Background music (only when asked for)
+
+Default: no sound (the creator picks the TikTok sound). When the user asks for music:
+
+- **Legally clean sources only.** No "non-commercial" licences (CC-BY-NC, MusicGen weights). Wikimedia is often
+  rate-limited. Reliable: **own arrangement on public-domain material**, synthesised in code –
+  `tools/music/folia.py` (Folia ground, Iberian 16th c.: Karplus-Strong lute, bowed viol, frame drum, room reverb).
+  For other eras/moods copy the script and change the harmony, instruments, tempo and the four passes.
+- Length = video length exactly (bars × bar length), passes follow the story arc (e.g. calm → tense → sparse → full),
+  a 4 s fade-out under the outro. Target −16 LUFS, peak −1 dBFS, highpass 45 Hz (phone speakers).
+- Check without listening: `ffmpeg … ebur128=peak=true` (loudness), `showspectrumpic` (structure, no noise/clipping).
+  Tell the user it was measured, not heard.
+- In the HTML: `<audio id="bgm" class="clip" src="assets/bgm/<file>.wav" data-start="0" data-duration="72" data-volume="1">`.
+- The fast renderer produces video only: after the concat, mux the audio:
+  `ffmpeg -i video.mp4 -i assets/bgm/<file>.wav -map 0:v -map 1:a -c:v copy -c:a aac -b:a 192k -shortest -movflags +faststart out.mp4`.
+
+## Real geography
+
+Maps/globes with real coastlines: Natural Earth via the npm package `world-atlas@2.0.2` (`land-110m.json`) +
+`topojson-client`, convert once into `assets/land-110m.js` (`window.__LAND = [[lon,lat],…]` polygons) and load it via
+`<script src>` (no fetch at render time). Draw onto a 2048×1024 equirectangular canvas texture.
+
 ## Known pitfalls (SwiftShader / Three.js)
 
 - Custom shaders: compute the distance for fog/light **per fragment** from `vMv` (view position),

@@ -1,0 +1,819 @@
+<!doctype html>
+<html lang="de" data-resolution="portrait">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1080, height=1920" />
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+    <script src="assets/land-110m.js"></script>
+    <script type="importmap">
+      {
+        "imports": {
+          "three": "https://cdn.jsdelivr.net/npm/three@0.181.2/build/three.module.js",
+          "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.181.2/examples/jsm/"
+        }
+      }
+    </script>
+    <style>
+      @font-face { font-family: "EB Garamond"; font-style: normal; font-weight: 400; src: url("assets/fonts/eb-garamond-latin-400-normal.woff2") format("woff2"); }
+      @font-face { font-family: "EB Garamond"; font-style: italic; font-weight: 400; src: url("assets/fonts/eb-garamond-latin-400-italic.woff2") format("woff2"); }
+      @font-face { font-family: "Inter"; font-style: normal; font-weight: 400; src: url("assets/fonts/inter-latin-400-normal.woff2") format("woff2"); }
+      @font-face { font-family: "Inter"; font-style: normal; font-weight: 700; src: url("assets/fonts/inter-latin-700-normal.woff2") format("woff2"); }
+      :root {
+        --ink: #ffffff;
+        --accent: #e2b65c;
+        --outro: #161616;
+        --serif: "EB Garamond", serif;
+        --sans: "Inter", sans-serif;
+      }
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      html, body { width: 1080px; height: 1920px; overflow: hidden; background: #000; }
+      #root { position: relative; width: 100%; height: 100%; overflow: hidden; font-family: var(--serif); color: var(--ink); }
+      #stage { position: absolute; inset: 0; }
+      #stage canvas { position: absolute; left: 0; top: 0; width: 1080px !important; height: 1920px !important; }
+      #fade, #flash { position: absolute; inset: 0; opacity: 0; pointer-events: none; }
+      #fade { background: #000; }
+      #flash { background: #fffaf0; }
+      #hook {
+        position: absolute; left: 90px; right: 90px; top: 360px;
+        font-size: 66px; line-height: 1.12; font-weight: 400; text-align: center;
+        text-shadow: 0 2px 18px rgba(0, 0, 0, 0.35);
+      }
+      .acc { color: var(--accent); }
+      .nb { white-space: nowrap; }
+      #hud { position: absolute; left: 64px; top: 820px; text-shadow: 0 1px 10px rgba(0, 0, 0, 0.5), 0 0 24px rgba(40, 15, 0, 0.5); }
+      #hud-label, #hud-sub {
+        font-family: var(--sans); font-weight: 700; font-size: 24px;
+        letter-spacing: 0.22em; text-transform: uppercase; opacity: 0.82;
+      }
+      #hud-value { font-family: var(--serif); font-size: 80px; line-height: 1.05; margin: 6px 0 8px; font-variant-numeric: tabular-nums; }
+      #hud-sub { font-weight: 400; opacity: 0.72; }
+      .cap {
+        position: absolute; left: 80px; right: 80px; top: 1180px; text-align: center;
+        font-family: var(--serif); font-style: italic; font-size: 48px; line-height: 1.2;
+        text-shadow: 0 2px 14px rgba(0, 0, 0, 0.6), 0 0 28px rgba(40, 15, 0, 0.55);
+      }
+      #outro { position: absolute; inset: 0; background: var(--outro); }
+      #outro-q {
+        position: absolute; left: 90px; right: 90px; top: 760px; text-align: center;
+        font-size: 64px; line-height: 1.15; color: #e9e6df; font-weight: 400;
+      }
+      #outro-sub {
+        position: absolute; left: 50px; right: 50px; top: 960px; text-align: center;
+        font-family: var(--sans); font-size: 22px; letter-spacing: 0.2em; color: #8a8780;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="root" data-composition-id="main" data-start="0" data-duration="72" data-width="1080" data-height="1920">
+      <div id="stage" class="clip" data-start="0" data-duration="66.2" data-track-index="0" data-layout-ignore></div>
+      <div id="flash" data-layout-ignore></div>
+      <div id="fade" data-layout-ignore></div>
+
+      <audio id="bgm" class="clip" src="assets/bgm/folia.wav" data-start="0" data-duration="72" data-track-index="5" data-volume="1"></audio>
+
+      <h1 id="hook" class="clip" data-start="0" data-duration="3.4" data-track-index="1">
+        Was wäre, wenn du 1519 mit <span class="acc">Magellan</span> um die Welt segelst?
+      </h1>
+
+      <div id="hud" class="clip" data-start="0" data-duration="65.6" data-track-index="2">
+        <div id="hud-label">20. September 1519</div>
+        <div id="hud-value">Tag 1</div>
+        <div id="hud-sub">5 Schiffe · rund 270 Mann</div>
+      </div>
+
+      <p id="c1" class="clip cap" data-start="3.5" data-duration="2.7" data-track-index="3">Spanien. Fünf Schiffe, rund 270 Mann.</p>
+      <p id="c2" class="clip cap" data-start="6.4" data-duration="3.0" data-track-index="3">Ziel: die Gewürzinseln. Westwärts.</p>
+      <p id="c3" class="clip cap" data-start="9.8" data-duration="3.6" data-track-index="3">Niemand weiß, wie groß die Welt wirklich ist.</p>
+      <p id="c4" class="clip cap" data-start="13.6" data-duration="3.4" data-track-index="3">Dezember 1519: Brasilien.</p>
+      <p id="c5" class="clip cap" data-start="17.6" data-duration="3.8" data-track-index="3">Patagonien. Fünf Monate Winter. Meuterei.</p>
+      <p id="c6" class="clip cap" data-start="21.6" data-duration="3.4" data-track-index="3">Die Santiago geht im Sturm verloren.</p>
+      <p id="c7" class="clip cap" data-start="25.6" data-duration="3.6" data-track-index="3">In der Meerenge kehrt ein Schiff heimlich um.</p>
+      <p id="c8" class="clip cap" data-start="29.4" data-duration="3.4" data-track-index="3">Nach 38 Tagen: das offene Meer.</p>
+      <p id="c9" class="clip cap" data-start="33.6" data-duration="3.8" data-track-index="3">Ein Ozean, viel größer als gedacht.</p>
+      <p id="c10" class="clip cap" data-start="37.6" data-duration="3.8" data-track-index="3">Sie essen Leder, Sägemehl und Ratten.</p>
+      <p id="c11" class="clip cap" data-start="41.6" data-duration="3.4" data-track-index="3">Nach 98 Tagen: endlich Land.</p>
+      <p id="c12" class="clip cap" data-start="45.6" data-duration="4.8" data-track-index="3">April 1521: Magellan fällt auf den Philippinen.</p>
+      <p id="c13" class="clip cap" data-start="51.0" data-duration="3.0" data-track-index="3">Nur die Victoria schafft es zurück.</p>
+      <p id="c14" class="clip cap" data-start="54.2" data-duration="3.2" data-track-index="3">September 1522: 18 Mann von 270.</p>
+      <p id="c15" class="clip cap" data-start="57.8" data-duration="3.8" data-track-index="3">Und im Logbuch fehlt ein Tag.</p>
+      <p id="c16" class="clip cap" data-start="61.8" data-duration="3.8" data-track-index="3">Wer westwärts um die Erde fährt, verliert einen Tag.</p>
+
+      <div id="outro" class="clip" data-start="66" data-duration="6" data-track-index="4">
+        <h2 id="outro-q">Was wäre, wenn du 1519 mit <span class="acc">Magellan</span> um die Welt segelst?</h2>
+        <p id="outro-sub">1519–1522 · 1.083 TAGE · 18 VON 270</p>
+      </div>
+    </div>
+
+    <script>
+      window.__timelines = window.__timelines || {};
+      const tl = gsap.timeline({ paused: true });
+
+      document.querySelectorAll(".cap").forEach((el) => {
+        const s = parseFloat(el.dataset.start);
+        const d = parseFloat(el.dataset.duration);
+        tl.fromTo(el, { opacity: 0 }, { opacity: 1, duration: 0.4, ease: "sine.out" }, s);
+        tl.to(el, { opacity: 0, duration: 0.4, ease: "sine.in" }, s + d - 0.45);
+      });
+      tl.fromTo("#hook", { opacity: 1 }, { opacity: 0, duration: 0.5, ease: "sine.in" }, 2.85);
+      tl.fromTo("#hud", { opacity: 0 }, { opacity: 1, duration: 0.5, ease: "sine.out" }, 0.3);
+      tl.to("#hud", { opacity: 0, duration: 0.5, ease: "sine.in" }, 65.0);
+
+      // quick dips through black between the places
+      const CUTS = [9.0, 17.0, 25.0, 33.0, 45.0, 51.0, 57.0];
+      tl.fromTo("#fade", { opacity: 0 }, { opacity: 0, duration: 0.01 }, 0);
+      CUTS.forEach((c) => {
+        tl.to("#fade", { opacity: 1, duration: 0.3, ease: "sine.in" }, c - 0.3);
+        tl.to("#fade", { opacity: 0, duration: 0.4, ease: "sine.out" }, c);
+      });
+      tl.to("#fade", { opacity: 1, duration: 0.6, ease: "sine.in" }, 65.4);
+
+      tl.fromTo("#outro-q", { opacity: 0 }, { opacity: 1, duration: 0.6, ease: "sine.out" }, 66.2);
+      tl.fromTo("#outro-sub", { opacity: 0 }, { opacity: 1, duration: 0.6, ease: "sine.out" }, 66.8);
+      tl.set({}, {}, 72);
+
+      tl.eventCallback("onUpdate", () => {
+        if (window.__renderAt) window.__renderAt(tl.time());
+      });
+      window.addEventListener("hf-seek", (e) => {
+        const d = e && e.detail;
+        if (d && typeof d.time === "number") {
+          tl.totalTime(Math.min(d.time, tl.totalDuration()), true);
+          if (window.__renderAt) window.__renderAt(d.time);
+        }
+      });
+      window.__timelines["main"] = tl;
+    </script>
+
+    <script type="module">
+      import * as THREE from "three";
+      import { EffectComposer } from "three/addons/postprocessing/EffectComposer.js";
+      import { RenderPass } from "three/addons/postprocessing/RenderPass.js";
+      import { UnrealBloomPass } from "three/addons/postprocessing/UnrealBloomPass.js";
+      import { OutputPass } from "three/addons/postprocessing/OutputPass.js";
+
+      const W = 1080, H = 1920, SCALE = 0.75;
+
+      // ---------- helpers ----------
+      function mulberry32(a) {
+        return function () {
+          a |= 0; a = (a + 0x6d2b79f5) | 0;
+          let t = Math.imul(a ^ (a >>> 15), 1 | a);
+          t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+          return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+        };
+      }
+      const clamp = (x, a = 0, b = 1) => Math.min(b, Math.max(a, x));
+      const ramp = (t, a, b) => clamp((t - a) / (b - a));
+      const smooth = (t, a, b) => { const x = ramp(t, a, b); return x * x * (3 - 2 * x); };
+      const lerp = (a, b, k) => a + (b - a) * k;
+      const col = (h) => new THREE.Color(h);
+      function keys(t, ks, ease = smooth) {
+        if (t <= ks[0][0]) return ks[0][1];
+        for (let i = 1; i < ks.length; i++) {
+          if (t <= ks[i][0]) return lerp(ks[i - 1][1], ks[i][1], ease(t, ks[i - 1][0], ks[i][0]));
+        }
+        return ks[ks.length - 1][1];
+      }
+      const linear = (t, a, b) => ramp(t, a, b);
+      const std = (c, o = {}) => new THREE.MeshStandardMaterial(Object.assign({ color: col(c), roughness: 0.9, metalness: 0, flatShading: true }, o));
+
+      // ---------- the voyage calendar ----------
+      const DAY_MS = 86400000;
+      const D0 = Date.UTC(1519, 8, 20); // 20 Sep 1519, day 1
+      const day = (y, m, d) => (Date.UTC(y, m - 1, d) - D0) / DAY_MS; // days since departure
+      const DATEKEYS = [
+        [6.0, 0], [9.0, day(1519, 10, 20)], [13.6, day(1519, 12, 13)], [17.0, day(1520, 3, 31)], [20.5, day(1520, 4, 2)],
+        [22.2, day(1520, 5, 22)], [25.0, day(1520, 10, 21)], [28.0, day(1520, 11, 8)], [31.0, day(1520, 11, 28)],
+        [33.0, day(1520, 11, 29)], [42.6, day(1521, 3, 6)], [45.0, day(1521, 3, 16)], [47.8, day(1521, 4, 27)],
+        [51.0, day(1521, 5, 2)], [53.0, day(1521, 12, 21)], [56.0, day(1522, 9, 6)],
+      ];
+      const dayAt = (t) => Math.floor(keys(t, DATEKEYS, linear) + 1e-6);
+      const MONTHS = ["Januar", "Februar", "März", "April", "Mai", "Juni", "Juli", "August", "September", "Oktober", "November", "Dezember"];
+      function dateLabel(d) {
+        const dt = new Date(D0 + d * DAY_MS);
+        return dt.getUTCDate() + ". " + MONTHS[dt.getUTCMonth()] + " " + dt.getUTCFullYear();
+      }
+      function shipsOn(d) {
+        let n = 5;
+        if (d >= day(1520, 5, 22)) n = 4; // Santiago lost
+        if (d >= day(1520, 11, 8)) n = 3; // San Antonio turns back
+        if (d >= day(1521, 5, 2)) n = 2; // Concepción burned
+        if (d >= day(1521, 12, 21)) n = 1; // Trinidad stays behind
+        return n;
+      }
+      const hudLabel = document.getElementById("hud-label");
+      const hudValue = document.getElementById("hud-value");
+      const hudSub = document.getElementById("hud-sub");
+      const setText = (el, s) => { if (el.textContent !== s) el.textContent = s; };
+      function updateHud(t) {
+        const d = dayAt(t);
+        setText(hudLabel, dateLabel(d));
+        setText(hudValue, "Tag " + (d + 1).toLocaleString("de-DE"));
+        const n = shipsOn(d);
+        let sub = n + (n === 1 ? " Schiff" : " Schiffe");
+        if (t < 9) sub += " · rund 270 Mann";
+        if (t >= 55.4) sub = "1 Schiff · 18 Mann";
+        setText(hudSub, sub);
+      }
+
+      // ---------- renderer ----------
+      const renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true, powerPreference: "high-performance" });
+      renderer.setPixelRatio(1);
+      renderer.setSize(Math.round(W * SCALE), Math.round(H * SCALE), false);
+      renderer.shadowMap.enabled = true;
+      renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+      renderer.toneMapping = THREE.ACESFilmicToneMapping;
+      document.getElementById("stage").appendChild(renderer.domElement);
+      const camera = new THREE.PerspectiveCamera(55, W / H, 0.3, 5000);
+
+      function canvasTex(w, h, draw, repeat = true) {
+        const c = document.createElement("canvas");
+        c.width = w; c.height = h;
+        draw(c.getContext("2d"), w, h);
+        const tx = new THREE.CanvasTexture(c);
+        if (repeat) tx.wrapS = tx.wrapT = THREE.RepeatWrapping;
+        tx.colorSpace = THREE.SRGBColorSpace;
+        tx.anisotropy = 4;
+        return tx;
+      }
+      const glowTex = canvasTex(256, 256, (g, w, h) => {
+        const gr = g.createRadialGradient(w / 2, h / 2, 0, w / 2, h / 2, w / 2);
+        gr.addColorStop(0, "rgba(255,255,255,1)"); gr.addColorStop(0.2, "rgba(255,255,255,0.55)");
+        gr.addColorStop(0.5, "rgba(255,255,255,0.12)"); gr.addColorStop(1, "rgba(255,255,255,0)");
+        g.fillStyle = gr; g.fillRect(0, 0, w, h);
+      }, false);
+      // sail cloth: worn linen; the main course carries the red Burgundy cross
+      const sailTex = canvasTex(256, 256, (g, w, h) => {
+        g.fillStyle = "#e9dfc8"; g.fillRect(0, 0, w, h);
+        for (let i = 0; i < 9; i++) { g.fillStyle = "rgba(120,100,70,0.08)"; g.fillRect(0, i * 29, w, 2); }
+      }, false);
+      const crossTex = canvasTex(256, 256, (g, w, h) => {
+        g.fillStyle = "#e9dfc8"; g.fillRect(0, 0, w, h);
+        for (let i = 0; i < 9; i++) { g.fillStyle = "rgba(120,100,70,0.08)"; g.fillRect(0, i * 29, w, 2); }
+        g.strokeStyle = "#a8241e"; g.lineWidth = 26; g.lineCap = "round";
+        g.beginPath(); g.moveTo(52, 46); g.lineTo(204, 212); g.moveTo(204, 46); g.lineTo(52, 212); g.stroke();
+      }, false);
+
+      function makeSky(scene, top, horizon) {
+        const uni = { top: { value: col(top) }, horizon: { value: col(horizon) }, glow: { value: col("#000000") }, glowDir: { value: new THREE.Vector3(0, 0, -1) } };
+        const m = new THREE.Mesh(
+          new THREE.SphereGeometry(3500, 48, 24),
+          new THREE.ShaderMaterial({
+            side: THREE.BackSide, depthWrite: false, fog: false, uniforms: uni,
+            vertexShader: `varying vec3 vP; void main(){ vP = normalize(position); gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0); }`,
+            fragmentShader: `uniform vec3 top; uniform vec3 horizon; uniform vec3 glow; uniform vec3 glowDir; varying vec3 vP;
+              void main(){ float h = clamp(vP.y, -0.1, 1.0); float k = pow(clamp(h*2.2,0.0,1.0), 0.65);
+                float g = pow(max(dot(normalize(vec3(vP.x,0.0,vP.z)), normalize(vec3(glowDir.x,0.0,glowDir.z))), 0.0), 8.0) * exp(-max(h,0.0)*4.0);
+                gl_FragColor = vec4(mix(horizon, top, k) + glow * g, 1.0); }`,
+          }),
+        );
+        m.renderOrder = -10;
+        scene.add(m);
+        return { mesh: m, uni };
+      }
+      function makeSea(scene, color, size = 2400, seg = 160) {
+        const g = new THREE.PlaneGeometry(size, size, seg, seg);
+        g.rotateX(-Math.PI / 2);
+        const base = Float32Array.from(g.attributes.position.array);
+        const mat = std(color, { roughness: 0.55, metalness: 0.15, flatShading: true });
+        const mesh = new THREE.Mesh(g, mat);
+        mesh.receiveShadow = true;
+        scene.add(mesh);
+        return {
+          mesh, mat,
+          update(t, amp, choppy = 1, cx = 0, cz = 0) {
+            const p = g.attributes.position.array;
+            for (let i = 0; i < p.length; i += 3) {
+              const x = base[i] + cx, z = base[i + 2] + cz;
+              p[i] = x; p[i + 2] = z;
+              p[i + 1] = amp * (Math.sin(0.09 * x + 0.8 * t) * 0.55 + Math.sin(0.12 * z - 1.0 * t + 0.7) * 0.45 + choppy * 0.3 * Math.sin(0.31 * (x + z) + 1.9 * t));
+            }
+            g.attributes.position.needsUpdate = true;
+            g.computeVertexNormals();
+          },
+        };
+      }
+      const waveAt = (t, amp, choppy, x, z) => amp * (Math.sin(0.09 * x + 0.8 * t) * 0.55 + Math.sin(0.12 * z - 1.0 * t + 0.7) * 0.45 + choppy * 0.3 * Math.sin(0.31 * (x + z) + 1.9 * t));
+
+      // ---------- a carrack ----------
+      const hullShape = new THREE.Shape();
+      [[-3.3, 2.7], [-3.5, 1.0], [-2.8, -0.7], [2.2, -0.7], [3.3, 0.6], [3.6, 1.6], [2.4, 1.55], [2.2, 1.0], [-1.6, 1.0], [-1.7, 2.0], [-3.3, 2.7]]
+        .forEach(([x, y], i) => (i ? hullShape.lineTo(x, y) : hullShape.moveTo(x, y)));
+      const hullGeo = new THREE.ExtrudeGeometry(hullShape, { depth: 2.0, bevelEnabled: true, bevelSize: 0.25, bevelThickness: 0.35, bevelSegments: 1 });
+      hullGeo.translate(0, 0, -1.0);
+      function bentSail(w, h, bulge) {
+        const g = new THREE.PlaneGeometry(w, h, 6, 6);
+        const p = g.attributes.position;
+        for (let i = 0; i < p.count; i++) {
+          const u = p.getX(i) / (w / 2), v = p.getY(i) / (h / 2);
+          p.setZ(i, bulge * (1 - u * u) * (1 - 0.4 * v * v));
+        }
+        g.computeVertexNormals();
+        return g;
+      }
+      function makeShip(seed, hullCol = "#5b3b24") {
+        const r = mulberry32(seed);
+        const s = new THREE.Group();
+        const hull = new THREE.Mesh(hullGeo, std(hullCol));
+        const stripe = new THREE.Mesh(new THREE.BoxGeometry(6.4, 0.18, 2.75), std("#c9a24a"));
+        stripe.position.set(0.1, 0.75, 0);
+        s.add(hull, stripe);
+        const mastMat = std("#4a3322");
+        const sailMat = new THREE.MeshStandardMaterial({ map: sailTex, side: THREE.DoubleSide, roughness: 1 });
+        const crossMat = new THREE.MeshStandardMaterial({ map: crossTex, side: THREE.DoubleSide, roughness: 1 });
+        const sails = [];
+        const masts = [[1.9, 6.2, 2.6, 2.2], [0.2, 8.4, 3.4, 2.9], [-2.1, 5.6, 0, 0]];
+        masts.forEach(([x, h, sw, sh], k) => {
+          const m = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.12, h, 6), mastMat);
+          m.position.set(x, 1.0 + h / 2, 0);
+          s.add(m);
+          if (sw > 0) {
+            const course = new THREE.Mesh(bentSail(sw, sh, 0.45), k === 1 ? crossMat : sailMat);
+            course.rotation.y = Math.PI / 2;
+            course.position.set(x + 0.15, 1.0 + h * 0.48, 0);
+            const top = new THREE.Mesh(bentSail(sw * 0.72, sh * 0.62, 0.3), sailMat);
+            top.rotation.y = Math.PI / 2;
+            top.position.set(x + 0.12, 1.0 + h * 0.82, 0);
+            s.add(course, top);
+            sails.push(course, top);
+            const yard = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, sw * 1.1, 5), mastMat);
+            yard.rotation.x = Math.PI / 2;
+            yard.position.set(x + 0.15, 1.0 + h * 0.48 + sh / 2, 0);
+            s.add(yard);
+          } else {
+            // lateen sail on the mizzen
+            const tri = new THREE.BufferGeometry();
+            tri.setAttribute("position", new THREE.Float32BufferAttribute([0, 0, 0, -2.2, 0.2, 0, 0.6, 3.6, 0], 3));
+            tri.computeVertexNormals();
+            const lat = new THREE.Mesh(tri, sailMat);
+            lat.position.set(x + 0.2, 2.2, 0.05);
+            s.add(lat);
+            sails.push(lat);
+          }
+        });
+        const flag = new THREE.Mesh(new THREE.PlaneGeometry(0.9, 0.5), new THREE.MeshStandardMaterial({ color: col(["#a8241e", "#c9a24a", "#e9dfc8"][Math.floor(r() * 3)]), side: THREE.DoubleSide }));
+        flag.position.set(-0.25, 1.0 + 8.4 + 0.3, 0);
+        s.add(flag);
+        s.traverse((o) => { if (o.isMesh) { o.castShadow = true; o.receiveShadow = true; } });
+        s.userData = { sails, flag, ph: r() * 6.28 };
+        return s;
+      }
+      // float a ship on the waves: heave, pitch and roll from the wave field
+      function floatShip(s, t, amp, choppy, x, z, heading, furled = 0) {
+        const ph = s.userData.ph;
+        const y = waveAt(t, amp, choppy, x, z);
+        const yF = waveAt(t, amp, choppy, x + Math.cos(heading) * 3, z - Math.sin(heading) * 3);
+        const yS = waveAt(t, amp, choppy, x + Math.sin(heading) * 1.5, z + Math.cos(heading) * 1.5);
+        s.position.set(x, y + 0.15, z);
+        s.rotation.set(0, heading, 0);
+        s.rotateZ(Math.atan2(yF - y, 3) * 0.8);
+        s.rotateX(Math.atan2(yS - y, 1.5) * 0.6 + Math.sin(t * 0.9 + ph) * 0.02);
+        for (const sl of s.userData.sails) sl.scale.y = lerp(1, 0.12, furled);
+        s.userData.flag.rotation.y = Math.sin(t * 6 + ph) * 0.3;
+      }
+
+      function makeStars(seed, n, radius, minY) {
+        const r = mulberry32(seed), pos = [], cl = [];
+        while (pos.length < n * 3) {
+          const u = r() * 2 - 1, th = r() * Math.PI * 2, sq = Math.sqrt(1 - u * u);
+          if (u < minY) continue;
+          pos.push(sq * Math.cos(th) * radius, u * radius, sq * Math.sin(th) * radius);
+          const b = Math.pow(r(), 3) * 0.6 + 0.12; cl.push(b, b * 0.95, b);
+        }
+        const g = new THREE.BufferGeometry();
+        g.setAttribute("position", new THREE.Float32BufferAttribute(pos, 3));
+        g.setAttribute("color", new THREE.Float32BufferAttribute(cl, 3));
+        return new THREE.Points(g, new THREE.PointsMaterial({ size: 1.6, sizeAttenuation: false, vertexColors: true, transparent: true, depthWrite: false, fog: false }));
+      }
+      function sunSprite(scene, color, size) {
+        const s = new THREE.Sprite(new THREE.SpriteMaterial({ map: glowTex, color: col(color), transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, fog: false }));
+        s.scale.set(size, size, 1);
+        s.renderOrder = -5;
+        scene.add(s);
+        return s;
+      }
+      function lights(scene, skyC, groundC, hemiI, sunC, sunI, dir) {
+        const h = new THREE.HemisphereLight(col(skyC), col(groundC), hemiI);
+        const d = new THREE.DirectionalLight(col(sunC), sunI);
+        d.position.copy(dir).multiplyScalar(150);
+        d.castShadow = true;
+        d.shadow.mapSize.set(1024, 1024);
+        Object.assign(d.shadow.camera, { left: -40, right: 40, top: 40, bottom: -40, near: 1, far: 400 });
+        scene.add(h, d, d.target);
+        return { h, d };
+      }
+      const scenes = {};
+
+      // =====================================================================
+      // A — Sanlúcar de Barrameda at dawn
+      // =====================================================================
+      {
+        const sc = new THREE.Scene();
+        const sky = makeSky(sc, "#34507e", "#f2c08a");
+        sky.uni.glow.value.set("#ffb070").multiplyScalar(0.8); sky.uni.glowDir.value.set(0.4, 0, -1);
+        sc.fog = new THREE.Fog(col("#e8b88a"), 150, 1400);
+        lights(sc, "#e8d8c8", "#5a4a3a", 1.0, "#ffd6a0", 2.2, new THREE.Vector3(0.45, 0.25, -1).normalize());
+        const sun = sunSprite(sc, "#ffdca0", 380);
+        const sea = makeSea(sc, "#3a5a78");
+        const quay = new THREE.Mesh(new THREE.BoxGeometry(30, 3, 300), std("#b8a688"));
+        quay.position.set(-27, 0.6, -60); quay.receiveShadow = true;
+        sc.add(quay);
+        const r = mulberry32(11);
+        const roofMat = std("#b5603a");
+        for (let i = 0; i < 26; i++) {
+          const w = 5 + r() * 4, h = 4 + r() * 5, d = 6 + r() * 4;
+          const z = 34 - i * 11 - r() * 3;
+          const house = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), std(["#f2ece0", "#ece4d2", "#f6f1e6"][i % 3]));
+          house.position.set(-22 - r() * 12, 2.1 + h / 2, z);
+          house.castShadow = house.receiveShadow = true;
+          const roof = new THREE.Mesh(new THREE.BoxGeometry(w + 0.4, 0.5, d + 0.4), roofMat);
+          roof.position.set(house.position.x, 2.1 + h + 0.25, z);
+          sc.add(house, roof);
+        }
+        const tower = new THREE.Mesh(new THREE.BoxGeometry(4, 22, 4), std("#efe6d4"));
+        tower.position.set(-30, 13, -40);
+        const spire = new THREE.Mesh(new THREE.ConeGeometry(2.6, 6, 4), roofMat);
+        spire.position.set(-30, 27, -40); spire.rotation.y = Math.PI / 4;
+        sc.add(tower, spire);
+        const ships = [0, 1, 2, 3, 4].map((i) => { const s = makeShip(100 + i); sc.add(s); return s; });
+        scenes.A = {
+          sc, render(t) {
+            const go = smooth(t, 5.0, 9.0);
+            camera.position.set(-9 - t * 0.15, 4.5, 30);
+            camera.lookAt(0, 5.5, -30);
+            sun.position.set(camera.position.x + 900, 260, camera.position.z - 2000);
+            sea.update(t, 0.35, 0.6);
+            ships.forEach((s, i) => {
+              const x0 = -6 + i * 6.5, z0 = -8 - i * 9;
+              const k = Math.max(0, t - 5.0 - i * 0.35);
+              floatShip(s, t, 0.35, 0.6, x0 + k * k * 0.5, z0 - k * k * 0.9, Math.PI / 2 - 0.5, 1 - go);
+            });
+          },
+        };
+      }
+
+      // =====================================================================
+      // B — the open Atlantic
+      // =====================================================================
+      {
+        const sc = new THREE.Scene();
+        makeSky(sc, "#3f74b4", "#bcd4e6");
+        sc.fog = new THREE.Fog(col("#bcd4e6"), 120, 1500);
+        lights(sc, "#dfeaf6", "#2a4a66", 1.1, "#fff4e0", 2.4, new THREE.Vector3(-0.4, 0.8, 0.3).normalize());
+        const sea = makeSea(sc, "#1f4f7a");
+        const ships = [0, 1, 2, 3, 4].map((i) => { const s = makeShip(200 + i); sc.add(s); return s; });
+        scenes.B = {
+          sc, render(t) {
+            const lt = t - 9;
+            const fleetX = lt * 2.2;
+            camera.position.set(fleetX - 12, 3.2, 20);
+            camera.lookAt(fleetX + 6, 5.5, -10);
+            sea.update(t, 0.9, 1.0, Math.round(fleetX / 15) * 15, 0);
+            ships.forEach((s, i) => floatShip(s, t, 0.9, 1.0, fleetX + 4 - i * 10 + (i % 2) * 3, -6 - i * 9, 0.08 * Math.sin(i), 0));
+          },
+        };
+      }
+
+      // =====================================================================
+      // C — Patagonia, winter at San Julián
+      // =====================================================================
+      {
+        const sc = new THREE.Scene();
+        makeSky(sc, "#5e6b78", "#a9b2b8");
+        sc.fog = new THREE.Fog(col("#a9b2b8"), 60, 700);
+        lights(sc, "#c8d0d8", "#4a4a4a", 1.2, "#e8eef4", 0.9, new THREE.Vector3(0.3, 0.6, 0.5).normalize());
+        const sea = makeSea(sc, "#5f707c");
+        const r = mulberry32(21);
+        const hills = new THREE.Group();
+        for (let i = 0; i < 18; i++) {
+          const h = new THREE.Mesh(new THREE.IcosahedronGeometry(30 + r() * 40, 1), std("#e9eef2"));
+          h.position.set(-300 + i * 36 + r() * 10, -12 + r() * 8, -170 - r() * 60);
+          h.scale.y = 0.45 + r() * 0.25;
+          hills.add(h);
+          const rock = new THREE.Mesh(new THREE.IcosahedronGeometry(14 + r() * 10, 0), std("#5b5650"));
+          rock.position.set(h.position.x + 10, -2, h.position.z + 25);
+          hills.add(rock);
+        }
+        sc.add(hills);
+        const ships = [0, 1, 2, 3, 4].map((i) => { const s = makeShip(300 + i); sc.add(s); return s; });
+        // snow
+        const N = 2500, base = new Float32Array(N * 4);
+        for (let i = 0; i < N; i++) { base[i * 4] = -40 + r() * 80; base[i * 4 + 1] = r() * 40; base[i * 4 + 2] = -40 + r() * 70; base[i * 4 + 3] = r() * 6.28; }
+        const sg = new THREE.BufferGeometry();
+        sg.setAttribute("position", new THREE.BufferAttribute(new Float32Array(N * 3), 3));
+        const snow = new THREE.Points(sg, new THREE.PointsMaterial({ color: col("#f4f7fa"), size: 0.12, map: glowTex, transparent: true, depthWrite: false }));
+        snow.frustumCulled = false;
+        sc.add(snow);
+        scenes.C = {
+          sc, render(t) {
+            camera.position.set(-4 + (t - 17) * 0.3, 7, 34);
+            camera.lookAt(0, 4, -40);
+            const storm = smooth(t, 21.5, 22.5);
+            const amp = lerp(0.5, 1.6, storm);
+            sea.update(t, amp, 1.4);
+            ships.forEach((s, i) => {
+              let x = -22 + i * 11, z = -18 - (i % 2) * 14;
+              floatShip(s, t, amp, 1.4, x, z, -0.3 + i * 0.25, 1);
+              if (i === 4) { // the Santiago founders
+                const k = smooth(t, 22.4, 24.6);
+                s.position.y -= k * 9; s.rotateX(k * 0.9); s.rotateZ(-k * 0.5);
+                s.visible = k < 0.99;
+              }
+            });
+            const sp = sg.attributes.position.array;
+            for (let i = 0; i < N; i++) {
+              let y = (base[i * 4 + 1] - t * 2.0) % 40; if (y < 0) y += 40;
+              sp[i * 3] = base[i * 4] + Math.sin(t * 0.7 + base[i * 4 + 3]) * 1.2 - storm * (t * 3 % 10);
+              sp[i * 3 + 1] = y; sp[i * 3 + 2] = base[i * 4 + 2];
+            }
+            sg.attributes.position.needsUpdate = true;
+          },
+        };
+      }
+
+      // =====================================================================
+      // D — the strait: cliffs, snow, glaciers
+      // =====================================================================
+      {
+        const sc = new THREE.Scene();
+        makeSky(sc, "#4f6f96", "#c4d2de");
+        sc.fog = new THREE.Fog(col("#b8c6d4"), 80, 900);
+        lights(sc, "#d8e2ec", "#3a4048", 1.0, "#fff2e2", 2.0, new THREE.Vector3(-0.5, 0.7, -0.3).normalize());
+        const sea = makeSea(sc, "#24485e");
+        const r = mulberry32(31);
+        const rockMat = std("#4e4a46"), snowMat = std("#f2f5f8"), iceMat = std("#bfe0ee", { emissive: col("#3a6a80"), emissiveIntensity: 0.25 });
+        for (const side of [-1, 1]) {
+          for (let i = 0; i < 16; i++) {
+            const z = 40 - i * 45 - r() * 10;
+            const hgt = 60 + r() * 90;
+            const m = new THREE.Mesh(new THREE.ConeGeometry(28 + r() * 18, hgt, 5), rockMat);
+            m.position.set(side * (34 + r() * 14), hgt / 2 - 6, z);
+            m.rotation.y = r() * 3;
+            const cap = new THREE.Mesh(new THREE.ConeGeometry(12 + r() * 6, hgt * 0.32, 5), snowMat);
+            cap.position.set(m.position.x, hgt - 6 - hgt * 0.16 + 1, z);
+            cap.rotation.y = m.rotation.y;
+            sc.add(m, cap);
+          }
+        }
+        for (let i = 0; i < 4; i++) { // glacier tongues reaching the water
+          const g = new THREE.Mesh(new THREE.BoxGeometry(18, 14, 26), iceMat);
+          g.position.set((i % 2 ? 1 : -1) * 24, 2, -120 - i * 110);
+          g.rotation.y = (r() - 0.5) * 0.6;
+          sc.add(g);
+        }
+        const ships = [0, 1, 2, 3].map((i) => { const s = makeShip(400 + i); sc.add(s); return s; });
+        scenes.D = {
+          sc, render(t) {
+            const lt = t - 25;
+            const adv = lt * 3.2;
+            camera.position.set(6, 13, 34 - adv);
+            camera.lookAt(-2, 6, -60 - adv);
+            sea.update(t, 0.45, 0.8, 0, Math.round(-adv / 15) * 15);
+            ships.forEach((s, i) => {
+              let z = -12 - i * 16 - adv, x = (i % 2 ? 5 : -4), hd = Math.PI / 2; // heading -z
+              if (i === 3) { // the San Antonio turns back
+                const k = smooth(t, 27.0, 29.5);
+                hd = Math.PI / 2 + k * Math.PI;
+                const back = Math.max(0, t - 28.0);
+                z = -12 - 3 * 16 - adv + back * back * 2.4 + k * 6;
+                x = 9 + k * 3;
+              }
+              floatShip(s, t, 0.45, 0.8, x, z, hd, 0);
+            });
+          },
+        };
+      }
+
+      // =====================================================================
+      // E — the Pacific: endless, days and nights flicker by
+      // =====================================================================
+      {
+        const sc = new THREE.Scene();
+        const sky = makeSky(sc, "#2f6fb8", "#d8e8f0");
+        sc.fog = new THREE.Fog(col("#d8e8f0"), 200, 2400);
+        const L = lights(sc, "#e6f0fa", "#2a5a7a", 1.0, "#fff8e8", 2.6, new THREE.Vector3(0.1, 1, 0.2).normalize());
+        const sea = makeSea(sc, "#1d5d8f", 3000, 150);
+        const stars = makeStars(5, 3000, 3200, 0.02);
+        sc.add(stars);
+        const sun = sunSprite(sc, "#fff6dc", 520);
+        const ships = [0, 1, 2].map((i) => { const s = makeShip(500 + i); sc.add(s); return s; });
+        const DAYC = { top: col("#2f6fb8"), hor: col("#d8e8f0"), ntop: col("#060c1c"), nhor: col("#1c2a44") };
+        scenes.E = {
+          sc, render(t) {
+            const lt = t - 33;
+            camera.position.set(-20 + lt * 0.6, 34 - lt * 0.6, 70);
+            camera.lookAt(lt * 0.6, 0, -20);
+            // day/night cycles speed up while the 98 days pass
+            const cyc = t < 37 ? 0 : (t - 37) * 0.9 + Math.pow(Math.max(0, t - 37), 2) * 0.05;
+            const night = t < 37 || t > 43.2 ? 0 : Math.pow(Math.max(0, -Math.cos(cyc * Math.PI * 2)), 0.6);
+            sky.uni.top.value.copy(DAYC.top).lerp(DAYC.ntop, night);
+            sky.uni.horizon.value.copy(DAYC.hor).lerp(DAYC.nhor, night);
+            sc.fog.color.copy(sky.uni.horizon.value);
+            L.h.intensity = lerp(1.0, 0.35, night); L.d.intensity = lerp(2.6, 0.1, night);
+            stars.material.opacity = night;
+            stars.position.copy(camera.position);
+            const sa = cyc * Math.PI * 2;
+            sun.position.set(camera.position.x + Math.sin(sa) * 1200, Math.cos(sa) * 900 + 200, camera.position.z - 2200);
+            sun.material.opacity = 1 - night;
+            sea.update(t, 0.3, 0.3);
+            ships.forEach((s, i) => floatShip(s, t, 0.3, 0.3, lt * 0.9 - i * 14, -10 - i * 8, 0.1, 0));
+          },
+        };
+      }
+
+      // =====================================================================
+      // F — the Philippines at sunset
+      // =====================================================================
+      {
+        const sc = new THREE.Scene();
+        const sky = makeSky(sc, "#3a3a6a", "#ff9a52");
+        sky.uni.glow.value.set("#ff7a30").multiplyScalar(0.9); sky.uni.glowDir.value.set(-0.3, 0, -1);
+        sc.fog = new THREE.Fog(col("#e8905a"), 120, 1600);
+        lights(sc, "#f0c8a8", "#3a2a2a", 0.9, "#ffb070", 2.0, new THREE.Vector3(-0.3, 0.18, -1).normalize());
+        const sun = sunSprite(sc, "#ffb060", 500);
+        const sea = makeSea(sc, "#3a4a6a");
+        const island = new THREE.Mesh(new THREE.IcosahedronGeometry(60, 2), std("#3c5a2c"));
+        island.scale.set(1.6, 0.28, 0.8); island.position.set(30, -6, -120);
+        const beach = new THREE.Mesh(new THREE.CylinderGeometry(96, 104, 3, 40), std("#d8c08a"));
+        beach.scale.set(1, 1, 0.5); beach.position.set(30, -1, -112);
+        sc.add(beach, island);
+        const r = mulberry32(61);
+        for (let i = 0; i < 26; i++) { // palms
+          const p = new THREE.Group();
+          const h = 7 + r() * 5;
+          for (let k = 0; k < 5; k++) {
+            const seg = new THREE.Mesh(new THREE.CylinderGeometry(0.25, 0.32, h / 5, 6), std("#6a5034"));
+            seg.position.set(k * k * 0.06, h / 10 + (k * h) / 5, 0); seg.rotation.z = -k * 0.06;
+            p.add(seg);
+          }
+          for (let k = 0; k < 7; k++) {
+            const leaf = new THREE.Mesh(new THREE.ConeGeometry(0.45, 4.2, 3), std("#2f5a24"));
+            leaf.position.set(1.6 * Math.cos((k / 7) * 6.28) * 0.5 + 1.0, h, 1.6 * Math.sin((k / 7) * 6.28) * 0.5);
+            leaf.rotation.set(Math.PI / 2 - 0.4, (k / 7) * 6.28, 0);
+            leaf.rotation.order = "YXZ";
+            p.add(leaf);
+          }
+          p.position.set(-40 + r() * 150, 0, -96 - r() * 30);
+          p.rotation.y = r() * 6.28;
+          sc.add(p);
+        }
+        const ships = [0, 1, 2].map((i) => { const s = makeShip(600 + i); sc.add(s); return s; });
+        scenes.F = {
+          sc, render(t) {
+            const lt = t - 45;
+            camera.position.set(-18 + lt * 0.8, 6, 36);
+            camera.lookAt(6, 6, -60);
+            sun.position.set(camera.position.x - 600, 120 - lt * 8, camera.position.z - 2000);
+            sea.update(t, 0.35, 0.5);
+            ships.forEach((s, i) => floatShip(s, t, 0.35, 0.5, -14 + i * 13, -22 - i * 10, 0.5 + i * 0.2, 1));
+            // the flag of the flagship drops to half-mast
+            ships[0].userData.flag.position.y = 1.0 + 8.4 + 0.3 - smooth(t, 47.0, 48.5) * 3.5;
+          },
+        };
+      }
+
+      // =====================================================================
+      // G — home through the storm, the Victoria alone
+      // =====================================================================
+      {
+        const sc = new THREE.Scene();
+        const sky = makeSky(sc, "#2a323c", "#6c7480");
+        sc.fog = new THREE.Fog(col("#6c7480"), 60, 900);
+        const L = lights(sc, "#a8b4c0", "#2a2e34", 1.1, "#d8e0e8", 1.2, new THREE.Vector3(0.4, 0.6, 0.4).normalize());
+        const sea = makeSea(sc, "#26384a", 1600, 170);
+        const ship = makeShip(700);
+        sc.add(ship);
+        const sun = sunSprite(sc, "#ffd8a0", 420);
+        const dawnTop = col("#5f86b8"), dawnHor = col("#f4c890"), stTop = col("#2a323c"), stHor = col("#6c7480");
+        scenes.G = {
+          sc, render(t) {
+            const lt = t - 51;
+            const calm = smooth(t, 54.0, 56.5);
+            const amp = lerp(2.4, 0.6, calm), ch = lerp(1.6, 0.6, calm);
+            camera.position.set(-15 + lt * 1.0, lerp(5, 4, calm), 16);
+            camera.lookAt(lt * 1.0, 4.5, -4);
+            sky.uni.top.value.copy(stTop).lerp(dawnTop, calm);
+            sky.uni.horizon.value.copy(stHor).lerp(dawnHor, calm);
+            sc.fog.color.copy(sky.uni.horizon.value);
+            L.d.intensity = lerp(1.2, 2.4, calm);
+            sun.position.set(camera.position.x + 800, -40 + calm * 260, camera.position.z - 2000);
+            sun.material.opacity = calm;
+            sea.update(t, amp, ch);
+            floatShip(ship, t, amp, ch, lt * 1.6, -4, 0.15, 0);
+          },
+        };
+      }
+
+      // =====================================================================
+      // H — the globe with the route
+      // =====================================================================
+      {
+        const sc = new THREE.Scene();
+        sc.background = col("#05070c");
+        sc.add(makeStars(13, 5000, 1500, -1));
+        const landTex = canvasTex(2048, 1024, (g, w, h) => {
+          g.fillStyle = "#1d4f7e"; g.fillRect(0, 0, w, h);
+          g.fillStyle = "#6f8a52"; g.strokeStyle = "#e6dcc0"; g.lineWidth = 2;
+          for (const poly of window.__LAND || []) {
+            g.beginPath();
+            poly.forEach(([lon, lat], i) => {
+              const x = ((lon + 180) / 360) * w, y = ((90 - lat) / 180) * h;
+              i ? g.lineTo(x, y) : g.moveTo(x, y);
+            });
+            g.closePath(); g.fill(); g.stroke();
+          }
+          const ice = g.createLinearGradient(0, h * 0.9, 0, h);
+          ice.addColorStop(0, "rgba(240,244,248,0)"); ice.addColorStop(0.4, "rgba(240,244,248,0.9)");
+          g.fillStyle = ice; g.fillRect(0, h * 0.9, w, h * 0.1);
+        }, false);
+        const R = 10;
+        const globe = new THREE.Mesh(new THREE.SphereGeometry(R, 96, 64), new THREE.MeshStandardMaterial({ map: landTex, roughness: 0.9 }));
+        sc.add(globe);
+        sc.add(new THREE.HemisphereLight(col("#cfdcf0"), col("#202430"), 0.9));
+        const sunL = new THREE.DirectionalLight(col("#fff4e2"), 1.8);
+        sunL.position.set(-30, 20, 30);
+        sc.add(sunL);
+        const ll = (lat, lon, r = R * 1.01) => {
+          const phi = ((90 - lat) * Math.PI) / 180, th = ((lon + 180) * Math.PI) / 180;
+          return new THREE.Vector3(-r * Math.sin(phi) * Math.cos(th), r * Math.cos(phi), r * Math.sin(phi) * Math.sin(th));
+        };
+        // the route, roughly as Pigafetta describes it
+        const WP = [[36.8, -6.4], [28.1, -15.4], [15, -24], [3, -28], [-8, -34], [-22.9, -43.2], [-35, -55], [-49.3, -67.7],
+          [-52.4, -68.5], [-53.6, -70.9], [-52.7, -74.5], [-47, -78], [-35, -82], [-20, -95], [-5, -120], [5, -150], [13.4, 144.8],
+          [10.7, 125.7], [10.3, 124.0], [8, 120], [5, 115.5], [0.7, 127.4], [-8.6, 125.6], [-20, 105], [-32, 75], [-36, 40],
+          [-35.5, 19.5], [-25, 8], [-10, -5], [5, -18], [15, -23.5], [28, -18], [36.8, -6.4]];
+        const pts = [];
+        for (let i = 0; i < WP.length - 1; i++) {
+          const a = ll(...WP[i]), b = ll(...WP[i + 1]);
+          for (let k = 0; k < 16; k++) pts.push(a.clone().lerp(b, k / 16).setLength(R * 1.012));
+        }
+        pts.push(ll(...WP[WP.length - 1], R * 1.012));
+        const routeGeo = new THREE.BufferGeometry().setFromPoints(pts);
+        const route = new THREE.Line(routeGeo, new THREE.LineBasicMaterial({ color: col("#ffd27a") }));
+        sc.add(route);
+        const tube = new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts), 900, 0.05, 6, false), new THREE.MeshBasicMaterial({ color: new THREE.Color(1.4, 1.0, 0.45) }));
+        sc.add(tube);
+        const dot = new THREE.Sprite(new THREE.SpriteMaterial({ map: glowTex, color: col("#fff0c0"), transparent: true, blending: THREE.AdditiveBlending, depthWrite: false }));
+        dot.scale.set(1.2, 1.2, 1);
+        sc.add(dot);
+        const tubeIdx = tube.geometry.index.count;
+        scenes.H = {
+          sc, render(t) {
+            const k = smooth(t, 57.0, 60.5);
+            tube.geometry.setDrawRange(0, Math.floor(tubeIdx * k / 6) * 6);
+            route.geometry.setDrawRange(0, Math.floor(pts.length * k));
+            const p = pts[Math.min(pts.length - 1, Math.floor((pts.length - 1) * k))];
+            dot.position.copy(p);
+            // follow the route around the globe, then settle on the Atlantic
+            const lon = keys(t, [[57, -20], [58.2, -70], [59.0, -160], [59.8, 120], [60.6, 30], [62, -12], [65.6, -20]]);
+            const lat = keys(t, [[57, 20], [58.2, -30], [59.4, 0], [60.6, -15], [62, 10], [65.6, 12]]);
+            const cpos = ll(lat, lon, 34 - smooth(t, 60.5, 65.6) * 4);
+            camera.position.copy(cpos);
+            camera.lookAt(0, -2.5, 0);
+          },
+        };
+      }
+
+      // ---------- post ----------
+      const composer = new EffectComposer(renderer);
+      const renderPass = new RenderPass(scenes.A.sc, camera);
+      composer.addPass(renderPass);
+      const bloom = new UnrealBloomPass(new THREE.Vector2(W * SCALE * 0.5, H * SCALE * 0.5), 0.35, 0.6, 0.85);
+      composer.addPass(bloom);
+      composer.addPass(new OutputPass());
+      composer.setPixelRatio(1);
+      composer.setSize(Math.round(W * SCALE), Math.round(H * SCALE));
+      renderer.domElement.style.width = W + "px";
+      renderer.domElement.style.height = H + "px";
+
+      const ORDER = [[0, "A"], [9.0, "B"], [17.0, "C"], [25.0, "D"], [33.0, "E"], [45.0, "F"], [51.0, "G"], [57.0, "H"]];
+      function renderAt(t) {
+        updateHud(t);
+        let key = "A";
+        for (const [s, k] of ORDER) if (t >= s) key = k;
+        const S = scenes[key];
+        S.render(t);
+        S.sc.children.forEach((c) => { if (c.material && c.material.uniforms && c.material.side === THREE.BackSide) c.position.copy(camera.position); });
+        camera.updateMatrixWorld();
+        renderer.toneMappingExposure = 1.0;
+        renderPass.scene = S.sc;
+        composer.render();
+      }
+      window.__renderAt = renderAt;
+
+      const tlMain = window.__timelines["main"];
+      renderAt(tlMain ? tlMain.time() : 0);
+      window.__hf = window.__hf || {};
+      window.__hf.buildReady = window.__hf.buildReady || {};
+      window.__hf.buildReady["main"] = (async () => {
+        await document.fonts.ready;
+        for (const f of [10, 18, 26, 34, 46, 52, 58]) {
+          await new Promise((r) => setTimeout(r, 0));
+          renderAt(f);
+        }
+        renderAt(tlMain ? tlMain.time() : 0);
+        renderer.getContext().finish();
+      })();
+    </script>
+  </body>
+</html>
