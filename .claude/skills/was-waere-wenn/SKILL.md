@@ -93,6 +93,19 @@ From `videos/01-sonne-erlischt/index.html`:
 - Helpers in the template: `keys(t, [[t,v],…])` for piecewise interpolation, `smooth`, `ramp`, `mixCol`,
   `canvasTex` for procedural textures, `makeStars`, `glowTex`.
 
+## Known pitfalls (SwiftShader / Three.js)
+
+- Custom shaders: compute the distance for fog/light **per fragment** from `vMv` (view position),
+  never as a `varying float` – with large triangles that becomes visible facets ("planks").
+- Large surfaces near the camera (tunnel, floor) need fine geometry (e.g. cylinder 128×300 segments).
+- Noise in shaders: `sin`-based hashes are imprecise with large coordinates; use the
+  fract hash (`p3 = fract(p.xyx * 0.1031) …`). Noise around a cylinder must wrap in x (`mod(i.x, per)`),
+  otherwise a seam appears.
+- Sun/moon discs: `depthTest: false`, otherwise the sky dome clips them.
+- Particles near the camera: small (`size` ≤ 0.1 world units) with `map: glowTex`, otherwise big squares.
+- A bright background (glowing core, snow, sky) needs a second, wide text shadow on captions/HUD.
+- HUD and caption must match: hold the sim time keys (`SIMKEYS`) on the value while the caption is visible.
+
 ## Rendering (fast, without a GPU)
 
 ```bash

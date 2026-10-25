@@ -1,0 +1,786 @@
+<!doctype html>
+<html lang="de" data-resolution="portrait">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1080, height=1920" />
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+    <script type="importmap">
+      {
+        "imports": {
+          "three": "https://cdn.jsdelivr.net/npm/three@0.181.2/build/three.module.js",
+          "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.181.2/examples/jsm/"
+        }
+      }
+    </script>
+    <style>
+      @font-face { font-family: "EB Garamond"; font-style: normal; font-weight: 400; src: url("assets/fonts/eb-garamond-latin-400-normal.woff2") format("woff2"); }
+      @font-face { font-family: "EB Garamond"; font-style: italic; font-weight: 400; src: url("assets/fonts/eb-garamond-latin-400-italic.woff2") format("woff2"); }
+      @font-face { font-family: "Inter"; font-style: normal; font-weight: 400; src: url("assets/fonts/inter-latin-400-normal.woff2") format("woff2"); }
+      @font-face { font-family: "Inter"; font-style: normal; font-weight: 700; src: url("assets/fonts/inter-latin-700-normal.woff2") format("woff2"); }
+      :root {
+        --ink: #ffffff;
+        --accent: #f2c46b;
+        --outro: #161616;
+        --serif: "EB Garamond", serif;
+        --sans: "Inter", sans-serif;
+      }
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      html, body { width: 1080px; height: 1920px; overflow: hidden; background: #000; }
+      #root { position: relative; width: 100%; height: 100%; overflow: hidden; font-family: var(--serif); color: var(--ink); }
+      #stage { position: absolute; inset: 0; }
+      #stage canvas { position: absolute; left: 0; top: 0; width: 1080px !important; height: 1920px !important; }
+      #fade, #flash { position: absolute; inset: 0; opacity: 0; pointer-events: none; }
+      #fade { background: #000; }
+      #flash { background: #f4f8fb; }
+      #hook {
+        position: absolute; left: 90px; right: 90px; top: 360px;
+        font-size: 66px; line-height: 1.12; font-weight: 400; text-align: center;
+        text-shadow: 0 2px 18px rgba(0, 0, 0, 0.35);
+      }
+      .acc { color: var(--accent); }
+      #hud { position: absolute; left: 64px; top: 820px; text-shadow: 0 1px 10px rgba(0, 0, 0, 0.5), 0 0 24px rgba(60, 25, 0, 0.5); }
+      #hud-label, #hud-sub, #hud-sub2 {
+        font-family: var(--sans); font-weight: 700; font-size: 24px;
+        letter-spacing: 0.22em; text-transform: uppercase; opacity: 0.82;
+      }
+      #hud-value { font-family: var(--serif); font-size: 80px; line-height: 1.05; margin: 6px 0 8px; font-variant-numeric: tabular-nums; }
+      #hud-sub, #hud-sub2 { font-weight: 400; opacity: 0.72; }
+      #hud-sub2 { margin-top: 6px; }
+      .cap {
+        position: absolute; left: 80px; right: 80px; top: 1180px; text-align: center;
+        font-family: var(--serif); font-style: italic; font-size: 48px; line-height: 1.2;
+        text-shadow: 0 2px 14px rgba(0, 0, 0, 0.6), 0 0 28px rgba(60, 25, 0, 0.55);
+      }
+      #outro { position: absolute; inset: 0; background: var(--outro); }
+      #outro-q {
+        position: absolute; left: 90px; right: 90px; top: 760px; text-align: center;
+        font-size: 64px; line-height: 1.15; color: #e9e6df; font-weight: 400;
+      }
+      #outro-sub {
+        position: absolute; left: 50px; right: 50px; top: 960px; text-align: center;
+        font-family: var(--sans); font-size: 22px; letter-spacing: 0.2em; color: #8a8780;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="root" data-composition-id="main" data-start="0" data-duration="72" data-width="1080" data-height="1920">
+      <div id="stage" class="clip" data-start="0" data-duration="66.2" data-track-index="0" data-layout-ignore></div>
+      <div id="fade" data-layout-ignore></div>
+      <div id="flash" data-layout-ignore></div>
+
+      <h1 id="hook" class="clip" data-start="0" data-duration="3.4" data-track-index="1">
+        Was wäre, wenn du durch die <span class="acc">Erde</span> springst?
+      </h1>
+
+      <div id="hud" class="clip" data-start="0" data-duration="65.6" data-track-index="2">
+        <div id="hud-label">Sprung in</div>
+        <div id="hud-value">0:06.000</div>
+        <div id="hud-sub">Tiefe 0 km</div>
+        <div id="hud-sub2">Tempo 0 km/h</div>
+      </div>
+
+      <p id="c1" class="clip cap" data-start="3.5" data-duration="2.5" data-track-index="3">Berlin. Ein Tunnel, einmal quer durch die Erde.</p>
+      <p id="c2" class="clip cap" data-start="6.3" data-duration="3.4" data-track-index="3">Du springst. Keine Luft, nur Schwerkraft.</p>
+      <p id="c3" class="clip cap" data-start="10.0" data-duration="3.6" data-track-index="3">Nach einer Minute: schon 2.000 km/h.</p>
+      <p id="c4" class="clip cap" data-start="14.0" data-duration="3.6" data-track-index="3">Die Kruste ist durch. Dünner als eine Eierschale.</p>
+      <p id="c5" class="clip cap" data-start="18.0" data-duration="3.6" data-track-index="3">Der Mantel: Gestein, das ganz langsam fließt.</p>
+      <p id="c6" class="clip cap" data-start="22.0" data-duration="3.6" data-track-index="3">2.890 km tief: flüssiges Eisen.</p>
+      <p id="c7" class="clip cap" data-start="26.0" data-duration="3.6" data-track-index="3">Hier entsteht das Magnetfeld der Erde.</p>
+      <p id="c8" class="clip cap" data-start="30.0" data-duration="3.6" data-track-index="3">Der innere Kern. Heiß wie die Sonnenoberfläche.</p>
+      <p id="c9" class="clip cap" data-start="34.0" data-duration="3.6" data-track-index="3">Erdmittelpunkt. 35.000 km/h. Schwerkraft: null.</p>
+      <p id="c10" class="clip cap" data-start="38.0" data-duration="3.6" data-track-index="3">Ab jetzt bremst dich die Erde.</p>
+      <p id="c11" class="clip cap" data-start="42.0" data-duration="3.6" data-track-index="3">Du fliegst bergauf. Immer langsamer.</p>
+      <p id="c12" class="clip cap" data-start="46.0" data-duration="3.4" data-track-index="3">Nach 38 Minuten: das andere Ende.</p>
+      <p id="c13" class="clip cap" data-start="49.8" data-duration="3.8" data-track-index="3">Pazifik, südöstlich von Neuseeland.</p>
+      <p id="c14" class="clip cap" data-start="54.0" data-duration="3.8" data-track-index="3">Genau bis zum Rand. Keinen Zentimeter höher.</p>
+      <p id="c15" class="clip cap" data-start="58.2" data-duration="3.6" data-track-index="3">Greifst du nicht zu, fällst du zurück.</p>
+      <p id="c16" class="clip cap" data-start="62.2" data-duration="3.4" data-track-index="3">Hin und zurück. Alle 76 Minuten. Für immer.</p>
+
+      <div id="outro" class="clip" data-start="66" data-duration="6" data-track-index="4">
+        <h2 id="outro-q">Was wäre, wenn du durch die <span class="acc">Erde</span> springst?</h2>
+        <p id="outro-sub">6.371 KM BIS ZUR MITTE · 38 MINUTEN · 35.000 KM/H</p>
+      </div>
+    </div>
+
+    <script>
+      window.__timelines = window.__timelines || {};
+      const tl = gsap.timeline({ paused: true });
+
+      document.querySelectorAll(".cap").forEach((el) => {
+        const s = parseFloat(el.dataset.start);
+        const d = parseFloat(el.dataset.duration);
+        tl.fromTo(el, { opacity: 0 }, { opacity: 1, duration: 0.4, ease: "sine.out" }, s);
+        tl.to(el, { opacity: 0, duration: 0.4, ease: "sine.in" }, s + d - 0.45);
+      });
+      tl.fromTo("#hook", { opacity: 1 }, { opacity: 0, duration: 0.5, ease: "sine.in" }, 2.85);
+      tl.fromTo("#hud", { opacity: 0 }, { opacity: 1, duration: 0.5, ease: "sine.out" }, 0.3);
+      tl.to("#hud", { opacity: 0, duration: 0.5, ease: "sine.in" }, 65.0);
+
+      // Into the shaft through black, out of the tunnel through white.
+      tl.fromTo("#fade", { opacity: 0 }, { opacity: 1, duration: 0.45, ease: "sine.in" }, 8.3);
+      tl.to("#fade", { opacity: 0, duration: 0.5, ease: "sine.out" }, 8.8);
+      tl.fromTo("#flash", { opacity: 0 }, { opacity: 1, duration: 0.8, ease: "power2.in" }, 47.0);
+      tl.to("#flash", { opacity: 0, duration: 0.9, ease: "sine.out" }, 47.85);
+      tl.to("#fade", { opacity: 1, duration: 0.6, ease: "sine.in" }, 65.4);
+
+      tl.fromTo("#outro-q", { opacity: 0 }, { opacity: 1, duration: 0.6, ease: "sine.out" }, 66.2);
+      tl.fromTo("#outro-sub", { opacity: 0 }, { opacity: 1, duration: 0.6, ease: "sine.out" }, 66.8);
+      tl.set({}, {}, 72);
+
+      tl.eventCallback("onUpdate", () => {
+        if (window.__renderAt) window.__renderAt(tl.time());
+      });
+      window.addEventListener("hf-seek", (e) => {
+        const d = e && e.detail;
+        if (d && typeof d.time === "number") {
+          tl.totalTime(Math.min(d.time, tl.totalDuration()), true);
+          if (window.__renderAt) window.__renderAt(d.time);
+        }
+      });
+      window.__timelines["main"] = tl;
+    </script>
+
+    <script type="module">
+      import * as THREE from "three";
+      import { EffectComposer } from "three/addons/postprocessing/EffectComposer.js";
+      import { RenderPass } from "three/addons/postprocessing/RenderPass.js";
+      import { UnrealBloomPass } from "three/addons/postprocessing/UnrealBloomPass.js";
+      import { OutputPass } from "three/addons/postprocessing/OutputPass.js";
+
+      const W = 1080, H = 1920, SCALE = 0.75;
+
+      // ---------- helpers ----------
+      function mulberry32(a) {
+        return function () {
+          a |= 0; a = (a + 0x6d2b79f5) | 0;
+          let t = Math.imul(a ^ (a >>> 15), 1 | a);
+          t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+          return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+        };
+      }
+      const clamp = (x, a = 0, b = 1) => Math.min(b, Math.max(a, x));
+      const ramp = (t, a, b) => clamp((t - a) / (b - a));
+      const smooth = (t, a, b) => { const x = ramp(t, a, b); return x * x * (3 - 2 * x); };
+      const lerp = (a, b, k) => a + (b - a) * k;
+      const col = (h) => new THREE.Color(h);
+      const mixCol = (out, a, b, k) => out.copy(a).lerp(b, k);
+      function keys(t, ks, ease = smooth) {
+        if (t <= ks[0][0]) return ks[0][1];
+        for (let i = 1; i < ks.length; i++) {
+          if (t <= ks[i][0]) return lerp(ks[i - 1][1], ks[i][1], ease(t, ks[i - 1][0], ks[i][0]));
+        }
+        return ks[ks.length - 1][1];
+      }
+      const linear = (t, a, b) => ramp(t, a, b);
+      const fmtInt = (n) => Math.round(n).toLocaleString("de-DE");
+      const pad = (n) => String(Math.floor(n)).padStart(2, "0");
+
+      // ---------- physics: free fall through a vacuum tunnel, PREM-like gravity ----------
+      const R = 6371e3;
+      const GPTS = [[6371, 9.82], [5701, 9.94], [5000, 9.97], [4500, 10.1], [3480, 10.68], [3000, 9.4], [2500, 7.9], [1221, 4.4], [600, 2.2], [0, 0]];
+      function grav(r) {
+        const rk = r / 1000;
+        for (let i = 0; i < GPTS.length - 1; i++) {
+          const [r1, g1] = GPTS[i], [r2, g2] = GPTS[i + 1];
+          if (rk <= r1 && rk >= r2) return g2 + (g1 - g2) * (rk - r2) / (r1 - r2);
+        }
+        return 0;
+      }
+      const SIM_DT = 0.5;
+      const simDepth = [0], simVel = [0];
+      {
+        let r = R, v = 0;
+        const sub = 10, h = SIM_DT / sub;
+        while (r > 0) {
+          for (let k = 0; k < sub && r > 0; k++) { v += grav(r) * h; r -= v * h; }
+          simDepth.push(Math.min(R, R - r)); simVel.push(v);
+        }
+      }
+      const TH = (simDepth.length - 1) * SIM_DT; // seconds to the centre
+      function lookupHalf(s) {
+        const x = clamp(s, 0, TH) / SIM_DT, i = Math.floor(x), f = x - i;
+        const j = Math.min(i + 1, simDepth.length - 1);
+        return [lerp(simDepth[i], simDepth[j], f), lerp(simVel[i], simVel[j], f)];
+      }
+      // depth below the nearest surface (m), speed (m/s), travelled (m) at sim seconds s
+      function fall(s) {
+        if (s <= 0) return { depth: 0, v: 0, travelled: 0 };
+        const k = s % (2 * TH);
+        const lap = Math.floor(s / (2 * TH));
+        if (k <= TH) { const [d, v] = lookupHalf(k); return { depth: d, v, travelled: lap % 2 ? 2 * R - d : d }; }
+        const [d, v] = lookupHalf(2 * TH - k);
+        return { depth: d, v, travelled: lap % 2 ? d : 2 * R - d };
+      }
+      const M = 60;
+      const SIMKEYS = [
+        [6.0, 0], [9.5, 0.4 * M], [12.0, 1.0 * M], [15.2, 1.42 * M], [21.0, 7 * M], [23.4, 12.74 * M], [28.6, 15.6 * M],
+        [31.0, 17.05 * M], [34.6, TH], [39.0, TH + 2 * M], [43.0, TH + 9 * M], [46.0, 2 * TH - 90], [47.6, 2 * TH - 0.5], [54.0, 2 * TH],
+        [58.0, 2 * TH + 1.0], [62.0, 2 * TH + 20], [65.6, 2 * TH + 60],
+      ];
+      const simAt = (t) => (t < 6 ? 0 : keys(t, SIMKEYS, linear));
+
+      // visual scroll of the tunnel walls: integral of a log speed
+      const SCROLL = new Float32Array(2400);
+      {
+        let acc = 0;
+        for (let i = 0; i < SCROLL.length; i++) {
+          SCROLL[i] = acc;
+          const t = i / 30;
+          for (let k = 0; k < 4; k++) {
+            const v = fall(simAt(t + k / 120)).v * 3.6;
+            acc += (0.4 + 3.2 * Math.log10(1 + v / 250)) / 120;
+          }
+        }
+      }
+      const scrollAt = (t) => { const x = clamp(t * 30, 0, SCROLL.length - 1), i = Math.floor(x); return lerp(SCROLL[i], SCROLL[Math.min(i + 1, SCROLL.length - 1)], x - i); };
+
+      // ---------- HUD ----------
+      const hudLabel = document.getElementById("hud-label");
+      const hudValue = document.getElementById("hud-value");
+      const hudSub = document.getElementById("hud-sub");
+      const hudSub2 = document.getElementById("hud-sub2");
+      function setText(el, s) { if (el.textContent !== s) el.textContent = s; }
+      function updateHud(t) {
+        if (t < 6) {
+          setText(hudLabel, "Sprung in");
+          setText(hudValue, "0:0" + Math.max(0, 6 - t).toFixed(3));
+          setText(hudSub, "Tiefe 0 km");
+          setText(hudSub2, "Tempo 0 km/h");
+          return;
+        }
+        const s = simAt(t);
+        const f = fall(s);
+        setText(hudLabel, "Im Fall seit");
+        setText(hudValue, pad(s / 3600) + ":" + pad((s % 3600) / 60) + ":" + pad(s % 60));
+        setText(hudSub, "Tiefe " + fmtInt(f.depth / 1000) + " km");
+        setText(hudSub2, "Tempo " + fmtInt(f.v * 3.6) + " km/h");
+      }
+
+      // ---------- renderer ----------
+      const renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true, powerPreference: "high-performance" });
+      renderer.setPixelRatio(1);
+      renderer.setSize(Math.round(W * SCALE), Math.round(H * SCALE), false);
+      renderer.shadowMap.enabled = true;
+      renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+      renderer.toneMapping = THREE.ACESFilmicToneMapping;
+      document.getElementById("stage").appendChild(renderer.domElement);
+      const camera = new THREE.PerspectiveCamera(58, W / H, 0.3, 2500);
+
+      function canvasTex(w, h, draw, repeat = true) {
+        const c = document.createElement("canvas");
+        c.width = w; c.height = h;
+        draw(c.getContext("2d"), w, h);
+        const tx = new THREE.CanvasTexture(c);
+        if (repeat) tx.wrapS = tx.wrapT = THREE.RepeatWrapping;
+        tx.colorSpace = THREE.SRGBColorSpace;
+        tx.anisotropy = 4;
+        return tx;
+      }
+      const glowTex = canvasTex(256, 256, (g, w, h) => {
+        const gr = g.createRadialGradient(w / 2, h / 2, 0, w / 2, h / 2, w / 2);
+        gr.addColorStop(0, "rgba(255,255,255,1)");
+        gr.addColorStop(0.2, "rgba(255,255,255,0.55)");
+        gr.addColorStop(0.5, "rgba(255,255,255,0.12)");
+        gr.addColorStop(1, "rgba(255,255,255,0)");
+        g.fillStyle = gr; g.fillRect(0, 0, w, h);
+      }, false);
+      const holeTex = canvasTex(256, 256, (g, w, h) => {
+        const gr = g.createRadialGradient(w / 2, h / 2, 0, w / 2, h / 2, w / 2);
+        gr.addColorStop(0, "#000000");
+        gr.addColorStop(0.62, "#050505");
+        gr.addColorStop(0.86, "#22201d");
+        gr.addColorStop(1, "#4a4741");
+        g.fillStyle = gr; g.fillRect(0, 0, w, h);
+      }, false);
+      const std = (c, o = {}) => new THREE.MeshStandardMaterial(Object.assign({ color: col(c), roughness: 0.9, metalness: 0, flatShading: true }, o));
+      function skyDome(top, horizon) {
+        const uni = { top: { value: col(top) }, horizon: { value: col(horizon) } };
+        const m = new THREE.Mesh(
+          new THREE.SphereGeometry(1800, 32, 16),
+          new THREE.ShaderMaterial({
+            side: THREE.BackSide, depthWrite: false, fog: false, uniforms: uni,
+            vertexShader: `varying vec3 vP; void main(){ vP = normalize(position); gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0); }`,
+            fragmentShader: `uniform vec3 top; uniform vec3 horizon; varying vec3 vP;
+              void main(){ float h = clamp(vP.y, -0.1, 1.0); float k = pow(clamp(h*2.2,0.0,1.0), 0.7); gl_FragColor = vec4(mix(horizon, top, k), 1.0); }`,
+          }),
+        );
+        m.renderOrder = -10;
+        return m;
+      }
+
+      // person: boxes + head, built upright, feet at y = 0
+      const shirtCols = ["#2f5fa8", "#c7c24a", "#d9d6cf", "#a8423a", "#3e7d6a", "#e0a23c", "#5a4a8a"];
+      const skinCols = ["#e6c2a0", "#c99872", "#8e5f3e", "#f0d2b6"];
+      function makePerson(rnd, opts = {}) {
+        const g = new THREE.Group();
+        const shirt = std(opts.shirt || shirtCols[Math.floor(rnd() * shirtCols.length)]);
+        const skin = std(skinCols[Math.floor(rnd() * skinCols.length)]);
+        const legs = std(["#2b3240", "#4a4038", "#1f2226"][Math.floor(rnd() * 3)]);
+        const body = new THREE.Mesh(new THREE.BoxGeometry(0.55, 0.75, 0.32), shirt);
+        body.position.y = 1.25;
+        const head = new THREE.Mesh(new THREE.IcosahedronGeometry(0.21, 1), skin);
+        head.position.y = 1.85;
+        const legL = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.88, 0.24), legs);
+        legL.position.set(-0.12, 0.44, 0);
+        const legR = legL.clone(); legR.position.x = 0.12;
+        g.add(body, head, legL, legR);
+        if (opts.arms) {
+          const armL = new THREE.Group(), armR = new THREE.Group();
+          const aGeo = new THREE.BoxGeometry(0.15, 0.7, 0.15);
+          const aL = new THREE.Mesh(aGeo, shirt); aL.position.y = -0.33; armL.add(aL);
+          const aR = new THREE.Mesh(aGeo, shirt); aR.position.y = -0.33; armR.add(aR);
+          armL.position.set(-0.36, 1.58, 0); armR.position.set(0.36, 1.58, 0);
+          g.add(armL, armR);
+          g.userData.arms = [armL, armR];
+          g.userData.legs = [legL, legR];
+        }
+        g.traverse((o) => { if (o.isMesh) o.castShadow = true; });
+        return g;
+      }
+
+      // =====================================================================
+      // SCENE A — Berlin park with the shaft
+      // =====================================================================
+      const city = new THREE.Scene();
+      const rnd = mulberry32(20261026);
+      city.add(skyDome("#5f9ad3", "#d4e3ec"));
+      city.fog = new THREE.Fog(col("#cfdde6"), 90, 520);
+      const SUN_DIR = new THREE.Vector3(-0.2, 0.45, -0.87).normalize();
+      const sunDisc = new THREE.Mesh(new THREE.CircleGeometry(26, 48), new THREE.MeshBasicMaterial({ color: new THREE.Color(1, 0.96, 0.86).multiplyScalar(2.2), fog: false, depthTest: false, depthWrite: false }));
+      const sunGlow = new THREE.Sprite(new THREE.SpriteMaterial({ map: glowTex, color: col("#fff1c8"), transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, fog: false }));
+      sunGlow.scale.set(420, 420, 1);
+      sunDisc.renderOrder = sunGlow.renderOrder = -5;
+      city.add(sunDisc, sunGlow);
+      city.add(new THREE.HemisphereLight(col("#cfe2f5"), col("#4d5a3a"), 1.1));
+      const sun = new THREE.DirectionalLight(col("#fff1d6"), 2.8);
+      sun.castShadow = true;
+      sun.shadow.mapSize.set(2048, 2048);
+      Object.assign(sun.shadow.camera, { left: -50, right: 50, top: 50, bottom: -50, near: 1, far: 400 });
+      sun.shadow.bias = -0.0006;
+      sun.target.position.set(0, 0, -5);
+      sun.position.copy(SUN_DIR).multiplyScalar(180).add(sun.target.position);
+      city.add(sun, sun.target);
+
+      const grass = new THREE.Mesh(new THREE.PlaneGeometry(600, 300, 60, 30), std("#5f9142"));
+      grass.rotation.x = -Math.PI / 2; grass.position.set(0, 0, 140); grass.receiveShadow = true;
+      {
+        const p = grass.geometry.attributes.position;
+        for (let i = 0; i < p.count; i++) p.setZ(i, (Math.sin(p.getX(i) * 0.21) + Math.cos(p.getY(i) * 0.17)) * 0.12);
+        grass.geometry.computeVertexNormals();
+      }
+      city.add(grass);
+      const plaza = new THREE.Mesh(new THREE.CylinderGeometry(6.5, 6.5, 0.3, 40), std("#cfc5b0", { flatShading: false }));
+      plaza.position.set(1.6, 0.15, 6); plaza.receiveShadow = true;
+      city.add(plaza);
+      const path = new THREE.Mesh(new THREE.PlaneGeometry(3.2, 40), std("#d9cdb2"));
+      path.rotation.x = -Math.PI / 2; path.rotation.z = 0.06; path.position.set(1.8, 0.22, 26); path.receiveShadow = true;
+      city.add(path);
+      const prom = new THREE.Mesh(new THREE.BoxGeometry(600, 0.6, 6), std("#b9b3a6"));
+      prom.position.set(0, 0, -7); prom.receiveShadow = true;
+      city.add(prom);
+      const river = new THREE.Mesh(new THREE.PlaneGeometry(600, 16), new THREE.MeshStandardMaterial({ color: col("#2f5d78"), roughness: 0.25, metalness: 0.2 }));
+      river.rotation.x = -Math.PI / 2; river.position.set(0, -0.8, -18);
+      city.add(river);
+      for (const z of [-10, -26]) {
+        const q = new THREE.Mesh(new THREE.BoxGeometry(600, 2.0, 0.8), std("#8f8a80"));
+        q.position.set(0, -0.2, z); city.add(q);
+      }
+      const cityGround = new THREE.Mesh(new THREE.PlaneGeometry(900, 700), std("#9a958b"));
+      cityGround.rotation.x = -Math.PI / 2; cityGround.position.set(0, 0, -376); cityGround.receiveShadow = true;
+      city.add(cityGround);
+
+      // shaft: dark disc with a concrete rim and a railing open towards the camera
+      const HOLE = new THREE.Vector3(1.6, 0, 6);
+      const holeDisc = new THREE.Mesh(new THREE.CircleGeometry(2.1, 48), new THREE.MeshBasicMaterial({ map: holeTex }));
+      holeDisc.rotation.x = -Math.PI / 2; holeDisc.position.set(HOLE.x, 0.32, HOLE.z);
+      city.add(holeDisc);
+      const rim = new THREE.Mesh(new THREE.RingGeometry(2.1, 2.7, 48), std("#a7a39b", { flatShading: false, side: THREE.DoubleSide }));
+      rim.rotation.x = -Math.PI / 2; rim.position.set(HOLE.x, 0.34, HOLE.z); rim.receiveShadow = true;
+      city.add(rim);
+      const railMat = std("#2d3034", { flatShading: false, metalness: 0.4, roughness: 0.5 });
+      const GAP = 0.9;
+      const rail = new THREE.Mesh(new THREE.TorusGeometry(2.9, 0.05, 6, 64, Math.PI * 2 - GAP), railMat);
+      rail.rotation.x = -Math.PI / 2; rail.rotation.z = Math.PI / 2 + GAP / 2;
+      rail.position.set(HOLE.x, 1.35, HOLE.z); rail.castShadow = true;
+      city.add(rail);
+      for (let i = 0; i < 14; i++) {
+        const a = Math.PI / 2 + GAP / 2 + (i / 13) * (Math.PI * 2 - GAP);
+        const post = new THREE.Mesh(new THREE.CylinderGeometry(0.045, 0.045, 1.05, 6), railMat);
+        post.position.set(HOLE.x + Math.cos(a) * 2.9, 0.85, HOLE.z - Math.sin(a) * 2.9);
+        post.castShadow = true;
+        city.add(post);
+      }
+
+      // apartment blocks with windows
+      const facadeTex = canvasTex(256, 512, (g, w, h) => {
+        g.fillStyle = "#ffffff"; g.fillRect(0, 0, w, h);
+        for (let r = 0; r < 16; r++) for (let c = 0; c < 8; c++) {
+          g.fillStyle = "#3e4650"; g.fillRect(c * 32 + 8, r * 32 + 7, 16, 19);
+          g.fillStyle = "rgba(255,255,255,0.18)"; g.fillRect(c * 32 + 8, r * 32 + 7, 16, 3);
+        }
+      });
+      const facadeCols = ["#d8d2c6", "#c9c2b4", "#e2ddd2", "#b7b2a8", "#cfc6b6", "#bfc4c6", "#d6cbb8"];
+      const roofMat = std("#7d7a75");
+      function addBuilding(x, z, w, d, h) {
+        const g = new THREE.BoxGeometry(w, h, d);
+        const uv = g.attributes.uv;
+        for (let f = 0; f < 6; f++) {
+          const sx = f < 2 ? d : w;
+          for (let v = 0; v < 4; v++) { const i = f * 4 + v; uv.setXY(i, uv.getX(i) * (sx / 24), uv.getY(i) * (h / 48)); }
+        }
+        const side = new THREE.MeshStandardMaterial({ color: col(facadeCols[Math.floor(rnd() * facadeCols.length)]), map: facadeTex, roughness: 0.92 });
+        const m = new THREE.Mesh(g, [side, side, roofMat, roofMat, side, side]);
+        m.position.set(x, h / 2, z); m.castShadow = true; m.receiveShadow = true;
+        city.add(m);
+      }
+      for (let z = -44; z > -440; z -= 18) {
+        for (let x = -200; x < 200; x += 15 + rnd() * 6) {
+          if (Math.abs(x - 14) < 15 && z < -80 && z > -122) continue;
+          if (rnd() < 0.12) continue;
+          const far = Math.min(1, (-z - 44) / 200);
+          addBuilding(x + rnd() * 3, z - rnd() * 4, 10 + rnd() * 5, 10 + rnd() * 5, 9 + rnd() * 16 + far * rnd() * 22);
+        }
+      }
+      // TV tower
+      const tower = new THREE.Group();
+      const concrete = std("#d4d2cc", { flatShading: false, roughness: 0.8 });
+      const shaft = new THREE.Mesh(new THREE.CylinderGeometry(1.7, 3.0, 64, 20), concrete); shaft.position.y = 32;
+      const ring = new THREE.Mesh(new THREE.CylinderGeometry(3.6, 3.0, 2.2, 20), concrete); ring.position.y = 60;
+      const ball = new THREE.Mesh(new THREE.IcosahedronGeometry(7, 2), new THREE.MeshStandardMaterial({ color: col("#c3cad1"), metalness: 0.25, roughness: 0.5, flatShading: true, emissive: col("#2a313a"), emissiveIntensity: 0.6 }));
+      ball.position.y = 67;
+      const band = new THREE.Mesh(new THREE.CylinderGeometry(7.02, 7.02, 1.0, 32, 1, true), std("#30353b", { flatShading: false }));
+      band.position.y = 66.4;
+      const upper = new THREE.Mesh(new THREE.CylinderGeometry(1.0, 1.3, 14, 14), concrete); upper.position.y = 80;
+      tower.add(shaft, ring, ball, band, upper);
+      for (let i = 0; i < 6; i++) {
+        const seg = new THREE.Mesh(new THREE.CylinderGeometry(0.42, 0.5, 3.2, 10), std(i % 2 ? "#f2f0ea" : "#c4322a", { flatShading: false }));
+        seg.position.y = 88.6 + i * 3.2; tower.add(seg);
+      }
+      const pavilion = new THREE.Mesh(new THREE.BoxGeometry(18, 4, 18), std("#cfcac0")); pavilion.position.y = 2;
+      tower.add(pavilion);
+      tower.traverse((o) => { if (o.isMesh) { o.castShadow = true; o.receiveShadow = true; } });
+      tower.position.set(14, 0, -100); tower.scale.setScalar(1.2);
+      city.add(tower);
+      // trees
+      const greens = ["#4f8a3a", "#5c9942", "#447a33", "#6aa24a", "#3f7230"];
+      const trunkMat = std("#6b4f3a");
+      function addTree(x, z, s) {
+        const t = new THREE.Group();
+        const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.22 * s, 0.32 * s, 2.6 * s, 6), trunkMat); trunk.position.y = 1.3 * s;
+        const cm = std(greens[Math.floor(rnd() * greens.length)]);
+        const crown = new THREE.Mesh(new THREE.IcosahedronGeometry(1.9 * s, 0), cm);
+        crown.position.y = 3.6 * s; crown.rotation.set(rnd() * 3, rnd() * 3, rnd() * 3);
+        const crown2 = new THREE.Mesh(new THREE.IcosahedronGeometry(1.3 * s, 0), cm); crown2.position.set(0.8 * s, 4.6 * s, 0.3 * s);
+        t.add(trunk, crown, crown2); t.position.set(x, 0, z);
+        t.traverse((o) => { if (o.isMesh) { o.castShadow = true; o.receiveShadow = true; } });
+        city.add(t);
+      }
+      for (let i = 0; i < 70; i++) {
+        const side = rnd() < 0.5 ? -1 : 1;
+        const x = side * (8 + rnd() * 32), z = -3 + rnd() * 36;
+        addTree(x, z, 0.85 + rnd() * 0.6);
+      }
+      for (let x = -120; x <= 120; x += 9) addTree(x + rnd() * 3, -31 - rnd() * 2, 0.9 + rnd() * 0.3);
+      // onlookers
+      const onlookers = [[-3.5, 9.5, 1.2], [5.8, 10, -1.6], [6.5, 2.5, -2.2], [-2.8, 2, 0.9], [-6, 14, 1.0], [8.5, 14, -0.8]];
+      for (const [x, z, r] of onlookers) {
+        const p = makePerson(rnd); p.position.set(x, 0.3, z); p.rotation.y = r; city.add(p);
+      }
+      const jumper = makePerson(rnd, { shirt: "#c4322a", arms: true });
+      city.add(jumper);
+
+      // =====================================================================
+      // SCENE B — the tunnel through the Earth
+      // =====================================================================
+      const tunnel = new THREE.Scene();
+      tunnel.background = col("#000000");
+      const tunnelUni = {
+        uScroll: { value: 0 }, uTime: { value: 0 },
+        uRockA: { value: col("#6b5b4b") }, uRockB: { value: col("#3f342b") },
+        uGlowCol: { value: col("#ff6a1a") }, uGlow: { value: 0 }, uFlow: { value: 0 },
+        uFogCol: { value: col("#0d0a08") }, uFogDen: { value: 0.03 }, uLight: { value: 1.0 },
+      };
+      const tunnelMat = new THREE.ShaderMaterial({
+        side: THREE.BackSide, uniforms: tunnelUni,
+        vertexShader: `varying vec2 vUv; varying vec3 vMv; varying float vY;
+          void main(){ vUv = uv; vY = position.y; vec4 mv = modelViewMatrix * vec4(position,1.0); vMv = mv.xyz; gl_Position = projectionMatrix * mv; }`,
+        fragmentShader: `uniform float uScroll; uniform float uTime; uniform vec3 uRockA; uniform vec3 uRockB; uniform vec3 uGlowCol;
+          uniform float uGlow; uniform float uFlow; uniform vec3 uFogCol; uniform float uFogDen; uniform float uLight;
+          varying vec2 vUv; varying vec3 vMv; varying float vY;
+          float hash(vec2 p){ vec3 p3 = fract(vec3(p.xyx) * 0.1031); p3 += dot(p3, p3.yzx + 33.33); return fract((p3.x + p3.y) * p3.z); }
+          // noise that wraps in x with period per, so the tunnel has no seam
+          float noise(vec2 p, float per){ vec2 i = floor(p), f = fract(p); vec2 u = f*f*(3.0-2.0*f);
+            float x0 = mod(i.x, per), x1 = mod(i.x + 1.0, per);
+            return mix(mix(hash(vec2(x0, i.y)), hash(vec2(x1, i.y)), u.x), mix(hash(vec2(x0, i.y + 1.0)), hash(vec2(x1, i.y + 1.0)), u.x), u.y); }
+          float fbm(vec2 p, float per){ float s = 0.0, a = 0.5; for (int i = 0; i < 4; i++){ s += a*noise(p, per); p *= 2.0; per *= 2.0; a *= 0.5; } return s; }
+          void main(){
+            float vDist = length(vMv);
+            float a = vUv.x * 8.0;
+            float yy = -vY * 0.09 + uScroll;
+            float warp = fbm(vec2(a, yy * 0.8), 8.0);
+            float strata = 0.5 + 0.5 * sin(yy * 5.5 + warp * 4.0);
+            vec3 rock = mix(uRockA, uRockB, smoothstep(0.25, 0.75, strata));
+            rock *= 0.75 + 0.5 * fbm(vec2(a * 2.0, yy * 3.0), 16.0);
+            float cr = abs(fbm(vec2(a * 2.0, yy * 1.6), 16.0) - 0.5);
+            float crack = 1.0 - smoothstep(0.0, 0.035, cr);
+            float lit = uLight * (0.25 + 0.75 * exp(-vDist * 0.06));
+            vec3 c = rock * lit + uGlowCol * crack * uGlow;
+            float liquid = fbm(vec2(a + uTime * 0.25, yy * 1.1 - uTime * 0.6), 8.0);
+            vec3 metal = uGlowCol * (0.55 + 0.9 * liquid) + vec3(1.0, 0.9, 0.6) * pow(liquid, 4.0) * 1.5;
+            c = mix(c, metal, uFlow);
+            float fog = 1.0 - exp(-vDist * uFogDen);
+            gl_FragColor = vec4(mix(c, uFogCol, fog), 1.0);
+          }`,
+      });
+      const tube = new THREE.Mesh(new THREE.CylinderGeometry(4, 4, 600, 128, 300, true), tunnelMat);
+      tube.position.y = -296;
+      tunnel.add(tube);
+      // the far end of the tunnel: daylight that grows near the exit
+      const exitDisc = new THREE.Mesh(new THREE.CircleGeometry(4, 48), new THREE.MeshBasicMaterial({ color: new THREE.Color(0.85, 0.92, 1.0).multiplyScalar(2.2), transparent: true }));
+      exitDisc.rotation.x = Math.PI / 2;
+      tunnel.add(exitDisc);
+      tunnel.add(new THREE.HemisphereLight(col("#ffffff"), col("#ffffff"), 0.25));
+      const headLamp = new THREE.PointLight(col("#fff1dc"), 30, 30, 1.5);
+      headLamp.position.set(0, 1, 0);
+      tunnel.add(headLamp);
+      const glowLight = new THREE.PointLight(col("#ff6a1a"), 0, 60, 1.2);
+      glowLight.position.set(0, -16, 0);
+      tunnel.add(glowLight);
+      const faller = makePerson(mulberry32(5), { shirt: "#c4322a", arms: true });
+      faller.rotation.x = -Math.PI / 2; // lying flat, head to screen top, belly down the shaft
+      faller.position.set(0, -7, 0.9);
+      faller.userData.arms[0].rotation.z = -1.9; faller.userData.arms[1].rotation.z = 1.9;
+      faller.userData.legs[0].rotation.z = -0.25; faller.userData.legs[1].rotation.z = 0.25;
+      tunnel.add(faller);
+
+      // layer palettes (rock A, rock B, glow colour, glow, flow, fog colour, fog density, lamp)
+      const L = {
+        crust: [col("#7a6a58"), col("#4a3e33"), col("#ff7a2a"), 0.0, 0, col("#120e0b"), 0.028, 1.0],
+        mantle: [col("#5a2a1c"), col("#2a120b"), col("#ff5a12"), 1.2, 0, col("#2a0c04"), 0.03, 0.8],
+        outer: [col("#4a1a0a"), col("#200a04"), col("#ff7a1e"), 1.6, 1, col("#7a2a08"), 0.035, 0.6],
+        inner: [col("#5a3a1a"), col("#2a1a0a"), col("#ffc870"), 1.6, 1, col("#e89a48"), 0.04, 0.6],
+      };
+      function layerMix(depthKm) {
+        const m1 = smooth(depthKm, 35, 260), m2 = smooth(depthKm, 2700, 2950), m3 = smooth(depthKm, 5000, 5200);
+        const out = L.crust.map((v) => (v.isColor ? v.clone() : v));
+        const blend = (to, k) => { for (let i = 0; i < out.length; i++) out[i] = out[i].isColor ? out[i].lerp(to[i], k) : lerp(out[i], to[i], k); };
+        blend(L.mantle, m1); blend(L.outer, m2); blend(L.inner, m3);
+        out.push(smooth(depthKm, 300, 2890)); // mantle glow grows with depth
+        return out;
+      }
+
+      // =====================================================================
+      // SCENE C — the Pacific, south-east of New Zealand
+      // =====================================================================
+      const ocean = new THREE.Scene();
+      ocean.add(skyDome("#7f97ad", "#cdd6dd"));
+      ocean.fog = new THREE.Fog(col("#b9c6cf"), 40, 420);
+      ocean.add(new THREE.HemisphereLight(col("#dde6ee"), col("#30414c"), 1.25));
+      const oSun = new THREE.DirectionalLight(col("#f2f4f2"), 1.3);
+      oSun.position.set(-40, 60, 30); oSun.castShadow = true;
+      oSun.shadow.mapSize.set(1024, 1024);
+      Object.assign(oSun.shadow.camera, { left: -15, right: 15, top: 15, bottom: -15, near: 1, far: 200 });
+      ocean.add(oSun);
+      const waterGeo = new THREE.PlaneGeometry(700, 700, 110, 110);
+      waterGeo.rotateX(-Math.PI / 2);
+      const waterBase = Float32Array.from(waterGeo.attributes.position.array);
+      const water = new THREE.Mesh(waterGeo, std("#2f5a70", { roughness: 0.55, metalness: 0.05 }));
+      ocean.add(water);
+      const platMat = std("#9a968e", { flatShading: false });
+      const platform = new THREE.Mesh(new THREE.CylinderGeometry(7, 7.8, 4, 40), platMat);
+      platform.position.y = -1.5; platform.receiveShadow = true; platform.castShadow = true;
+      ocean.add(platform);
+      const oHole = new THREE.Mesh(new THREE.CircleGeometry(2.1, 48), new THREE.MeshBasicMaterial({ map: holeTex }));
+      oHole.rotation.x = -Math.PI / 2; oHole.position.y = 0.52;
+      ocean.add(oHole);
+      const oRim = new THREE.Mesh(new THREE.RingGeometry(2.1, 2.7, 48), std("#b2ada4", { flatShading: false }));
+      oRim.rotation.x = -Math.PI / 2; oRim.position.y = 0.53; oRim.receiveShadow = true;
+      ocean.add(oRim);
+      for (let i = 0; i < 24; i++) {
+        const a = (i / 24) * Math.PI * 2;
+        const post = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, 1.1, 6), railMat);
+        post.position.set(Math.cos(a) * 6.6, 1.05, Math.sin(a) * 6.6);
+        ocean.add(post);
+      }
+      const oRail = new THREE.Mesh(new THREE.TorusGeometry(6.6, 0.05, 6, 96), railMat);
+      oRail.rotation.x = -Math.PI / 2; oRail.position.y = 1.6;
+      ocean.add(oRail);
+      const birds = [];
+      const birdMat = std("#eef0f0", { side: THREE.DoubleSide });
+      for (let i = 0; i < 4; i++) {
+        const b = new THREE.Group();
+        const wl = new THREE.Mesh(new THREE.BoxGeometry(1.4, 0.04, 0.35), birdMat); wl.position.x = -0.7;
+        const wr = wl.clone(); wr.position.x = 0.7;
+        const pl = new THREE.Group(); pl.add(wl);
+        const pr = new THREE.Group(); pr.add(wr);
+        const body = new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.2, 0.8), birdMat);
+        b.add(pl, pr, body);
+        ocean.add(b);
+        birds.push({ b, pl, pr, r: 14 + i * 5, h: 9 + i * 2.2, ph: i * 1.7, sp: 0.18 + i * 0.03 });
+      }
+      const riser = makePerson(mulberry32(5), { shirt: "#c4322a", arms: true });
+      ocean.add(riser);
+
+      // ---------- post ----------
+      const composer = new EffectComposer(renderer);
+      const renderPass = new RenderPass(city, camera);
+      composer.addPass(renderPass);
+      const bloom = new UnrealBloomPass(new THREE.Vector2(W * SCALE * 0.5, H * SCALE * 0.5), 0.4, 0.6, 0.86);
+      composer.addPass(bloom);
+      composer.addPass(new OutputPass());
+      composer.setPixelRatio(1);
+      composer.setSize(Math.round(W * SCALE), Math.round(H * SCALE));
+      renderer.domElement.style.width = W + "px";
+      renderer.domElement.style.height = H + "px";
+
+      const v3 = new THREE.Vector3(), look = new THREE.Vector3();
+
+      function renderCity(t) {
+        // camera: wide view, then dives over the shaft and looks down into it
+        const dive = smooth(t, 6.2, 8.7);
+        const push = ramp(t, 0, 6.2);
+        camera.up.set(0, 1, 0);
+        camera.position.set(lerp(0.2, 0.8, push), lerp(7.6, 7.0, push), lerp(25, 21, push));
+        look.set(2, lerp(6.5, 5.5, push), -30);
+        camera.position.lerp(v3.set(HOLE.x, 7.5, HOLE.z + 1.2), dive);
+        look.lerp(v3.set(HOLE.x, -10, HOLE.z), dive);
+        camera.lookAt(look);
+        sunDisc.position.copy(camera.position).addScaledVector(SUN_DIR, 1500);
+        sunGlow.position.copy(sunDisc.position);
+        sunDisc.lookAt(camera.position);
+        city.children[0].position.copy(camera.position);
+
+        // jumper: waits on the open side of the rail, hops in at 6 s and drops
+        const sx = HOLE.x, sz = HOLE.z + 3.0;
+        jumper.rotation.set(0, 0, 0);
+        const [aL, aR] = jumper.userData.arms;
+        if (t < 6.0) {
+          const crouch = smooth(t, 5.4, 6.0);
+          jumper.position.set(sx, 0.32 - crouch * 0.15, sz);
+          aL.rotation.z = -0.1 - crouch * 0.4; aR.rotation.z = 0.1 + crouch * 0.4;
+          aL.rotation.x = aR.rotation.x = crouch * 0.8;
+        } else {
+          const k = ramp(t, 6.0, 6.55);
+          const y = t < 6.55 ? 0.32 + Math.sin(k * Math.PI) * 0.7 : 0.32 - 4.9 * Math.pow(t - 6.55, 2) * 1.6;
+          jumper.position.set(sx, y, lerp(sz, HOLE.z, smooth(k, 0, 1)));
+          aL.rotation.z = -2.6; aR.rotation.z = 2.6; aL.rotation.x = aR.rotation.x = 0;
+          jumper.rotation.x = -0.25 * k;
+        }
+        jumper.visible = jumper.position.y > -3;
+        renderer.toneMappingExposure = 1.0;
+        bloom.strength = 0.35; bloom.threshold = 0.9;
+        renderPass.scene = city;
+      }
+
+      function renderTunnel(t) {
+        const s = simAt(t);
+        const f = fall(s);
+        const dKm = f.travelled / 1000;
+        const depthKm = dKm <= 6371 ? dKm : 12742 - dKm; // layers mirror on the way out
+        const [ra, rb, gc, glow, flow, fogC, fogD, lamp, mantleK] = layerMix(depthKm);
+        tunnelUni.uRockA.value.copy(ra); tunnelUni.uRockB.value.copy(rb);
+        tunnelUni.uGlowCol.value.copy(gc);
+        tunnelUni.uGlow.value = glow * lerp(0.35, 1, mantleK);
+        tunnelUni.uFlow.value = flow;
+        tunnelUni.uFogCol.value.copy(fogC);
+        tunnelUni.uFogDen.value = fogD;
+        tunnelUni.uLight.value = lamp;
+        tunnelUni.uScroll.value = scrollAt(t);
+        tunnelUni.uTime.value = t;
+        const vkmh = f.v * 3.6;
+        const shake = 0.06 * clamp(vkmh / 35000);
+        camera.up.set(0, 0, -1);
+        camera.position.set(Math.sin(t * 23.0) * shake, Math.sin(t * 17.0) * shake * 0.5, Math.cos(t * 19.0) * shake);
+        camera.lookAt(0, -100, 0);
+        camera.rotateZ(Math.sin(t * 0.35) * 0.08);
+        // the falling person drifts and turns a little
+        faller.position.set(Math.sin(t * 0.7) * 0.35, -7 + Math.sin(t * 0.9) * 0.3, 0.9 + Math.cos(t * 0.6) * 0.3);
+        faller.rotation.y = Math.sin(t * 0.4) * 0.25;
+        faller.userData.arms[0].rotation.z = -1.9 + Math.sin(t * 2.1) * 0.12;
+        faller.userData.arms[1].rotation.z = 1.9 - Math.sin(t * 2.3) * 0.12;
+        glowLight.color.copy(gc);
+        glowLight.intensity = 140 * clamp(glow / 2) * lerp(0.3, 1, mantleK);
+        headLamp.intensity = 30 * lamp;
+        // daylight at the exit during the last ~25 km of the way up
+        const ex = ramp(t, 45.4, 47.8);
+        exitDisc.visible = ex > 0;
+        exitDisc.position.y = lerp(-420, -10, Math.pow(ex, 2.2));
+        exitDisc.material.opacity = smooth(ex, 0, 0.15);
+        renderer.toneMappingExposure = lerp(1.0, 0.85, clamp(depthKm / 6371));
+        bloom.strength = lerp(0.3, 0.75, clamp(glow / 2)); bloom.threshold = 0.8;
+        renderPass.scene = tunnel;
+      }
+
+      function renderOcean(t) {
+        // waves
+        const p = waterGeo.attributes.position.array;
+        for (let i = 0; i < p.length; i += 3) {
+          const x = waterBase[i], z = waterBase[i + 2];
+          const r = Math.hypot(x, z);
+          const calm = clamp((r - 7.5) / 6);
+          p[i + 1] = calm * (0.45 * Math.sin(0.16 * x + 0.9 * t) + 0.3 * Math.sin(0.21 * z - 1.1 * t + 1.3) + 0.14 * Math.sin(0.5 * (x + z) + 1.7 * t)) - 0.6;
+        }
+        waterGeo.attributes.position.needsUpdate = true;
+        waterGeo.computeVertexNormals();
+        // the person rises to exactly the rim, hangs, and falls back
+        const rimY = 0.53;
+        let y;
+        if (t < 50.6) y = lerp(-7, rimY, 1 - Math.pow(1 - ramp(t, 47.9, 50.6), 2));
+        else if (t < 58.0) y = rimY - 0.04 * Math.sin(ramp(t, 50.6, 58.0) * Math.PI);
+        else y = rimY - 4.9 * Math.pow((t - 58.0) * 0.75, 2);
+        riser.position.set(0, y, 0);
+        riser.visible = y > -2.5;
+        riser.rotation.y = 0.5 + Math.sin(t * 0.3) * 0.1;
+        const [aL, aR] = riser.userData.arms;
+        const reach = smooth(t, 56.5, 58.0) * (1 - smooth(t, 58.6, 59.4));
+        aL.rotation.z = -0.35 - reach * 1.5 + Math.sin(t * 1.3) * 0.05;
+        aR.rotation.z = 0.35 + reach * 1.5 - Math.sin(t * 1.1) * 0.05;
+        aL.rotation.x = aR.rotation.x = -reach * 0.6;
+        for (const b of birds) {
+          const a = t * b.sp + b.ph;
+          b.b.position.set(Math.cos(a) * b.r, b.h + Math.sin(t * 0.8 + b.ph) * 0.6, Math.sin(a) * b.r - 6);
+          b.b.rotation.y = -a;
+          const flap = Math.sin(t * 6 + b.ph) * 0.45;
+          b.pl.rotation.z = flap; b.pr.rotation.z = -flap;
+        }
+        // camera: close on the shaft, then rises away over the open sea
+        const away = smooth(t, 61.0, 65.8);
+        const orbit = ramp(t, 47.9, 61.0);
+        camera.up.set(0, 1, 0);
+        camera.position.set(lerp(9.0, 6.5, orbit), lerp(6.0, 5.0, orbit), lerp(11.0, 12.0, orbit));
+        look.set(0, lerp(0.6, 0.9, orbit), 0);
+        camera.position.lerp(v3.set(28, 34, 62), away);
+        look.lerp(v3.set(0, 0, -20), away);
+        camera.lookAt(look);
+        ocean.children[0].position.copy(camera.position);
+        renderer.toneMappingExposure = 1.0;
+        bloom.strength = 0.25; bloom.threshold = 0.9;
+        renderPass.scene = ocean;
+      }
+
+      function renderAt(t) {
+        updateHud(t);
+        if (t < 8.75) renderCity(t);
+        else if (t < 47.85) renderTunnel(t);
+        else renderOcean(t);
+        camera.updateMatrixWorld();
+        composer.render();
+      }
+      window.__renderAt = renderAt;
+
+      const tlMain = window.__timelines["main"];
+      renderAt(tlMain ? tlMain.time() : 0);
+      window.__hf = window.__hf || {};
+      window.__hf.buildReady = window.__hf.buildReady || {};
+      window.__hf.buildReady["main"] = (async () => {
+        await document.fonts.ready;
+        for (const f of [20, 30, 52]) {
+          await new Promise((r) => setTimeout(r, 0));
+          renderAt(f);
+        }
+        renderAt(tlMain ? tlMain.time() : 0);
+        renderer.getContext().finish();
+      })();
+    </script>
+  </body>
+</html>
