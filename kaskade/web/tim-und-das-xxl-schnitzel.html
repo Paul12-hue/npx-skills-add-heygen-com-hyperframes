@@ -103,6 +103,7 @@ canvas { position: fixed; inset: 0; width: 100%; height: 100%; display: block; }
     <div class="rowb">
       <button class="btn hot" id="newBtn" type="button">Neues Abenteuer</button>
       <button class="btn go" id="contBtn" type="button" hidden>Weiterspielen</button>
+      <button class="btn go" id="levelsBtn" type="button" hidden>Levelauswahl</button>
       <button class="btn" id="helpBtn" type="button">Steuerung</button>
     </div>
   </div>
@@ -234,7 +235,8 @@ function makeLevels() {
   L4.boss = "brixx";
   const L5 = builder(22, "boss", "Plot-Twist · Anton Weilamier Schule").ground(0, 21).wall(0, 0, 13).wall(21, 0, 13).startAt(3, 10);
   L5.boss = "faroo";
-  return [L1, L2, L3, L4, L5];
+  const L6 = { endless: true, name: "Endlos · Faroo läuft" };
+  return [L1, L2, L3, L4, L5, L6];
 }
 
 // ================= Story =================
@@ -305,7 +307,7 @@ function screen(id) {
   if (inGame && document.activeElement && document.activeElement.blur) document.activeElement.blur();
 }
 const touchUI = matchMedia("(pointer: coarse)").matches || "ontouchstart" in window;
-function banner(t) { const b = document.createElement("div"); b.className = "banner"; b.textContent = t; document.body.appendChild(b); setTimeout(() => b.remove(), 1600); }
+function banner(t) { document.querySelectorAll(".banner").forEach(x => x.remove()); const b = document.createElement("div"); b.className = "banner"; b.textContent = t; document.body.appendChild(b); setTimeout(() => b.remove(), 1600); }
 
 // ================= Audio =================
 let ac = null;
@@ -384,6 +386,7 @@ function levelDone(n, res) {
   });
 }
 function ending() {
+  save.completed = true; store.write();
   const all = [0, 1, 2].reduce((t, n) => t + (save.schnitzel[n] || 0), 0);
   modal(`<h2>19:00, alle am Tisch!</h2><div class="chars">${PORTRAIT.tim()}${PORTRAIT.faroo()}${PORTRAIT.valle()}</div>
     <div class="tally"><div>${MUG_SVG} ${save.totalMugs}</div><div>${SCHN_SVG} ${all} / 9</div></div>
@@ -424,9 +427,60 @@ addEventListener("resize", resize); resize();
 const solid = ch => ch === "#" || ch === "B";
 function tileAt(tx, ty) { if (ty < 0) return "."; if (ty >= ROWS || tx < 0 || tx >= G.L.w) return tx < 0 || tx >= G.L.w ? "#" : "."; return G.L.g[ty][tx]; }
 
+// Endless run: the course is generated chunk by chunk ahead of the player and gets harder with distance.
+const FAROO_START_W = 84, SLIM_W = 30, SLIM_STEP = 9;
+function makeEndless() {
+  const L = builder(40, "night", "Endlos · Faroo läuft").ground(0, 24).mugs(8, 10, 5).startAt(3, 9);
+  L.endless = true; L.genX = 25; L.top = 12; L.safe = [[3, 11]]; L.chunks = 0;
+  return L;
+}
+function growEndless(L, upTo) {
+  const set = (x, y, ch) => { if (y >= 0 && y < ROWS) L.g[y][x] = ch; };
+  const ensure = n => { while (L.w < n) { for (const row of L.g) row.push("."); L.w++; } };
+  const rnd = Math.random;
+  while (L.genX < upTo) {
+    const x = L.genX, lvl = Math.min(1, L.chunks / 40), ents = [];
+    const ground = (a, b, top) => { ensure(b + 1); for (let i = a; i <= b; i++) for (let y = top; y < ROWS; y++) set(i, y, "#"); };
+    const mug = (mx, my) => ents.push({ t: "mug", x: mx, y: my });
+    const enemy = (ex, ey) => ents.push({ t: rnd() < .25 + lvl * .45 ? "fast" : "bot", x: ex, y: ey });
+    let top = L.top;
+    const kind = rnd();
+    let len;
+    if (kind < .22) {                                   // flat stretch with mugs and maybe a bench
+      len = 9 + Math.floor(rnd() * 4); ground(x, x + len - 1, top);
+      for (let i = 2; i < len - 2; i += 2) mug(x + i, top - 2);
+      if (rnd() < .5 + lvl * .4) enemy(x + 5, top - 1);
+    } else if (kind < .44) {                            // gap
+      const gap = 2 + Math.floor(rnd() * (2 + lvl * 1.5)); len = gap + 6;
+      ground(x + gap, x + len - 1, top);
+      for (let i = 0; i < gap; i++) mug(x + i, top - 3);
+    } else if (kind < .62) {                            // step up or down
+      top = Math.max(8, Math.min(12, top + (rnd() < .5 ? -2 : 2))); len = 8;
+      ground(x, x + len - 1, top); mug(x + 3, top - 2); mug(x + 4, top - 2);
+      if (rnd() < .3 + lvl * .4) enemy(x + 6, top - 1);
+    } else if (kind < .8) {                             // spikes
+      len = 10; ground(x, x + len - 1, top);
+      const sw = 2 + Math.floor(rnd() * (1 + lvl * 2));
+      for (let i = 4; i < 4 + sw; i++) set(x + i, top - 1, "^");
+      for (let i = 3; i < 5 + sw; i++) mug(x + i, top - 4);
+    } else {                                            // wide pit with a one-way platform
+      len = 11; const py = top - 2;
+      ensure(x + len);
+      for (let i = 4; i < 7; i++) set(x + i, py, "=");
+      ground(x + 9, x + len - 1, top);
+      mug(x + 4, py - 1); mug(x + 5, py - 1); mug(x + 6, py - 1);
+    }
+    if (rnd() < .38) ents.push({ t: "schn", x: x + Math.floor(len / 2), y: top - 5 });
+    L.top = top;
+    ensure(x + len + 1);
+    L.safe.push([x + len - 2, top - 1]);
+    L.genX = x + len; L.chunks++;
+    for (const e of ents) G.ents.push({ ...e, px: e.x * T, py: e.y * T, alive: true, vx: e.t === "fast" ? -2.4 - lvl : -1.2 - lvl * .6, bob: rnd() * 6 });
+  }
+}
 function playLevel(n) {
   return new Promise(resolve => {
-    const L = LEVELS[n];
+    const L = LEVELS[n].endless ? makeEndless() : LEVELS[n];
     const lives = G && G.keepLives ? G.lives : (difficulty === "hard" ? 3 : 5);
     G = {
       n, L, resolve, lives, mugs: 0, schn: 0, mugBank: 0, time: 0,
@@ -434,10 +488,11 @@ function playLevel(n) {
       movers: L.movers.map(m => ({ ...m, dir: 1, dx: 0 })),
       checkpoint: [L.start[0] * T, L.start[1] * T - 4], reached: new Set(),
       particles: [], cam: 0, paused: false, done: false, shake: 0,
-      shots: [], form: "tim",
+      shots: [], form: L.endless ? "faroo" : "tim", playerW: L.endless ? FAROO_START_W : 30, best: 0,
       boss: L.boss === "faroo" ? makeFaroo(L) : L.boss === "brixx" ? { kind: "brixx", x: 10 * T, y: 2 * T, w: 120, h: 110, hp: difficulty === "hard" ? 45 : 30, maxHp: difficulty === "hard" ? 45 : 30, state: "fly", t: 0, vx: 2.4, inv: 0, bombs: [] } : null,
     };
     spawnPlayer();
+    if (L.endless) { G.lives = difficulty === "hard" ? 3 : 5; growEndless(L, 80); }
     screen(null); updateHud();
     $("bossbar").hidden = !G.boss;
     $("bossName").textContent = L.boss === "faroo" ? "RIESEN-FAROO" : "OPA BRIXX";
@@ -447,7 +502,7 @@ function playLevel(n) {
     requestAnimationFrame(loop);
   });
 }
-function spawnPlayer() { G.p = { x: G.checkpoint[0], y: G.checkpoint[1], w: 30, h: 44, vx: 0, vy: 0, ground: false, coyote: 0, buffer: 0, face: 1, inv: 90, anim: 0, onMover: null, shotCd: 0, airJumps: 1, wallJumpsLeft: 2, lastJumpWall: 0, wall: 0, lastWall: 0, wallCoyote: 0, wallLock: 0, sliding: false }; }
+function spawnPlayer() { G.p = { x: G.checkpoint[0], y: G.checkpoint[1], w: G.playerW || 30, h: G.form === "faroo" ? 50 : 44, vx: 0, vy: 0, ground: false, coyote: 0, buffer: 0, face: 1, inv: 90, anim: 0, onMover: null, shotCd: 0, airJumps: 1, wallJumpsLeft: 2, lastJumpWall: 0, wall: 0, lastWall: 0, wallCoyote: 0, wallLock: 0, sliding: false }; }
 
 let last = 0, acc = 0;
 function loop(now) {
@@ -467,6 +522,19 @@ function hurt() {
   spawnPlayer();
 }
 function gameOver() {
+  if (G.L.endless) {
+    G.done = true; const n = G.n, res = G.resolve, dist = G.best, schn = G.schn, mugs = G.mugs;
+    const record = dist > (save.bestEndless || 0);
+    if (record) { save.bestEndless = dist; store.write(); }
+    modal(`<h2>${record ? "Neuer Rekord!" : "Lauf vorbei"}</h2><p>Faroo ist ${dist} Meter weit gekommen.</p>
+      <div class="tally"><div>${MUG_SVG} ${mugs}</div><div>${SCHN_SVG} ${schn}</div></div>
+      <p>Rekord: ${save.bestEndless || dist} m</p>
+      <div class="rowb"><button class="btn hot" id="retryBtn" type="button">Nochmal laufen</button><button class="btn" id="quitBtn" type="button">Menü</button></div>`);
+    sfx(record ? "win" : "hurt");
+    $("retryBtn").onclick = () => { G = null; playLevel(n).then(res); };
+    $("quitBtn").onclick = () => { G = null; res("quit"); };
+    return;
+  }
   G.done = true; const n = G.n, res = G.resolve;
   modal(`<h2>Keine Leben mehr</h2><p>Valle: „Kopf hoch, Tim. Kein Schnitzel ohne Anlauf. Nochmal!“</p><div class="rowb"><button class="btn hot" id="retryBtn" type="button">Level neu starten</button><button class="btn" id="quitBtn" type="button">Titelbildschirm</button></div>`);
   $("retryBtn").onclick = () => { G = null; playLevel(n).then(res); };
@@ -486,7 +554,8 @@ function step() {
   // movers
   for (const m of G.movers) { const nx = m.x + m.speed * m.dir; if (nx > m.x0 + m.range || nx < m.x0) m.dir *= -1; m.dx = m.speed * m.dir; m.x += m.dx; }
   // horizontal input
-  const accel = p.ground ? .9 : .55, maxV = 5.2;
+  const accel = p.ground ? .9 : .55;
+  const maxV = G.form === "faroo" ? 3.9 + (FAROO_START_W - p.w) / (FAROO_START_W - SLIM_W) * 1.5 : 5.2;
   if (p.wallLock > 0) { p.wallLock--; }
   else if (input.left && !input.right) { p.vx = Math.max(-maxV, p.vx - accel); p.face = -1; }
   else if (input.right && !input.left) { p.vx = Math.min(maxV, p.vx + accel); p.face = 1; }
@@ -540,6 +609,13 @@ function step() {
       if (rects(p, { x: e.px + (T - sz) / 2, y: e.py + (T - sz) / 2, w: sz, h: sz })) {
         e.alive = false;
         if (e.t === "mug") { G.mugs++; G.mugBank++; sfx("mug"); burst(e.px + 24, e.py + 24, "#39ff14", 8); if (G.mugBank >= 100) { G.mugBank -= 100; G.lives++; banner("+1 Leben!"); } }
+        else if (G.L.endless) {
+          G.schn++; sfx("schn"); burst(e.px + 24, e.py + 24, "#ffc531", 26);
+          if (G.schn % 3 === 0 && G.playerW > SLIM_W) {
+            const nw = Math.max(SLIM_W, G.playerW - SLIM_STEP); p.x += (p.w - nw) / 2; p.w = nw; G.playerW = nw;
+            banner(nw === SLIM_W ? "So flink wie Tim!" : "Faroo wird flinker!");
+          } else banner("XXL-Schnitzel!");
+        }
         else { G.schn++; sfx("schn"); burst(e.px + 24, e.py + 24, "#ffc531", 26); banner(G.schn === 3 ? "Alle 3 XXL-Schnitzel!" : "XXL-Schnitzel!");
           if (G.schn === 2 && G.form !== "opa") { G.form = "opa"; G.p.inv = Math.max(G.p.inv, 60); burst(p.x + p.w / 2, p.y + p.h / 2, "#ffffff", 40); sfx("boss"); setTimeout(() => G && !G.done && banner("VERWANDLUNG: ROLF!"), 900); } }
         updateHud();
@@ -564,6 +640,12 @@ function step() {
   for (const [cx, cy] of L.checkpoints) { const key = cx + ":" + cy; if (!G.reached.has(key) && Math.abs(p.x - cx * T) < 40) { G.reached.add(key); G.checkpoint = [cx * T, cy * T - 4]; sfx("check"); banner("ICH HAB NEN NEUEN CHECKPOINT"); } }
   // finish
   if (L.finish && p.x > L.finish[0] * T - 20) return finishLevel();
+  if (L.endless) {
+    if (p.x / T + 60 > L.genX) growEndless(L, L.genX + 30);
+    for (const [sx, sy] of L.safe) if (p.x > sx * T && sx * T > G.checkpoint[0]) G.checkpoint = [sx * T, sy * T - p.h - 4];
+    const m = Math.floor(p.x / T);
+    if (m > G.best) { G.best = m; if (G.time % 10 === 0) updateHud(); }
+  }
   if (G.boss) (G.boss.kind === "faroo" ? faroStep() : bossStep());
   // Ping-pong balls: always in the boss fight, otherwise only as Tischtennis-Opa.
   if (p.shotCd > 0) p.shotCd--;
@@ -907,7 +989,32 @@ function drawOpa(p) {
   ctx.strokeStyle = "#7a2b2b"; ctx.lineWidth = 1.6; ctx.beginPath(); ctx.arc(5, -39, 3, .2, Math.PI - .4); ctx.stroke();
   ctx.restore();
 }
+function drawFarooPlayer(p) {
+  // Playable Faroo: width follows p.w (starts extra wide, slims down to Tim's width).
+  const run = p.ground && Math.abs(p.vx) > .5, leg = run ? Math.sin(p.anim * 2.4) * 6 : 0, hw = p.w / 2;
+  ctx.save(); ctx.translate(p.x + hw, p.y + p.h); ctx.scale(p.face, 1);
+  const lx = Math.max(6, hw * .45);
+  ctx.fillStyle = "#7a4a2e"; ctx.fillRect(-lx - 4 + leg * .6, -14, 9, 10); ctx.fillRect(lx - 5 - leg * .6, -14, 9, 10);
+  ctx.fillStyle = "#65b32e"; ctx.fillRect(-lx - 4 + leg * .6, -8, 9, 4); ctx.fillRect(lx - 5 - leg * .6, -8, 9, 4);
+  ctx.fillStyle = "#111"; ctx.fillRect(-lx - 6 + leg * .6, -4, 12, 5); ctx.fillRect(lx - 6 - leg * .6, -4, 12, 5);
+  ctx.fillStyle = "#ffffff"; roundRect(-hw + 2, -20, p.w - 4, 8, 4); ctx.fill();
+  ctx.fillStyle = "#65b32e"; roundRect(-hw, -38, p.w, 22, Math.min(12, hw)); ctx.fill();
+  ctx.fillStyle = "#ffffff"; ctx.fillRect(-hw, -34, 4, 14); ctx.fillRect(hw - 4, -34, 4, 14);
+  ctx.strokeStyle = "#ffffff"; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(-4, -38); ctx.lineTo(0, -34); ctx.lineTo(4, -38); ctx.stroke();
+  ctx.fillStyle = "#ffffff"; ctx.font = "13px Bangers, Impact, sans-serif"; ctx.textAlign = "center"; ctx.fillText("19", 0, -22);
+  const arm = run ? Math.sin(p.anim * 2.4) * .6 : (p.ground ? .1 : -1.4);
+  for (const d of [-1, 1]) { ctx.save(); ctx.translate(d * (hw - 2), -34); ctx.rotate(d * (.3 + (d > 0 ? arm : -arm) * .5)); ctx.fillStyle = "#ffffff"; roundRect(-4, 0, 8, 6, 3); ctx.fill(); ctx.fillStyle = "#7a4a2e"; roundRect(-3, 5, 6, 9, 3); ctx.fill(); ctx.restore(); }
+  const hr = 13 + (p.w - 30) * .05;
+  ctx.fillStyle = "#17110c"; ctx.beginPath(); ctx.ellipse(0, -52, hr + 8, hr + 2, 0, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = "#7a4a2e"; ctx.beginPath(); ctx.ellipse(1, -47, hr, hr - 1, 0, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = "#17110c"; ctx.beginPath(); ctx.ellipse(0, -56, hr + 2, 6, 0, Math.PI, 0); ctx.fill();
+  ctx.fillStyle = "#fff"; ctx.beginPath(); ctx.arc(6, -48, 2.6, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = "#1a1a1a"; ctx.beginPath(); ctx.arc(6.6, -48, 1.4, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = "#fff"; ctx.beginPath(); ctx.arc(5, -41, 4, 0, Math.PI); ctx.fill();
+  ctx.restore();
+}
 function drawTim(p) {
+  if (G.form === "faroo") return drawFarooPlayer(p);
   if (G.form === "opa") return drawOpa(p);
   const run = p.ground && Math.abs(p.vx) > .5, leg = run ? Math.sin(p.anim * 2.4) * 7 : 0;
   ctx.save(); ctx.translate(p.x + p.w / 2, p.y + p.h); ctx.scale(p.face, 1);
@@ -1087,7 +1194,8 @@ function updateHud() {
   $("hMugs").innerHTML = `${MUG_SVG}<span>${G.mugs}</span>`;
   $("hSchn").innerHTML = G.boss ? "" : `${SCHN_SVG}<span>${G.schn}/3</span>`;
   $("hLives").innerHTML = `${HEART_SVG}<span>×${G.lives}</span>`;
-  $("hLevel").textContent = G.L.name;
+  $("hLevel").textContent = G.L.endless ? `${G.best} m · Rekord ${Math.max(save.bestEndless || 0, G.best)} m` : G.L.name;
+  if (G.L.endless) $("hSchn").innerHTML = `${SCHN_SVG}<span>${G.schn}</span>`;
   if (G.boss) $("bossHp").style.width = (G.boss.hp / G.boss.maxHp * 100) + "%";
   document.querySelector(".pad .k.fire").hidden = !(G.boss || G.form === "opa");
 }
@@ -1143,11 +1251,33 @@ function toTitle() {
   ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.clearRect(0, 0, cv.width, cv.height);
   $("titleChars").innerHTML = PORTRAIT.tim() + PORTRAIT.faroo() + PORTRAIT.valle();
   $("contBtn").hidden = !(save.step > 0 && save.step < STORY.length);
+  $("levelsBtn").hidden = !(save.completed || save.step >= STORY.length);
   document.querySelectorAll("#diff button").forEach(b => b.classList.toggle("sel", b.dataset.d === difficulty));
 }
 $("diff").addEventListener("click", e => { const b = e.target.closest("button"); if (!b) return; difficulty = b.dataset.d; store.write(); sfx("tap"); toTitle(); });
 $("newBtn").onclick = () => { save = { step: 0, totalMugs: 0, schnitzel: {} }; store.write(); runStory(); };
 $("contBtn").onclick = () => runStory();
+const LEVEL_MENU = [
+  { n: 0, title: "Level 1 · Altstadt", sub: "Tassen, Schnitzel, erste Brix-Bänke" },
+  { n: 1, title: "Level 2 · Neonmarkt", sub: "Nachts, schnelle rote Bänke" },
+  { n: 2, title: "Level 3 · Dachterrassen", sub: "Schwebende Plattformen" },
+  { n: 3, title: "Boss · Opa Brixx", sub: "BADABOOM auf der XXL-Bank" },
+  { n: 4, title: "Boss · Riesen-Faroo", sub: "Der Plot-Twist-Kampf" },
+  { n: 5, title: "Endlos · Faroo läuft", sub: "Spiel als Faroo, jedes 3. Schnitzel macht ihn schmaler" },
+];
+function levelSelect() {
+  modal(`<h2>Levelauswahl</h2><div class="stack">${LEVEL_MENU.map(l => `<button class="btn ${l.n === 5 ? "hot" : ""}" data-lvl="${l.n}" type="button" style="width:100%"><span style="display:block">${l.title}</span><small style="font-weight:700;opacity:.75">${l.sub}${l.n === 5 && save.bestEndless ? ` · Rekord ${save.bestEndless} m` : ""}</small></button>`).join("")}<button class="btn" id="lvlBack" type="button">Zurück</button></div>`);
+  document.querySelectorAll("[data-lvl]").forEach(b => b.onclick = () => playSingle(+b.dataset.lvl));
+  $("lvlBack").onclick = toTitle;
+}
+async function playSingle(n) {
+  G = null;
+  const res = await playLevel(n);
+  if (res === "quit") return toTitle();
+  if (!LEVELS[n].endless) await levelDone(n, res);
+  levelSelect();
+}
+$("levelsBtn").onclick = levelSelect;
 $("helpBtn").onclick = () => helpModal(toTitle);
 store.load();
 toTitle();
