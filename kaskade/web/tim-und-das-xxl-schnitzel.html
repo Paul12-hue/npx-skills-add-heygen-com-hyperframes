@@ -297,7 +297,13 @@ const store = {
   write() { try { localStorage.setItem("tim-schnitzel", JSON.stringify({ step: save.step, save, difficulty })); } catch (e) {} },
 };
 const $ = id => document.getElementById(id);
-function screen(id) { for (const s of ["title", "story", "modal"]) $(s).hidden = s !== id; const inGame = id === null; $("hud").hidden = !inGame; $("pad").hidden = !inGame || !touchUI; }
+function screen(id) {
+  for (const s of ["title", "story", "modal"]) $(s).hidden = s !== id;
+  const inGame = id === null; $("hud").hidden = !inGame; $("pad").hidden = !inGame || !touchUI;
+  // Any screen change drops held buttons, so no input can stay stuck "pressed".
+  if (typeof clearInput === "function") clearInput();
+  if (inGame && document.activeElement && document.activeElement.blur) document.activeElement.blur();
+}
 const touchUI = matchMedia("(pointer: coarse)").matches || "ontouchstart" in window;
 function banner(t) { const b = document.createElement("div"); b.className = "banner"; b.textContent = t; document.body.appendChild(b); setTimeout(() => b.remove(), 1600); }
 
@@ -1088,8 +1094,14 @@ function updateHud() {
 
 // ================= Input =================
 const keyMap = { ArrowLeft: "left", KeyA: "left", ArrowRight: "right", KeyD: "right", Space: "jump", ArrowUp: "jump", KeyW: "jump", KeyF: "fire", KeyJ: "fire", Enter: "fire" };
-addEventListener("keydown", e => { const k = keyMap[e.code]; if (k) { e.preventDefault(); if (k === "jump" && !input.jump) input.jumpPressed = true; input[k] = true; } if (e.code === "KeyP" && G && G.L) togglePause(); });
-addEventListener("keyup", e => { const k = keyMap[e.code]; if (k) input[k] = false; });
+addEventListener("keydown", e => { if (G && G.L && !G.done && !G.paused && document.activeElement && document.activeElement.tagName === "BUTTON") document.activeElement.blur(); const k = keyMap[e.code]; if (k) { e.preventDefault(); if (k === "jump" && !input.jump) input.jumpPressed = true; input[k] = true; } if (e.code === "KeyP" && G && G.L) togglePause(); });
+addEventListener("keyup", e => { const k = keyMap[e.code]; if (k) { e.preventDefault(); input[k] = false; } });
+function clearInput() {
+  padPointers.clear();
+  input.left = input.right = input.jump = input.fire = input.jumpPressed = false;
+  document.querySelectorAll(".pad .k.on").forEach(b => b.classList.remove("on"));
+}
+addEventListener("blur", clearInput);
 const padPointers = new Map();
 function refreshPad() {
   const held = new Set(padPointers.values());
@@ -1097,7 +1109,14 @@ function refreshPad() {
   document.querySelectorAll(".pad .k").forEach(b => b.classList.toggle("on", held.has(b.dataset.k)));
 }
 const padEl = $("pad");
-padEl.addEventListener("pointerdown", e => { const b = e.target.closest(".k"); if (!b) return; e.preventDefault(); padPointers.set(e.pointerId, b.dataset.k); refreshPad(); });
+padEl.addEventListener("pointerdown", e => {
+  const b = e.target.closest(".k"); if (!b) return; e.preventDefault();
+  try { b.setPointerCapture(e.pointerId); } catch (err) {}
+  padPointers.set(e.pointerId, b.dataset.k); refreshPad();
+});
+padEl.addEventListener("lostpointercapture", e => { if (padPointers.delete(e.pointerId)) refreshPad(); });
+// Safety net for iOS: when no finger touches the screen any more, nothing can be held.
+for (const ev of ["touchend", "touchcancel"]) document.addEventListener(ev, e => { if (e.touches.length === 0 && padPointers.size) { padPointers.clear(); refreshPad(); } }, { passive: true });
 padEl.addEventListener("pointermove", e => {
   if (!padPointers.has(e.pointerId)) return;
   const el = document.elementFromPoint(e.clientX, e.clientY), b = el && el.closest && el.closest(".k");
@@ -1116,7 +1135,7 @@ function togglePause() {
   } else { screen(null); last = performance.now(); acc = 0; }
 }
 $("pauseBtn").onclick = togglePause;
-document.addEventListener("visibilitychange", () => { if (document.hidden && G && G.L && !G.paused && !G.done) togglePause(); });
+document.addEventListener("visibilitychange", () => { if (document.hidden) clearInput(); if (document.hidden && G && G.L && !G.paused && !G.done) togglePause(); });
 
 // ================= Title =================
 function toTitle() {
