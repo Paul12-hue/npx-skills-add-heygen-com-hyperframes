@@ -41,7 +41,7 @@ lange Einarbeitung und eine sehr teure KI, gegen das Würfelrennen der hohe Zufa
 
 | Fähigkeit | Kosten | Wirkung | Zugfolge |
 |---|---|---|---|
-| **Anker** | 1 | Wirf einen neutralen Stein, der niemandem gehört. | Danach sofort ein normaler Wurf. |
+| **Anker** | 2 | Wirf einen neutralen Stein, der niemandem gehört. | Danach sofort ein normaler Wurf. |
 | **Geysir** | 2 | Schiebe einen eigenen Stein **von unten** in eine Spalte. Alle Steine darin steigen eine Reihe auf. | Das ist dein Wurf. |
 | **Spalt** | 3 | Entferne den obersten Stein einer Spalte (egal wessen). | Danach sofort ein normaler Wurf. |
 
@@ -62,11 +62,29 @@ lange Einarbeitung und eine sehr teure KI, gegen das Würfelrennen der hohe Zufa
 ## 4. Balancing (Begründung)
 
 - **Anzugsvorteil:** Beim klassischen Prinzip gewinnt der Beginnende bei perfektem Spiel.
-  Darum startet der Mond mit **1 Energie**, die Sonne mit 0.
+  Darum startet der Mond mit **1 Energie**, die Sonne mit 0. Gemessen wurde das mit dem Selbstspiel-Werkzeug `KaskadeSim`
+  (Meister gegen Meister, je zwei zufällige Eröffnungswürfe; n = Anzahl Partien):
+
+  | Start-Energie Sonne/Mond | Anker-Kosten | n | Sonne | Mond | Remis | Züge/Partie |
+  |---|---|---|---|---|---|---|
+  | 0 / 0 | 1 | 30 | 73 % | 27 % | 0 % | 20 |
+  | 0 / 1 | 1 | 30 | 40 % | 60 % | 0 % | 20 |
+  | 1 / 1 | 1 | 30 | 70 % | 20 % | 10 % | 16 |
+  | 0 / 0 | 2 | 60 | 55 % | 45 % | 0 % | 26 |
+  | 1 / 1 | 2 | 60 | 78 % | 22 % | 0 % | 13 |
+  | 1 / 2 | 2 | 120 | 40 % | 60 % | 0 % | 13 |
+  | 0 / 2 | 2 | 60 | 15 % | 85 % | 0 % | 14 |
+  | **0 / 1** | **2** | **120** | **50 %** | **50 %** | **0 %** | **24** |
+
+  Die gewählte Variante (fett) ist ausgeglichen und erzeugt die längsten, strategischsten Partien.
+  Die statistische Unsicherheit liegt bei n = 120 bei etwa ±5 Prozentpunkten.
+  Fähigkeiten kommen dann aus Kristallen statt vom ersten Zug an.
 - **Anker** ist kein schwächerer eigener Stein, sondern ein **Paritätswerkzeug**. Der
   neutrale Stein verschiebt, wer in ein Drohfeld spielen muss (Zugzwang). Über ihn hinweg
   lässt sich eine Drohung blockieren, die eine Reihe über dem spielbaren Feld liegt.
-  Deshalb ist er billig.
+  Mit Kosten 1 wurde er in Tests fast immer sofort gespielt (rund 3 Anker pro Partie, kaum Geysire
+  oder Spalte). Mit Kosten 2 konkurriert er mit dem Geysir um dieselbe Energie, und das macht die
+  Wahl interessant.
 - **Geysir** verändert eine ganze Spalte, damit auch Waagerechte und Diagonalen. Er
   erzeugt die spektakulärsten Wendungen, kann aber auch dem Gegner eine Reihe schenken.
   Das ist ein bewusstes Risiko.
@@ -125,6 +143,6 @@ lange Einarbeitung und eine sehr teure KI, gegen das Würfelrennen der hohe Zufa
 |---|---|---|---|
 | Ursprung | 7×6 | 4 Kristalle, Standardregeln | Level 1 |
 | Klassik | 7×6 | keine Kristalle, keine Fähigkeiten | Level 1 |
-| Monolith | 7×6 | drei feste neutrale Steine am Boden, 4 Kristalle | Level 3 |
+| Monolith | 7×6 | fünf feste neutrale Steine (Mitte und zwei Randsäulen), 4 Kristalle | Level 3 |
 | Weite | 8×7 | großes Brett, 6 Kristalle, mehr Startenergie | Level 5 |
 | Kristallgrotte | 7×6 | 8 Kristalle, energiereich und wild | Level 7 |
