@@ -42,6 +42,7 @@ interface ActiveShot {
   demo: boolean;
   cinematic: boolean;
   speed: number;
+  contacted: boolean;
 }
 
 interface Stats {
@@ -129,6 +130,7 @@ export class Game {
   private exp: ExperimentDef | null = null;
   private campaign = false;
   private campaignTotal = 0;
+  private campaignScores: Partial<Record<ExperimentId, number>> = {};
   private training = false;
   private roundIdx = 0;
   private attempt = 0;
@@ -451,7 +453,7 @@ export class Game {
     $('pRestart').addEventListener('click', () => {
       confirmBox('NEU STARTEN?', 'Der aktuelle Fortschritt in diesem Experiment geht verloren.', 'NEU STARTEN', () => {
         this.pause(false);
-        if (this.training) this.startTraining(); else this.startExperiment(this.exp!.id, this.campaign, true);
+        if (this.training) this.startTraining(); else this.startExperiment(this.exp!.id, this.campaign);
       });
     });
     $('pMenu').addEventListener('click', () => {
@@ -467,10 +469,10 @@ export class Game {
 
     // summary
     $('sumNext').addEventListener('click', () => { sound.ui('select'); this.summaryNext(); });
-    $('sumRetry').addEventListener('click', () => { sound.ui('select'); if (this.exp) this.startExperiment(this.exp.id, this.campaign, true); });
+    $('sumRetry').addEventListener('click', () => { sound.ui('select'); if (this.exp) this.startExperiment(this.exp.id, this.campaign); });
     $('sumMenu').addEventListener('click', () => { sound.ui('back'); this.enterMenu(); });
     $('fwContinue').addEventListener('click', () => { sound.ui('select'); this.showSummary(); });
-    $('fwAgain').addEventListener('click', () => { sound.ui('select'); this.startExperiment('finale', this.campaign, true); });
+    $('fwAgain').addEventListener('click', () => { sound.ui('select'); this.recordRun(); this.startExperiment('finale', this.campaign); });
 
     // lab tour
     $('labPrev').addEventListener('click', () => { sound.ui('tap'); this.labGo(this.labIdx - 1); });
@@ -620,6 +622,7 @@ export class Game {
   // ======================================================================== experiments
   private startCampaign() {
     this.campaignTotal = 0;
+    this.campaignScores = {};
     this.startExperiment('perfect', true);
   }
 
@@ -628,15 +631,15 @@ export class Game {
     this.beginRun(TRAINING, false);
   }
 
-  private startExperiment(id: ExperimentId, campaign: boolean, restart = false) {
+  private startExperiment(id: ExperimentId, campaign: boolean) {
     this.training = false;
-    if (!restart && !campaign) this.campaignTotal = 0;
     this.beginRun(experimentById(id), campaign);
   }
 
   private beginRun(exp: ExperimentDef, campaign: boolean) {
     this.exp = exp;
     this.campaign = campaign;
+    this.recorded = null;
     this.mode = 'play';
     this.paused = false;
     this.shot = null;
@@ -791,7 +794,7 @@ export class Game {
     if (!store.settings.preview && !this.assist) return;
     const env = buildEnv(this.stage, this.substance);
     const horizon = this.assist ? 1.2 : 0.3;
-    this.aimPreview = simulate(l.pos, l.v, l.w, env, this.clock, horizon);
+    this.aimPreview = simulate(l.pos, l.v, l.w, env, this.clock + this.fx.paddle.leadTime, horizon);
     this.fx.traj.showPreview(this.aimPreview.samples, horizon);
   }
 
@@ -809,28 +812,26 @@ export class Game {
       : this.stage;
     const l = launchVectors(input, substance);
     const env = buildEnv(stage, substance);
-    const launchClock = this.clock;
+    // the racket needs a moment to reach the ball; the ball leaves exactly at contact
+    const lead = this.fx.paddle.leadTime;
+    const launchClock = this.clock + lead;
     const sim = simulate(l.pos, l.v, l.w, env, launchClock);
     const outcome = evaluateShot(sim, stage, launchClock);
     const finale = !demo && this.exp?.id === 'finale';
     const cinematic = finale && outcome.success;
     const slow = !demo && outcome.success && (outcome.perfect || finale);
     this.shot = {
-      sim, outcome, input, substance, launchClock, t: 0, nextEvent: 0, resolved: false, demo, cinematic, speed: l.speed,
+      sim, outcome, input, substance, launchClock, t: -lead, nextEvent: 0, resolved: false, demo, cinematic, speed: l.speed,
+      contacted: false,
       slowFrom: slow ? outcome.hitTime - (cinematic ? 0.4 : 0.22) : Infinity,
       slowTo: slow ? outcome.hitTime + (cinematic ? 0.12 : 0.25) : -Infinity,
     };
     this.ball.setTrailColor(substance === 'none' ? PALETTE.cyan : SUBSTANCES[substance].color);
     this.ball.resetTrail(v(l.pos.x, l.pos.y, l.pos.z));
-    if (demo) { sound.hit(input.power * 0.5); return; }
+    this.fx.paddle.swing(l.pos, l.v, input.spinX, input.spinY, input.power);
+    if (demo) return;
 
     this.stats.shots++;
-    sound.hit(input.power);
-    this.lab.lights.pulse.position.set(LAUNCH.x, LAUNCH.y, LAUNCH.z);
-    this.lab.lights.pulse.intensity = 2.5;
-    this.fx.particles.burst(l.pos, { count: 22, color: 0xffffff, speed: 1.6, life: 0.35, size: 0.012, drag: 6 });
-    this.fx.waves.spawn({ x: LAUNCH.x, y: 0.0, z: LAUNCH.z }, PALETTE.cyan, 0.5, 0.6, 0.06);
-    this.cam.kick(0.5);
     this.lastShotInfo = { speed: l.speed, rpm: toRpm(Math.hypot(input.spinX, input.spinY) * MAX_SPIN), apex: sim.apex - TOP };
     if (cinematic) {
       letterbox(true);
@@ -841,6 +842,20 @@ export class Game {
     }
     this.fx.traj.hidePast();
     $('analysis').classList.remove('on');
+  }
+
+  /** The blade meets the ball. */
+  private onContact(s: ActiveShot) {
+    s.contacted = true;
+    if (s.demo) { sound.hit(s.input.power * 0.5); return; }
+    const p = s.sim.samples[0].p;
+    sound.hit(s.input.power);
+    this.lab.lights.pulse.position.set(p.x, p.y, p.z);
+    this.lab.lights.pulse.color.set(PALETTE.cyan);
+    this.lab.lights.pulse.intensity = 1.2;
+    this.fx.particles.burst(p, { count: 22, color: 0xffffff, speed: 1.6, life: 0.35, size: 0.012, drag: 6 });
+    this.fx.waves.spawn({ x: LAUNCH.x, y: 0.0, z: LAUNCH.z }, PALETTE.cyan, 0.5, 0.6, 0.06);
+    this.cam.kick(0.5);
   }
 
   /** Finale camera: chase from behind, then swing to the side the ball curves around the monolith. */
@@ -873,6 +888,13 @@ export class Game {
       return;
     }
     s.t += dt;
+    if (s.t < 0) {
+      // waiting for the racket: the ball still hovers in the emitter
+      p.set(LAUNCH.x, LAUNCH.y, LAUNCH.z);
+      this.ball.update(p, false, dtReal, this.time);
+      return;
+    }
+    if (!s.contacted) this.onContact(s);
     const smp = sampleAt(s.sim, s.t, p);
     this.ball.spin(smp.w, dt);
     this.ball.update(p, true, dtReal, this.time, s.substance === 'quantum');
@@ -1180,10 +1202,12 @@ export class Game {
       letterbox(false);
       this.mode = 'finaleWin';
       $('fwScore').textContent = fmt(this.stats.score);
-      $('fwTotal').textContent = this.campaign ? `KAMPAGNE GESAMT: ${fmt(this.campaignTotal + this.stats.score)}` : `IM ${this.finaleFails + 1}. VERSUCH`;
+      const prior = Object.entries(this.campaignScores).reduce((a, [id, sc]) => a + (id === 'finale' ? 0 : sc ?? 0), 0);
+      $('fwTotal').textContent = this.campaign ? `KAMPAGNE GESAMT: ${fmt(prior + this.stats.score)}` : `IM ${this.finaleFails + 1}. VERSUCH`;
       $('fwQuote').textContent = pickLine('finaleWin').text;
       only(['finaleWin'], ALL_SCREENS);
-      this.say('finaleWin', 3);
+      this.speech.hide();
+      this.bot.react();
       this.fx.traj.showPast(s.sim.samples, s.outcome.hitTime, PALETTE.orange, s.outcome.hitPoint);
     });
   }
@@ -1218,22 +1242,35 @@ export class Game {
     this.showSummary();
   }
 
-  private showSummary() {
+  private recorded: { passed: boolean; rank: { letter: string; name: string }; record: boolean } | null = null;
+
+  /** Saves the run's result once (highscores, completion, campaign total). */
+  private recordRun() {
+    if (this.recorded) return this.recorded;
     const exp = this.exp!;
     const st = this.stats;
     const passed = st.roundsWon >= exp.passAt;
-    this.mode = 'summary';
-    this.swipe.enabled = false;
-    this.dimTarget = 0.15;
     const rank = this.rankFor();
     if (passed) store.markCompleted(exp.id);
     const place = store.addScore(exp.id, st.score, rank.letter);
     let campaignPlace = -1;
     if (this.campaign) {
-      this.campaignTotal += st.score;
+      // a retried experiment replaces its earlier result instead of adding to it
+      this.campaignScores[exp.id] = st.score;
+      this.campaignTotal = Object.values(this.campaignScores).reduce((a, b) => a + (b ?? 0), 0);
       if (exp.id === 'finale') campaignPlace = store.addScore('campaign', this.campaignTotal, rank.letter);
     }
-    const record = (place === 0 && st.score > 0) || campaignPlace === 0;
+    this.recorded = { passed, rank, record: (place === 0 && st.score > 0) || campaignPlace === 0 };
+    return this.recorded;
+  }
+
+  private showSummary() {
+    const exp = this.exp!;
+    const st = this.stats;
+    const { passed, rank, record } = this.recordRun();
+    this.mode = 'summary';
+    this.swipe.enabled = false;
+    this.dimTarget = 0.15;
     sound.fanfare(passed);
     $('sumCode').textContent = `EXPERIMENT ${exp.code} · ${passed ? 'BESTANDEN' : 'NICHT BESTANDEN'}`;
     $('sumTitle').textContent = exp.name;
@@ -1288,7 +1325,8 @@ export class Game {
         if (sx * sx + sy * sy > 1.01) continue;
         const input = { yaw, power: p, spinX: sx, spinY: sy };
         const l = launchVectors(input, sub);
-        const o = evaluateShot(simulate(l.pos, l.v, l.w, env, this.clock), st, this.clock);
+        const lc = this.clock + this.fx.paddle.leadTime;
+        const o = evaluateShot(simulate(l.pos, l.v, l.w, env, lc), st, lc);
         if (o.success === wantSuccess) return input;
       }
     return null;

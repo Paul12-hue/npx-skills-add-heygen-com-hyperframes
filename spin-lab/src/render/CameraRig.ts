@@ -23,7 +23,7 @@ export class CameraRig {
   playShot(): Shot {
     return this.portrait
       ? { pos: new THREE.Vector3(0, 2.25, 3.55), look: new THREE.Vector3(0, 0.62, -0.55) }
-      : { pos: new THREE.Vector3(0, 1.72, 2.85), look: new THREE.Vector3(0, 0.72, -0.62) };
+      : { pos: new THREE.Vector3(0, 1.8, 2.82), look: new THREE.Vector3(0, 0.7, -0.68) };
   }
 
   go(shot: Shot, stiffness = 2.5, snap = false) {

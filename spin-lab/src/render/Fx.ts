@@ -456,12 +456,93 @@ export class Trajectories {
   hidePreview() { this.preview.geometry.setDrawRange(0, 0); }
 }
 
+/** A stylised racket that swings through the ball on every shot; the swing path follows the spin. */
+export class Paddle {
+  readonly group = new THREE.Group();
+  private t = -1;
+  private readonly dur = 0.32;
+  static readonly CONTACT = 0.45;
+  /** Seconds from the start of the swing until the blade meets the ball. */
+  get leadTime() { return this.dur * Paddle.CONTACT; }
+  private s = new THREE.Vector3();
+  private c = new THREE.Vector3();
+  private e = new THREE.Vector3();
+  private d = new THREE.Vector3();
+  private tilt = 0;
+  private roll = 0;
+  private mats: THREE.Material[] = [];
+
+  constructor(scene: THREE.Scene) {
+    const rubber = new THREE.MeshPhysicalMaterial({ color: 0xc8152b, roughness: 0.55, sheen: 0.6, sheenColor: new THREE.Color(0xff6070), transparent: true });
+    const back = new THREE.MeshStandardMaterial({ color: 0x101216, roughness: 0.6, transparent: true });
+    const wood = new THREE.MeshStandardMaterial({ color: 0xc89a62, roughness: 0.7, transparent: true });
+    const edge = new THREE.MeshBasicMaterial({ color: PALETTE.cyan, transparent: true });
+    this.mats = [rubber, back, wood, edge];
+    const blade = new THREE.Group();
+    const front = new THREE.Mesh(new THREE.CylinderGeometry(0.076, 0.076, 0.004, 40), rubber);
+    front.scale.set(1, 1, 1.08);
+    front.position.y = 0.003;
+    const rear = new THREE.Mesh(new THREE.CylinderGeometry(0.076, 0.076, 0.004, 40), back);
+    rear.scale.set(1, 1, 1.08);
+    rear.position.y = -0.003;
+    const rim = new THREE.Mesh(new THREE.TorusGeometry(0.077, 0.0016, 6, 48), edge);
+    rim.rotation.x = Math.PI / 2;
+    rim.scale.set(1, 1.08, 1);
+    blade.add(front, rear, rim);
+    // the blade lies in the XZ plane facing +Y; rotate so it faces +Z (towards the net in local space)
+    blade.rotation.x = Math.PI / 2;
+    const handle = new THREE.Mesh(new THREE.BoxGeometry(0.026, 0.1, 0.022), wood);
+    handle.position.set(0, -0.125, 0);
+    const flare = new THREE.Mesh(new THREE.BoxGeometry(0.034, 0.03, 0.02), wood);
+    flare.position.set(0, -0.078, 0);
+    this.group.add(blade, handle, flare);
+    this.group.visible = false;
+    this.group.traverse((o) => { (o as THREE.Mesh).castShadow = true; });
+    scene.add(this.group);
+  }
+
+  /** dir: horizontal shot direction; spin: pad contact point (x curve, y topspin). */
+  swing(contact: V3, dir: V3, spinX: number, spinY: number, power: number) {
+    this.d.set(dir.x, 0, dir.z).normalize();
+    const right = new THREE.Vector3(-this.d.z, 0, this.d.x);
+    const up = new THREE.Vector3(0, 1, 0);
+    this.c.set(contact.x, contact.y, contact.z).addScaledVector(this.d, 0.035);
+    const reach = 0.22 + power * 0.18;
+    this.s.copy(this.c).addScaledVector(this.d, -reach).addScaledVector(up, -0.16 * spinY - 0.02).addScaledVector(right, -0.14 * spinX + 0.05);
+    this.e.copy(this.c).addScaledVector(this.d, reach * 0.8).addScaledVector(up, 0.2 * spinY + 0.03).addScaledVector(right, 0.14 * spinX - 0.03);
+    this.tilt = 0.5 * spinY; // topspin closes the face, backspin opens it
+    this.roll = 0.35 * spinX;
+    this.t = 0;
+    this.group.visible = true;
+  }
+
+  update(dt: number) {
+    if (this.t < 0) return;
+    this.t += dt / this.dur;
+    if (this.t >= 1) { this.t = -1; this.group.visible = false; return; }
+    // fast acceleration into the ball, slower follow-through; contact happens at t = CONTACT
+    const k = this.t < Paddle.CONTACT
+      ? 0.5 * Math.pow(this.t / Paddle.CONTACT, 2)
+      : 0.5 + 0.5 * (1 - Math.pow(1 - (this.t - Paddle.CONTACT) / (1 - Paddle.CONTACT), 2));
+    // quadratic Bézier through start, contact (at k = 0.5) and end
+    const ctrl = this.c.clone().multiplyScalar(2).addScaledVector(this.s, -0.5).addScaledVector(this.e, -0.5);
+    const p = this.s.clone().multiplyScalar((1 - k) * (1 - k)).addScaledVector(ctrl, 2 * k * (1 - k)).addScaledVector(this.e, k * k);
+    this.group.position.copy(p);
+    this.group.lookAt(p.clone().add(this.d));
+    this.group.rotateX(this.tilt);
+    this.group.rotateZ(this.roll + 0.3);
+    const fade = Math.min(1, this.t * 8, (1 - this.t) * 5);
+    for (const m of this.mats) m.opacity = fade;
+  }
+}
+
 export class Fx {
   readonly particles: Particles;
   readonly waves: Shockwaves;
   readonly target: TargetView;
   readonly obstacles: ObstacleViews;
   readonly traj: Trajectories;
+  readonly paddle: Paddle;
   /** Ambient dust motes that react to gravity. */
   private dust: THREE.Points;
   private dustVel: Float32Array;
@@ -475,6 +556,7 @@ export class Fx {
     this.target = new TargetView(scene);
     this.obstacles = new ObstacleViews(scene);
     this.traj = new Trajectories(scene);
+    this.paddle = new Paddle(scene);
 
     const n = 260;
     const pos = new Float32Array(n * 3);
@@ -519,6 +601,7 @@ export class Fx {
 
   update(dt: number, time: number, clock: number) {
     this.particles.update(dt);
+    this.paddle.update(dt);
     this.waves.update(dt);
     this.target.update(dt, clock);
     this.obstacles.update(dt, time);
