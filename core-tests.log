@@ -1,0 +1,216 @@
+Building for debugging...
+[0/12] /Users/runner/work/npx-skills-add-heygen-com-hyperframes/npx-skills-add-heygen-com-hyperframes/kaskade/KaskadeCore/.build/arm64-apple-macosx/debug/KaskadeCorePackageTests.derived/runner.swift
+[1/12] Write sources
+[2/12] Write KaskadeSim-entitlement.plist
+[2/12] Write sources
+[6/12] Write swift-version-7974D3F7F03D5E95.txt
+[8/19] Compiling KaskadeCore GameState.swift
+[9/19] Compiling KaskadeCore Match.swift
+[10/19] Compiling KaskadeCore PieceTracker.swift
+[11/22] Compiling KaskadeCore Progression.swift
+[12/22] Compiling KaskadeCore Puzzle.swift
+[13/22] Compiling KaskadeCore Tutorial.swift
+[14/22] Compiling KaskadeCore AI.swift
+[15/22] Compiling KaskadeCore Arena.swift
+[16/22] Compiling KaskadeCore Basics.swift
+[17/22] Emitting module KaskadeCore
+[18/30] Compiling KaskadeSim main.swift
+[19/30] Emitting module KaskadeSim
+[19/30] Write Objects.LinkFileList
+[20/30] Linking KaskadeSim
+[21/30] Applying KaskadeSim
+[23/30] Emitting module KaskadeCoreTests
+[24/32] Compiling KaskadeCoreTests RulesTests.swift
+[25/32] Compiling KaskadeCoreTests TutorialTests.swift
+[26/32] Compiling KaskadeCoreTests MatchTests.swift
+[27/32] Compiling KaskadeCoreTests PuzzleAndProgressionTests.swift
+[28/32] Compiling KaskadeCoreTests AITests.swift
+[29/32] Compiling KaskadeCoreTests AbilityTests.swift
+[30/32] Compiling KaskadeCoreTests FuzzTests.swift
+[31/34] Emitting module KaskadeCorePackageTests
+[32/34] Compiling KaskadeCorePackageTests runner.swift
+[32/34] Write Objects.LinkFileList
+[33/34] Linking KaskadeCorePackageTests
+Build complete! (40.44s)
+Test Suite 'All tests' started at 2026-10-29 21:13:24.834.
+Test Suite 'KaskadeCorePackageTests.xctest' started at 2026-10-29 21:13:24.851.
+Test Suite 'AITests' started at 2026-10-29 21:13:24.851.
+Test Case '-[KaskadeCoreTests.AITests testAlwaysReturnsLegalMoves]' started.
+Test Case '-[KaskadeCoreTests.AITests testAlwaysReturnsLegalMoves]' passed (2.634 seconds).
+Test Case '-[KaskadeCoreTests.AITests testBlocksImmediateLoss]' started.
+Test Case '-[KaskadeCoreTests.AITests testBlocksImmediateLoss]' passed (2.065 seconds).
+Test Case '-[KaskadeCoreTests.AITests testDeterministicWithSeed]' started.
+Test Case '-[KaskadeCoreTests.AITests testDeterministicWithSeed]' passed (0.003 seconds).
+Test Case '-[KaskadeCoreTests.AITests testRespectsTimeBudget]' started.
+Test Case '-[KaskadeCoreTests.AITests testRespectsTimeBudget]' passed (0.506 seconds).
+Test Case '-[KaskadeCoreTests.AITests testStrengthOrdering]' started.
+Test Case '-[KaskadeCoreTests.AITests testStrengthOrdering]' passed (11.158 seconds).
+Test Case '-[KaskadeCoreTests.AITests testTakesImmediateWin]' started.
+Test Case '-[KaskadeCoreTests.AITests testTakesImmediateWin]' passed (0.009 seconds).
+Test Case '-[KaskadeCoreTests.AITests testUsesAbilityToWin]' started.
+Test Case '-[KaskadeCoreTests.AITests testUsesAbilityToWin]' passed (0.010 seconds).
+Test Suite 'AITests' passed at 2026-10-29 21:13:41.240.
+	 Executed 7 tests, with 0 failures (0 unexpected) in 16.386 (16.389) seconds
+Test Suite 'AbilityTests' started at 2026-10-29 21:13:41.240.
+Test Case '-[KaskadeCoreTests.AbilityTests testAbilitiesDisabledInClassic]' started.
+Test Case '-[KaskadeCoreTests.AbilityTests testAbilitiesDisabledInClassic]' passed (0.003 seconds).
+Test Case '-[KaskadeCoreTests.AbilityTests testAbilitiesRequireEnergy]' started.
+Test Case '-[KaskadeCoreTests.AbilityTests testAbilitiesRequireEnergy]' passed (0.000 seconds).
+Test Case '-[KaskadeCoreTests.AbilityTests testAnchorDestroysCrystalWithoutEnergy]' started.
+Test Case '-[KaskadeCoreTests.AbilityTests testAnchorDestroysCrystalWithoutEnergy]' passed (0.000 seconds).
+Test Case '-[KaskadeCoreTests.AbilityTests testAnchorNeedsRoomForFollowUp]' started.
+Test Case '-[KaskadeCoreTests.AbilityTests testAnchorNeedsRoomForFollowUp]' passed (0.000 seconds).
+Test Case '-[KaskadeCoreTests.AbilityTests testAnchorPlacesNeutralStoneAndRequiresFollowUpDrop]' started.
+Test Case '-[KaskadeCoreTests.AbilityTests testAnchorPlacesNeutralStoneAndRequiresFollowUpDrop]' passed (0.000 seconds).
+Test Case '-[KaskadeCoreTests.AbilityTests testGeyserClaimsCrystalForStonePushedOntoIt]' started.
+Test Case '-[KaskadeCoreTests.AbilityTests testGeyserClaimsCrystalForStonePushedOntoIt]' passed (0.002 seconds).
+Test Case '-[KaskadeCoreTests.AbilityTests testGeyserCompletesOwnLine]' started.
+Test Case '-[KaskadeCoreTests.AbilityTests testGeyserCompletesOwnLine]' passed (0.000 seconds).
+Test Case '-[KaskadeCoreTests.AbilityTests testGeyserCreatingBothLinesWinsForMover]' started.
+Test Case '-[KaskadeCoreTests.AbilityTests testGeyserCreatingBothLinesWinsForMover]' passed (0.000 seconds).
+Test Case '-[KaskadeCoreTests.AbilityTests testGeyserIllegalOnFullColumn]' started.
+Test Case '-[KaskadeCoreTests.AbilityTests testGeyserIllegalOnFullColumn]' passed (0.000 seconds).
+Test Case '-[KaskadeCoreTests.AbilityTests testGeyserLiftsColumnAndInsertsAtBottom]' started.
+Test Case '-[KaskadeCoreTests.AbilityTests testGeyserLiftsColumnAndInsertsAtBottom]' passed (0.000 seconds).
+Test Case '-[KaskadeCoreTests.AbilityTests testGeyserOnEmptyColumnActsLikeDrop]' started.
+Test Case '-[KaskadeCoreTests.AbilityTests testGeyserOnEmptyColumnActsLikeDrop]' passed (0.001 seconds).
+Test Case '-[KaskadeCoreTests.AbilityTests testGeyserThatOnlyCompletesOpponentLineLoses]' started.
+Test Case '-[KaskadeCoreTests.AbilityTests testGeyserThatOnlyCompletesOpponentLineLoses]' passed (0.001 seconds).
+Test Case '-[KaskadeCoreTests.AbilityTests testLegalMoveListMatchesEnergy]' started.
+Test Case '-[KaskadeCoreTests.AbilityTests testLegalMoveListMatchesEnergy]' passed (0.001 seconds).
+Test Case '-[KaskadeCoreTests.AbilityTests testNeutralStonesBreakLines]' started.
+Test Case '-[KaskadeCoreTests.AbilityTests testNeutralStonesBreakLines]' passed (0.000 seconds).
+Test Case '-[KaskadeCoreTests.AbilityTests testRiftDoesNotRestoreCrystal]' started.
+Test Case '-[KaskadeCoreTests.AbilityTests testRiftDoesNotRestoreCrystal]' passed (0.000 seconds).
+Test Case '-[KaskadeCoreTests.AbilityTests testRiftIllegalOnEmptyColumn]' started.
+Test Case '-[KaskadeCoreTests.AbilityTests testRiftIllegalOnEmptyColumn]' passed (0.000 seconds).
+Test Case '-[KaskadeCoreTests.AbilityTests testRiftKeepsGameAliveOnFullBoard]' started.
+Test Case '-[KaskadeCoreTests.AbilityTests testRiftKeepsGameAliveOnFullBoard]' passed (0.000 seconds).
+Test Case '-[KaskadeCoreTests.AbilityTests testRiftRemovesTopStoneThenRequiresDrop]' started.
+Test Case '-[KaskadeCoreTests.AbilityTests testRiftRemovesTopStoneThenRequiresDrop]' passed (0.000 seconds).
+Test Suite 'AbilityTests' passed at 2026-10-29 21:13:41.258.
+	 Executed 18 tests, with 0 failures (0 unexpected) in 0.011 (0.018) seconds
+Test Suite 'FuzzTests' started at 2026-10-29 21:13:41.258.
+Test Case '-[KaskadeCoreTests.FuzzTests testRandomGamesKeepInvariants]' started.
+Test Case '-[KaskadeCoreTests.FuzzTests testRandomGamesKeepInvariants]' passed (1.423 seconds).
+Test Suite 'FuzzTests' passed at 2026-10-29 21:13:42.680.
+	 Executed 1 test, with 0 failures (0 unexpected) in 1.423 (1.423) seconds
+Test Suite 'MatchTests' started at 2026-10-29 21:13:42.681.
+Test Case '-[KaskadeCoreTests.MatchTests testCannotUndoBeforeHumanMovedWhenAIStarts]' started.
+Test Case '-[KaskadeCoreTests.MatchTests testCannotUndoBeforeHumanMovedWhenAIStarts]' passed (0.003 seconds).
+Test Case '-[KaskadeCoreTests.MatchTests testCorruptSnapshotIsRejected]' started.
+Test Case '-[KaskadeCoreTests.MatchTests testCorruptSnapshotIsRejected]' passed (0.002 seconds).
+Test Case '-[KaskadeCoreTests.MatchTests testMatchStatistics]' started.
+Test Case '-[KaskadeCoreTests.MatchTests testMatchStatistics]' passed (0.000 seconds).
+Test Case '-[KaskadeCoreTests.MatchTests testPieceTrackerFollowsAllMoveKinds]' started.
+Test Case '-[KaskadeCoreTests.MatchTests testPieceTrackerFollowsAllMoveKinds]' passed (0.000 seconds).
+Test Case '-[KaskadeCoreTests.MatchTests testPieceTrackerRiftRemovesTopPiece]' started.
+Test Case '-[KaskadeCoreTests.MatchTests testPieceTrackerRiftRemovesTopPiece]' passed (0.002 seconds).
+Test Case '-[KaskadeCoreTests.MatchTests testRestartResetsEverything]' started.
+Test Case '-[KaskadeCoreTests.MatchTests testRestartResetsEverything]' passed (0.001 seconds).
+Test Case '-[KaskadeCoreTests.MatchTests testSnapshotRoundTripThroughJSON]' started.
+Test Case '-[KaskadeCoreTests.MatchTests testSnapshotRoundTripThroughJSON]' passed (0.001 seconds).
+Test Case '-[KaskadeCoreTests.MatchTests testUndoAgainstAIRemovesAIReply]' started.
+Test Case '-[KaskadeCoreTests.MatchTests testUndoAgainstAIRemovesAIReply]' passed (0.000 seconds).
+Test Case '-[KaskadeCoreTests.MatchTests testUndoInLocalDuelTakesBackOneTurn]' started.
+Test Case '-[KaskadeCoreTests.MatchTests testUndoInLocalDuelTakesBackOneTurn]' passed (0.000 seconds).
+Test Case '-[KaskadeCoreTests.MatchTests testUndoMidTurnRewindsToTurnStart]' started.
+Test Case '-[KaskadeCoreTests.MatchTests testUndoMidTurnRewindsToTurnStart]' passed (0.001 seconds).
+Test Case '-[KaskadeCoreTests.MatchTests testUndoRemovesAbilityTogetherWithFollowUp]' started.
+Test Case '-[KaskadeCoreTests.MatchTests testUndoRemovesAbilityTogetherWithFollowUp]' passed (0.000 seconds).
+Test Case '-[KaskadeCoreTests.MatchTests testUnknownArenaThrows]' started.
+Test Case '-[KaskadeCoreTests.MatchTests testUnknownArenaThrows]' passed (0.000 seconds).
+Test Suite 'MatchTests' passed at 2026-10-29 21:13:42.696.
+	 Executed 12 tests, with 0 failures (0 unexpected) in 0.013 (0.016) seconds
+Test Suite 'ProgressionTests' started at 2026-10-29 21:13:42.696.
+Test Case '-[KaskadeCoreTests.ProgressionTests testDuelStatistics]' started.
+Test Case '-[KaskadeCoreTests.ProgressionTests testDuelStatistics]' passed (0.003 seconds).
+Test Case '-[KaskadeCoreTests.ProgressionTests testLevelCurve]' started.
+Test Case '-[KaskadeCoreTests.ProgressionTests testLevelCurve]' passed (0.002 seconds).
+Test Case '-[KaskadeCoreTests.ProgressionTests testLevelUpUnlocksArenasAndSkins]' started.
+Test Case '-[KaskadeCoreTests.ProgressionTests testLevelUpUnlocksArenasAndSkins]' passed (0.003 seconds).
+Test Case '-[KaskadeCoreTests.ProgressionTests testLossAndDrawResetStreak]' started.
+Test Case '-[KaskadeCoreTests.ProgressionTests testLossAndDrawResetStreak]' passed (0.005 seconds).
+Test Case '-[KaskadeCoreTests.ProgressionTests testProfileAndSettingsDecodeTolerantly]' started.
+Test Case '-[KaskadeCoreTests.ProgressionTests testProfileAndSettingsDecodeTolerantly]' passed (0.001 seconds).
+Test Case '-[KaskadeCoreTests.ProgressionTests testPuristRequiresAbilityArenaAndNoAbilities]' started.
+Test Case '-[KaskadeCoreTests.ProgressionTests testPuristRequiresAbilityArenaAndNoAbilities]' passed (0.000 seconds).
+Test Case '-[KaskadeCoreTests.ProgressionTests testPuzzleRewardsOnlyOnce]' started.
+Test Case '-[KaskadeCoreTests.ProgressionTests testPuzzleRewardsOnlyOnce]' passed (0.000 seconds).
+Test Case '-[KaskadeCoreTests.ProgressionTests testRiftFinishAndCrystalAchievements]' started.
+Test Case '-[KaskadeCoreTests.ProgressionTests testRiftFinishAndCrystalAchievements]' passed (0.000 seconds).
+Test Case '-[KaskadeCoreTests.ProgressionTests testStreakAchievement]' started.
+Test Case '-[KaskadeCoreTests.ProgressionTests testStreakAchievement]' passed (0.000 seconds).
+Test Case '-[KaskadeCoreTests.ProgressionTests testSummaryFromMatch]' started.
+Test Case '-[KaskadeCoreTests.ProgressionTests testSummaryFromMatch]' passed (0.000 seconds).
+Test Case '-[KaskadeCoreTests.ProgressionTests testUndoHalvesXPAndBlocksAchievements]' started.
+Test Case '-[KaskadeCoreTests.ProgressionTests testUndoHalvesXPAndBlocksAchievements]' passed (0.000 seconds).
+Test Case '-[KaskadeCoreTests.ProgressionTests testUnratedModesGiveNothing]' started.
+Test Case '-[KaskadeCoreTests.ProgressionTests testUnratedModesGiveNothing]' passed (0.000 seconds).
+Test Case '-[KaskadeCoreTests.ProgressionTests testWinGrantsXPStatsAndAchievements]' started.
+Test Case '-[KaskadeCoreTests.ProgressionTests testWinGrantsXPStatsAndAchievements]' passed (0.001 seconds).
+Test Suite 'ProgressionTests' passed at 2026-10-29 21:13:42.716.
+	 Executed 13 tests, with 0 failures (0 unexpected) in 0.016 (0.020) seconds
+Test Suite 'PuzzleTests' started at 2026-10-29 21:13:42.716.
+Test Case '-[KaskadeCoreTests.PuzzleTests testAbilityPuzzlesCannotBeSolvedByPlainDrops]' started.
+Test Case '-[KaskadeCoreTests.PuzzleTests testAbilityPuzzlesCannotBeSolvedByPlainDrops]' passed (0.001 seconds).
+Test Case '-[KaskadeCoreTests.PuzzleTests testEveryPuzzleHasForcedWinInStatedTurns]' started.
+Test Case '-[KaskadeCoreTests.PuzzleTests testEveryPuzzleHasForcedWinInStatedTurns]' passed (0.001 seconds).
+Test Case '-[KaskadeCoreTests.PuzzleTests testPuzzlesAreWellFormed]' started.
+Test Case '-[KaskadeCoreTests.PuzzleTests testPuzzlesAreWellFormed]' passed (0.002 seconds).
+Test Case '-[KaskadeCoreTests.PuzzleTests testSolverRejectsWrongMoves]' started.
+Test Case '-[KaskadeCoreTests.PuzzleTests testSolverRejectsWrongMoves]' passed (0.000 seconds).
+Test Suite 'PuzzleTests' passed at 2026-10-29 21:13:42.722.
+	 Executed 4 tests, with 0 failures (0 unexpected) in 0.004 (0.006) seconds
+Test Suite 'RulesTests' started at 2026-10-29 21:13:42.722.
+Test Case '-[KaskadeCoreTests.RulesTests testAllArenasAreValid]' started.
+Test Case '-[KaskadeCoreTests.RulesTests testAllArenasAreValid]' passed (0.000 seconds).
+Test Case '-[KaskadeCoreTests.RulesTests testColumnOutOfRange]' started.
+Test Case '-[KaskadeCoreTests.RulesTests testColumnOutOfRange]' passed (0.001 seconds).
+Test Case '-[KaskadeCoreTests.RulesTests testCrystalGivesEnergyAndIsConsumed]' started.
+Test Case '-[KaskadeCoreTests.RulesTests testCrystalGivesEnergyAndIsConsumed]' passed (0.001 seconds).
+Test Case '-[KaskadeCoreTests.RulesTests testDiagonalWins]' started.
+Test Case '-[KaskadeCoreTests.RulesTests testDiagonalWins]' passed (0.000 seconds).
+Test Case '-[KaskadeCoreTests.RulesTests testDrawOnFullBoardWithoutAbilities]' started.
+Test Case '-[KaskadeCoreTests.RulesTests testDrawOnFullBoardWithoutAbilities]' passed (0.001 seconds).
+Test Case '-[KaskadeCoreTests.RulesTests testEnergyIsCapped]' started.
+Test Case '-[KaskadeCoreTests.RulesTests testEnergyIsCapped]' passed (0.000 seconds).
+Test Case '-[KaskadeCoreTests.RulesTests testFullColumnIsIllegalAndStateUnchanged]' started.
+Test Case '-[KaskadeCoreTests.RulesTests testFullColumnIsIllegalAndStateUnchanged]' passed (0.002 seconds).
+Test Case '-[KaskadeCoreTests.RulesTests testHorizontalWin]' started.
+Test Case '-[KaskadeCoreTests.RulesTests testHorizontalWin]' passed (0.000 seconds).
+Test Case '-[KaskadeCoreTests.RulesTests testInitialStateOfOrigin]' started.
+Test Case '-[KaskadeCoreTests.RulesTests testInitialStateOfOrigin]' passed (0.000 seconds).
+Test Case '-[KaskadeCoreTests.RulesTests testInvalidArenaIsRejected]' started.
+Test Case '-[KaskadeCoreTests.RulesTests testInvalidArenaIsRejected]' passed (0.000 seconds).
+Test Case '-[KaskadeCoreTests.RulesTests testLargeArenaGeometry]' started.
+Test Case '-[KaskadeCoreTests.RulesTests testLargeArenaGeometry]' passed (0.000 seconds).
+Test Case '-[KaskadeCoreTests.RulesTests testNoWrapAroundBetweenColumns]' started.
+Test Case '-[KaskadeCoreTests.RulesTests testNoWrapAroundBetweenColumns]' passed (0.000 seconds).
+Test Case '-[KaskadeCoreTests.RulesTests testObstaclesArePlacedAndCountForNobody]' started.
+Test Case '-[KaskadeCoreTests.RulesTests testObstaclesArePlacedAndCountForNobody]' passed (0.000 seconds).
+Test Case '-[KaskadeCoreTests.RulesTests testStonesFallToLowestFreeCell]' started.
+Test Case '-[KaskadeCoreTests.RulesTests testStonesFallToLowestFreeCell]' passed (0.000 seconds).
+Test Case '-[KaskadeCoreTests.RulesTests testVerticalWinForMoon]' started.
+Test Case '-[KaskadeCoreTests.RulesTests testVerticalWinForMoon]' passed (0.000 seconds).
+Test Suite 'RulesTests' passed at 2026-10-29 21:13:42.735.
+	 Executed 15 tests, with 0 failures (0 unexpected) in 0.007 (0.013) seconds
+Test Suite 'TutorialTests' started at 2026-10-29 21:13:42.735.
+Test Case '-[KaskadeCoreTests.TutorialTests testCrystalStepGrantsEnergy]' started.
+Test Case '-[KaskadeCoreTests.TutorialTests testCrystalStepGrantsEnergy]' passed (0.000 seconds).
+Test Case '-[KaskadeCoreTests.TutorialTests testEveryScriptedTurnIsLegalAndAccepted]' started.
+Test Case '-[KaskadeCoreTests.TutorialTests testEveryScriptedTurnIsLegalAndAccepted]' passed (0.000 seconds).
+Test Case '-[KaskadeCoreTests.TutorialTests testWinningStepsActuallyWin]' started.
+Test Case '-[KaskadeCoreTests.TutorialTests testWinningStepsActuallyWin]' passed (0.000 seconds).
+Test Case '-[KaskadeCoreTests.TutorialTests testWrongMovesAreRejected]' started.
+Test Case '-[KaskadeCoreTests.TutorialTests testWrongMovesAreRejected]' passed (0.000 seconds).
+Test Suite 'TutorialTests' passed at 2026-10-29 21:13:42.736.
+	 Executed 4 tests, with 0 failures (0 unexpected) in 0.001 (0.002) seconds
+Test Suite 'KaskadeCorePackageTests.xctest' passed at 2026-10-29 21:13:42.736.
+	 Executed 74 tests, with 0 failures (0 unexpected) in 17.860 (17.885) seconds
+Test Suite 'All tests' passed at 2026-10-29 21:13:42.736.
+	 Executed 74 tests, with 0 failures (0 unexpected) in 17.860 (17.902) seconds
+◇ Test run started.
+↳ Testing Library Version: 1902
+↳ Target Platform: arm64e-apple-macos14.0
+✔ Test run with 0 tests in 0 suites passed after 0.001 seconds.

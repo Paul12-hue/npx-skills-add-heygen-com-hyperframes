@@ -1,0 +1,28 @@
+Command line invocation:
+    /Applications/Xcode_26.6.app/Contents/Developer/usr/bin/xcodebuild -project kaskade/Kaskade.xcodeproj -scheme Kaskade -configuration Debug -destination id=687AB7EE-DF9A-4A96-878E-7509AB01A80C -derivedDataPath build/dd -resultBundlePath build/UITests.xcresult test-without-building
+
+Resolve Package Graph
+
+
+Resolved source packages:
+  KaskadeCore: /Users/runner/work/npx-skills-add-heygen-com-hyperframes/npx-skills-add-heygen-com-hyperframes/kaskade/KaskadeCore @ local
+
+Writing result bundle at path:
+	/Users/runner/work/npx-skills-add-heygen-com-hyperframes/npx-skills-add-heygen-com-hyperframes/build/UITests.xcresult
+
+--- xcodebuild: WARNING: Using the first of multiple matching destinations:
+{ platform:iOS Simulator, arch:arm64, id:687AB7EE-DF9A-4A96-878E-7509AB01A80C, OS:26.5, name:iPad Pro 13-inch (M5) }
+{ platform:iOS Simulator, arch:x86_64, id:687AB7EE-DF9A-4A96-878E-7509AB01A80C, OS:26.5, name:iPad Pro 13-inch (M5) }
+2026-10-29 21:18:53.896 xcodebuild[8230:28004] [MT] IDETestOperationsObserverDebug: 41.516 elapsed -- Testing started completed.
+2026-10-29 21:18:53.896 xcodebuild[8230:28004] [MT] IDETestOperationsObserverDebug: 0.000 sec, +0.000 sec -- start
+2026-10-29 21:18:53.896 xcodebuild[8230:28004] [MT] IDETestOperationsObserverDebug: 41.516 sec, +41.516 sec -- end
+
+Test session results, code coverage, and logs:
+	/Users/runner/work/npx-skills-add-heygen-com-hyperframes/npx-skills-add-heygen-com-hyperframes/build/UITests.xcresult
+
+Testing failed:
+	Test target KaskadeUITests encountered an error (The bundle identifier for Kaskade.app couldn’t be read. The application may be damaged or incomplete: “/Users/runner/work/npx-skills-add-heygen-com-hyperframes/npx-skills-add-heygen-com-hyperframes/build/dd/Build/Products/Debug-iphonesimulator/Kaskade.app”.)
+
+** TEST EXECUTE FAILED **
+
+Testing started
