@@ -32,10 +32,10 @@ canvas { position: fixed; inset: 0; width: 100%; height: 100%; display: block; }
 .bossbar .bar i { display: block; height: 100%; background: linear-gradient(90deg, #ff3d3d, #ff9a3d); transition: width .3s; }
 
 .pad { position: fixed; bottom: 0; left: 0; right: 0; display: flex; justify-content: space-between; align-items: flex-end; padding: 0 max(18px, env(safe-area-inset-right, 0px)) max(18px, env(safe-area-inset-bottom, 0px)) max(18px, env(safe-area-inset-left, 0px)); pointer-events: none; z-index: 6; }
-.pad .grp { display: flex; gap: 16px; }
-.pad .k { pointer-events: auto; width: 92px; height: 92px; border-radius: 50%; background: rgba(255,255,255,.14); border: 3px solid rgba(255,255,255,.35); display: grid; place-items: center; font-size: 40px; font-weight: 900; color: #fff; text-shadow: 0 2px 0 #000; touch-action: none; }
+.pad .grp { display: flex; gap: 20px; }
+.pad .k { pointer-events: auto; width: 124px; height: 124px; border-radius: 50%; background: rgba(255,255,255,.14); border: 3px solid rgba(255,255,255,.35); display: grid; place-items: center; font-size: 52px; font-weight: 900; color: #fff; text-shadow: 0 2px 0 #000; touch-action: none; }
 .pad .k.on { background: rgba(57,255,20,.35); border-color: var(--green); }
-.pad .k.jump { width: 116px; height: 116px; background: rgba(255,61,139,.28); border-color: rgba(255,61,139,.7); font-family: var(--display); font-size: 30px; letter-spacing: .04em; }
+.pad .k.jump { width: 156px; height: 156px; background: rgba(255,61,139,.28); border-color: rgba(255,61,139,.7); font-family: var(--display); font-size: 40px; letter-spacing: .04em; }
 
 .screen { position: fixed; inset: 0; z-index: 10; display: grid; place-items: center; padding: 16px; box-sizing: border-box; }
 #title { background: radial-gradient(900px 600px at 30% 20%, #ff6a3d55, transparent 60%), radial-gradient(800px 600px at 80% 90%, #39ff1433, transparent 60%), linear-gradient(#3a1d7a, #1a0f2e); text-align: center; }
@@ -70,7 +70,7 @@ canvas { position: fixed; inset: 0; width: 100%; height: 100%; display: block; }
 .help { text-align: left; } .help li { color: var(--fg2); line-height: 1.5; margin-bottom: 4px; }
 .banner { position: fixed; left: 50%; top: 38%; transform: translate(-50%, -50%); font-family: var(--display); font-size: clamp(40px, 7vw, 84px); letter-spacing: .04em; color: var(--green); text-shadow: 0 5px 0 #0c5a00, 0 9px 0 #000; z-index: 8; pointer-events: none; text-align: center; width: max-content; max-width: 92vw; line-height: 1; animation: bannerIn 1.6s ease-out forwards; }
 @keyframes bannerIn { 0% { transform: translate(-50%, -50%) scale(.3); opacity: 0; } 18% { transform: translate(-50%, -50%) scale(1.12); opacity: 1; } 75% { opacity: 1; } 100% { transform: translate(-50%, -62%); opacity: 0; } }
-@media (max-aspect-ratio: 1/1) { .actor { width: 44vw; bottom: 200px; } .pad .k { width: 80px; height: 80px; } .pad .k.jump { width: 100px; height: 100px; } }
+@media (max-aspect-ratio: 1/1) { .actor { width: 44vw; bottom: 200px; } .pad .k { width: 108px; height: 108px; } .pad .k.jump { width: 136px; height: 136px; } }
 @media (prefers-reduced-motion: reduce) { .banner, .tap, .actor.talk svg .mouth { animation: none !important; } }
 </style>
 
@@ -231,6 +231,7 @@ const STORY = [
     S("tim", "Ja! Ja! Hol ihn raus!", true),
     S("valle", "Nur ein Problem … Brixx hat alles geklaut und quer durch die Stadt verstreut."),
     S("tim", "Dann sammle ich alles wieder ein. Jede Tasse. Jedes Schnitzel."),
+    S("valle", "Denk dran: In der Luft kannst du nochmal springen. Und von Wänden stößt du dich ab, wenn du hinspringst und nochmal hüpfst!"),
   ]},
   { kind: "level", n: 0 },
   { kind: "scene", chapter: "Kapitel 2", L: "tim", R: "valle", lines: [
@@ -280,6 +281,7 @@ function sfx(kind) {
     ({ jump: () => tone(300, .18, .07, "square", 0, 700),
        mug: () => { tone(988, .08, .07, "square"); tone(1319, .18, .07, "square", .07); },
        schn: () => [523, 659, 784, 1046, 1318].forEach((f, i) => tone(f, .25, .08, "square", i * .07)),
+       djump: () => { tone(500, .14, .06, "square", 0, 1100); tone(800, .12, .05, "triangle", .05, 1400); },
        stomp: () => tone(500, .15, .1, "square", 0, 120),
        hurt: () => tone(400, .5, .12, "sawtooth", 0, 80),
        boom: () => tone(140, .4, .18, "sawtooth", 0, 40),
@@ -356,6 +358,8 @@ function ending() {
 function helpModal(back) {
   modal(`<h2>Steuerung</h2><ul class="help">
     <li><b>iPad:</b> ◀ ▶ zum Laufen, HOPP zum Springen. Länger drücken springt höher.</li>
+    <li><b>Doppelsprung:</b> In der Luft nochmal HOPP drücken.</li>
+    <li><b>Wandsprung:</b> An eine Wand springen, Richtung Wand halten (du rutschst langsamer) und HOPP drücken. Danach ist dein Doppelsprung wieder aufgeladen.</li>
     <li><b>Tastatur:</b> Pfeiltasten oder A/D, Leertaste oder W zum Springen, P für Pause.</li>
     <li><b>Grüne Tassen</b> sammeln. Alle 100 Tassen gibt es ein Extraleben.</li>
     <li><b>XXL-Schnitzel:</b> drei gut versteckte pro Level.</li>
@@ -402,7 +406,7 @@ function playLevel(n) {
     requestAnimationFrame(loop);
   });
 }
-function spawnPlayer() { G.p = { x: G.checkpoint[0], y: G.checkpoint[1], w: 30, h: 44, vx: 0, vy: 0, ground: false, coyote: 0, buffer: 0, face: 1, inv: 90, anim: 0, onMover: null }; }
+function spawnPlayer() { G.p = { x: G.checkpoint[0], y: G.checkpoint[1], w: 30, h: 44, vx: 0, vy: 0, ground: false, coyote: 0, buffer: 0, face: 1, inv: 90, anim: 0, onMover: null, airJumps: 1, wall: 0, lastWall: 0, wallCoyote: 0, wallLock: 0, sliding: false }; }
 
 let last = 0, acc = 0;
 function loop(now) {
@@ -442,17 +446,34 @@ function step() {
   for (const m of G.movers) { const nx = m.x + m.speed * m.dir; if (nx > m.x0 + m.range || nx < m.x0) m.dir *= -1; m.dx = m.speed * m.dir; m.x += m.dx; }
   // horizontal input
   const accel = p.ground ? .9 : .55, maxV = 5.2;
-  if (input.left && !input.right) { p.vx = Math.max(-maxV, p.vx - accel); p.face = -1; }
+  if (p.wallLock > 0) { p.wallLock--; }
+  else if (input.left && !input.right) { p.vx = Math.max(-maxV, p.vx - accel); p.face = -1; }
   else if (input.right && !input.left) { p.vx = Math.min(maxV, p.vx + accel); p.face = 1; }
   else p.vx *= p.ground ? .72 : .94;
   if (Math.abs(p.vx) < .05) p.vx = 0;
   // jump with coyote time and buffer
+  // Jumps: ground (with coyote time + buffer), wall jump, then one double jump in the air.
+  const pressed = input.jumpPressed; input.jumpPressed = false;
+  if (p.ground) p.airJumps = 1;
   p.coyote = p.ground ? 7 : Math.max(0, p.coyote - 1);
-  if (input.jumpPressed) { p.buffer = 8; input.jumpPressed = false; }
-  else p.buffer = Math.max(0, p.buffer - 1);
+  p.buffer = pressed ? 8 : Math.max(0, p.buffer - 1);
+  p.wall = p.ground ? 0 : touchWall(p, -1) ? -1 : touchWall(p, 1) ? 1 : 0;
+  if (p.wall) { p.lastWall = p.wall; p.wallCoyote = 6; } else p.wallCoyote = Math.max(0, p.wallCoyote - 1);
   if (p.buffer > 0 && p.coyote > 0) { p.vy = -13.2; p.ground = false; p.coyote = 0; p.buffer = 0; sfx("jump"); }
-  if (!input.jump && p.vy < -5) p.vy = -5;
+  else if (pressed && p.wallCoyote > 0) {
+    const away = -p.lastWall;
+    p.vy = -12.4; p.vx = away * 7.2; p.face = away; p.wallLock = 9; p.wallCoyote = 0; p.buffer = 0; p.airJumps = 1;
+    sfx("jump"); burst(p.x + (p.lastWall > 0 ? p.w : 0), p.y + p.h / 2, "#ffffff", 8);
+  } else if (pressed && p.airJumps > 0) {
+    p.airJumps--; p.vy = -11.6; p.buffer = 0;
+    sfx("djump"); burst(p.x + p.w / 2, p.y + p.h, "#33e1ff", 12);
+  }
+  if (!input.jump && p.vy < -5 && p.wallLock === 0) p.vy = -5;
   p.vy = Math.min(14, p.vy + .62);
+  // Wall slide: holding toward a wall slows the fall.
+  const towardWall = (p.wall < 0 && input.left) || (p.wall > 0 && input.right);
+  p.sliding = !!p.wall && towardWall && p.vy > 0;
+  if (p.sliding && p.vy > 2.6) p.vy = 2.6;
   // carry by mover
   if (p.onMover) p.x += p.onMover.dx;
   // move X
@@ -468,6 +489,7 @@ function step() {
   // spikes
   for (const [tx, ty] of overlapTiles(p, 6)) if (tileAt(tx, ty) === "^") return hurt();
   p.anim += Math.abs(p.vx) * .08;
+  if (p.sliding && G.time % 5 === 0) G.particles.push({ x: p.x + (p.wall > 0 ? p.w : 0), y: p.y + p.h - 6, vx: -p.wall, vy: -1, life: 18, color: "#e8e0d0" });
   // entities
   for (const e of G.ents) {
     if (!e.alive) continue;
@@ -509,6 +531,11 @@ function step() {
   if (L.w * T < vw) G.cam = -(vw - L.w * T) / 2;
   if (G.boss) G.cam = L.w * T < vw ? -(vw - L.w * T) / 2 : 0;
   if (G.shake > 0) G.shake--;
+}
+function touchWall(p, dir) {
+  const x = dir < 0 ? p.x - 2 : p.x + p.w + 1;
+  for (let y = p.y + 6; y <= p.y + p.h - 6; y += 12) if (solid(tileAt(Math.floor(x / T), Math.floor(y / T)))) return true;
+  return solid(tileAt(Math.floor(x / T), Math.floor((p.y + p.h - 6) / T)));
 }
 function rects(a, b) { return a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y; }
 function overlapTiles(p, inset = 0) { const out = []; for (let ty = Math.floor((p.y + inset) / T); ty <= Math.floor((p.y + p.h - 1 - inset) / T); ty++) for (let tx = Math.floor((p.x + inset) / T); tx <= Math.floor((p.x + p.w - 1 - inset) / T); tx++) out.push([tx, ty]); return out; }
@@ -773,8 +800,9 @@ function drawBoss(b) {
   ctx.restore();
   // shout bubble while flying
   if (!grounded && b.hp > 0 && Math.floor(G.time / 180) % 2 === 0) {
-    ctx.save(); ctx.fillStyle = "#fff"; roundRect(b.x - 60, b.y - 70, 240, 44, 12); ctx.fill();
-    ctx.fillStyle = "#1a0f2e"; ctx.font = "900 15px Nunito, sans-serif"; ctx.textAlign = "center"; ctx.fillText("BADABOOM!", b.x + 60, b.y - 52); ctx.font = "800 12px Nunito, sans-serif"; ctx.fillText("HIER REGELT NUR EINER", b.x + 60, b.y - 35); ctx.restore();
+    const bx = Math.max(T + 6, Math.min((G.L.w - 1) * T - 246, b.x - 60));
+    ctx.save(); ctx.fillStyle = "#fff"; roundRect(bx, b.y - 70, 240, 44, 12); ctx.fill();
+    ctx.fillStyle = "#1a0f2e"; ctx.font = "900 15px Nunito, sans-serif"; ctx.textAlign = "center"; ctx.fillText("BADABOOM!", bx + 120, b.y - 52); ctx.font = "800 12px Nunito, sans-serif"; ctx.fillText("HIER REGELT NUR EINER", bx + 120, b.y - 35); ctx.restore();
   }
   // handballs
   for (const bo of b.bombs) {
