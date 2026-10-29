@@ -44,6 +44,7 @@ canvas { position: fixed; inset: 0; width: 100%; height: 100%; display: block; }
 .logo span { color: var(--green); text-shadow: 0 6px 0 #0c5a00, 0 10px 0 #000, 0 0 40px rgba(57,255,20,.5); }
 .tag { font-weight: 800; color: var(--fg2); font-size: 18px; margin: 18px 0 22px; }
 .chars { display: flex; justify-content: center; gap: 8px; margin-bottom: 10px; }
+.chars svg.wide { width: min(44vw, 400px); }
 .chars svg { width: min(22vw, 200px); height: auto; filter: drop-shadow(0 12px 20px rgba(0,0,0,.6)); }
 .stack { display: flex; flex-direction: column; gap: 12px; align-items: center; }
 .rowb { display: flex; gap: 12px; flex-wrap: wrap; justify-content: center; }
@@ -51,6 +52,7 @@ canvas { position: fixed; inset: 0; width: 100%; height: 100%; display: block; }
 #story { place-items: end center; background: rgba(10,6,24,.35); padding-bottom: max(16px, env(safe-area-inset-bottom, 0px)); }
 .actor { position: fixed; bottom: 150px; width: min(34vw, 330px); transition: filter .3s, transform .3s; z-index: 11; }
 .actor.l { left: 4%; } .actor.r { right: 4%; }
+.actor.wide { width: min(58vw, 600px); }
 .actor.dim { filter: brightness(.5) saturate(.6); transform: scale(.94); }
 .actor.talk svg .mouth { animation: talk .17s infinite alternate; transform-origin: center; transform-box: fill-box; }
 @keyframes talk { to { transform: scaleY(.35); } }
@@ -124,7 +126,9 @@ function person(o) {
     : o.hair === "short"
     ? `<path d="M62 92 C58 50 92 34 120 36 C152 36 180 52 176 96 C170 76 156 66 140 64 C120 62 96 64 78 74 C70 80 64 86 62 92Z" fill="${o.hairColor}"/><path d="M78 70 C100 54 140 52 164 70" stroke="${o.hairLight}" stroke-width="5" fill="none" stroke-linecap="round" opacity=".5"/>`
     : `<path d="M60 96 C56 52 90 30 120 30 C152 30 184 52 180 98 L178 86 C172 72 70 72 62 86Z" fill="#141418"/><path d="M68 80 C100 70 140 70 172 80" stroke="#c0c4d6" stroke-width="2.5" fill="none" stroke-dasharray="3 5"/><path d="M176 84 l22 18 l-8 4 l14 14 l-24 -16z" fill="#141418"/>`;
-  const body = o.outfit === "jersey"
+  const body = o.outfit === "jersey" && o.wide
+    ? `<path d="M-114 300 C-104 214 10 184 120 184 C230 184 344 214 354 300Z" fill="#65b32e"/><path d="M-114 300 C-110 256 -94 228 -66 210 L-34 300Z M354 300 C350 256 334 228 306 210 L274 300Z" fill="#ffffff" opacity=".9"/><path d="M84 186 L120 222 L156 186" fill="none" stroke="#ffffff" stroke-width="10" stroke-linejoin="round"/><path d="M-50 206 C0 192 50 188 84 188 M290 206 C240 192 190 188 156 188" stroke="#2f7a12" stroke-width="6" fill="none"/><text x="120" y="284" font-family="Bangers, Impact, sans-serif" font-size="56" text-anchor="middle" fill="#ffffff">19</text>`
+    : o.outfit === "jersey"
     ? `<path d="M6 300 C10 222 52 192 120 192 C188 192 230 222 234 300Z" fill="#65b32e"/><path d="M6 300 C8 262 18 236 36 220 L58 300Z M234 300 C232 262 222 236 204 220 L182 300Z" fill="#ffffff" opacity=".9"/><path d="M92 194 L120 222 L148 194" fill="none" stroke="#ffffff" stroke-width="9" stroke-linejoin="round"/><path d="M40 212 C60 204 76 200 92 198 M200 212 C180 204 164 200 148 198" stroke="#2f7a12" stroke-width="5" fill="none"/><text x="120" y="282" font-family="Bangers, Impact, sans-serif" font-size="46" text-anchor="middle" fill="#ffffff">19</text>`
     : o.outfit === "hoodie"
     ? `<path d="M20 300 C24 230 58 196 120 196 C182 196 216 230 220 300Z" fill="${o.top}"/><path d="M74 204 C88 236 152 236 166 204 C150 196 90 196 74 204Z" fill="${o.topDark}"/><path d="M104 226 L100 270 M136 226 L140 270" stroke="#e8e8ee" stroke-width="3" stroke-linecap="round"/><circle cx="100" cy="272" r="3" fill="#e8e8ee"/><circle cx="140" cy="272" r="3" fill="#e8e8ee"/><path d="M82 262 L158 262 L162 300 L78 300Z" fill="${o.topDark}" opacity=".6"/>`
@@ -132,14 +136,15 @@ function person(o) {
   const mouth = o.grin
     ? `<path class="mouth" d="M98 160 C108 178 132 178 142 160 Z" fill="#5a1f1f"/><path d="M101 161 C110 167 130 167 139 161 L139 164 C130 169 110 169 101 164Z" fill="#fff"/>`
     : `<path class="mouth" d="M104 162 C112 170 128 170 136 162 C128 166 112 166 104 162Z" fill="#7a2b2b" stroke="#7a2b2b" stroke-width="3" stroke-linejoin="round"/>`;
-  return `<svg viewBox="0 0 240 300" xmlns="http://www.w3.org/2000/svg">${body}
-    <rect x="102" y="170" width="36" height="34" rx="12" fill="${sd}"/>
-    <ellipse cx="66" cy="128" rx="10" ry="15" fill="${sd}"/><ellipse cx="174" cy="128" rx="10" ry="15" fill="${sd}"/>
+  const ex = o.wide ? 40 : 0;
+  return `<svg ${o.wide ? 'class="wide" viewBox="-120 0 480 300"' : 'viewBox="0 0 240 300"'} xmlns="http://www.w3.org/2000/svg">${body}
+    <rect x="${102 - ex / 2}" y="170" width="${36 + ex}" height="34" rx="12" fill="${sd}"/>
+    <ellipse cx="${66 - ex}" cy="128" rx="10" ry="15" fill="${sd}"/><ellipse cx="${174 + ex}" cy="128" rx="10" ry="15" fill="${sd}"/>
     ${o.earring ? `<circle cx="64" cy="146" r="4" fill="#c9cdd8"/><circle cx="176" cy="146" r="4" fill="#c9cdd8"/>` : ""}
-    <g transform="${o.wide ? "translate(120 0) scale(1.14 1) translate(-120 0)" : ""}"><path d="M66 110 C66 66 92 46 120 46 C148 46 174 66 174 110 C174 158 154 190 120 190 C86 190 66 158 66 110Z" fill="${s}"/>
+    <g transform="${o.wide ? "translate(120 0) scale(1.75 1.04) translate(-120 0)" : ""}"><path d="M66 110 C66 66 92 46 120 46 C148 46 174 66 174 110 C174 158 154 190 120 190 C86 190 66 158 66 110Z" fill="${s}"/>
     ${o.wide ? `<path d="M80 172 C96 194 144 194 160 172" fill="${sd}" opacity=".45"/>` : ""}</g>
-    <ellipse cx="88" cy="146" rx="12" ry="7" fill="#ff7b7b" opacity="${o.blush ?? .28}"/><ellipse cx="152" cy="146" rx="12" ry="7" fill="#ff7b7b" opacity="${o.blush ?? .28}"/>
-    ${hair}
+    <ellipse cx="${88 - ex * .6}" cy="146" rx="12" ry="7" fill="#ff7b7b" opacity="${o.blush ?? .28}"/><ellipse cx="${152 + ex * .6}" cy="146" rx="12" ry="7" fill="#ff7b7b" opacity="${o.blush ?? .28}"/>
+    ${o.wide ? `<g transform="translate(120 0) scale(1.55 1.08) translate(-120 0)">${hair}</g>` : hair}
     <path d="M86 104 q13 -7 26 0 M128 104 q13 -7 26 0" stroke="${o.brow}" stroke-width="5" fill="none" stroke-linecap="round"/>
     <ellipse cx="99" cy="122" rx="${o.eyeW}" ry="7" fill="#fff"/><ellipse cx="141" cy="122" rx="${o.eyeW}" ry="7" fill="#fff"/>
     <circle cx="100" cy="123" r="4.6" fill="${o.iris}"/><circle cx="142" cy="123" r="4.6" fill="${o.iris}"/><circle cx="100" cy="123" r="2.2" fill="#111"/><circle cx="142" cy="123" r="2.2" fill="#111"/><circle cx="102" cy="121" r="1.3" fill="#fff"/><circle cx="144" cy="121" r="1.3" fill="#fff"/>
@@ -238,7 +243,7 @@ const STORY = [
     S("valle", "Alta GiG! Wie geil ist Dustin? Aber Leute … Opa Brixx hat die Reservierung geklaut!"),
     S("faroo", "Was?! Er will unseren Tisch um 19 Uhr. Und seine Brix-Bänke blockieren die ganze Stadt."),
     S("tim", "Dann lauf ich hin. Unterwegs sammle ich alle Tassen und Schnitzel ein, die er verstreut hat."),
-    S("valle", "In der Luft kannst du nochmal springen, und von Wänden stößt du dich ab. Und wenn du 2 Schnitzel in einem Level hast, passiert was Verrücktes …"),
+    S("valle", "In der Luft kannst du nochmal springen, und von Wänden stößt du dich ab. Und wenn du 2 Schnitzel in einem Level hast, wirst du zu Rolf, dem Tischtennis-Opa!"),
   ]},
   { kind: "level", n: 0 },
   { kind: "scene", chapter: "Kapitel 2 · 18:00 Uhr", L: "tim", R: "faroo", lines: [
@@ -317,7 +322,7 @@ function playScene(sc) {
       $("actL").innerHTML = PORTRAIT[sc.L]();
       $("actR").innerHTML = PORTRAIT[rightWho]();
       $("actL").className = "actor l" + (isLeft ? " talk" : " dim");
-      $("actR").className = "actor r" + (!isLeft ? " talk" : " dim");
+      $("actR").className = "actor r" + (!isLeft ? " talk" : " dim") + ($("actR").querySelector("svg.wide") ? " wide" : "");
       $("speaker").textContent = PEOPLE[ln.who];
       $("line").innerHTML = ln.shout ? `<span class="shout">${ln.text}</span>` : ln.text;
       sfx("tap");
@@ -372,8 +377,8 @@ function helpModal(back) {
     <li><b>Doppelsprung:</b> In der Luft nochmal HOPP drücken.</li>
     <li><b>Wandsprung:</b> An eine Wand springen, Richtung Wand halten (du rutschst langsamer) und HOPP drücken. Danach ist dein Doppelsprung wieder aufgeladen.</li>
     <li><b>Tastatur:</b> Pfeiltasten oder A/D, Leertaste oder W zum Springen, P für Pause.</li>
-    <li><b>PING</b> (Taste F): Tischtennisbälle schießen. Im Bosskampf immer, sonst nur als Tischtennis-Opa.</li>
-    <li><b>2 XXL-Schnitzel</b> in einem Level verwandeln Tim für dieses Level in den Tischtennis-Opa.</li>
+    <li><b>PING</b> (Taste F): Tischtennisbälle schießen. Im Bosskampf immer, sonst nur als Rolf.</li>
+    <li><b>2 XXL-Schnitzel</b> in einem Level verwandeln Tim für dieses Level in Rolf, den Tischtennis-Opa.</li>
     <li><b>Grüne Tassen</b> sammeln. Alle 100 Tassen gibt es ein Extraleben.</li>
     <li><b>XXL-Schnitzel:</b> drei gut versteckte pro Level.</li>
     <li>Die Brix (wandelnde Bänke) besiegst du, indem du ihnen auf den Kopf springst. Seitlich berühren kostet ein Leben, Stacheln und Abgründe auch.</li>
@@ -513,7 +518,7 @@ function step() {
         e.alive = false;
         if (e.t === "mug") { G.mugs++; G.mugBank++; sfx("mug"); burst(e.px + 24, e.py + 24, "#39ff14", 8); if (G.mugBank >= 100) { G.mugBank -= 100; G.lives++; banner("+1 Leben!"); } }
         else { G.schn++; sfx("schn"); burst(e.px + 24, e.py + 24, "#ffc531", 26); banner(G.schn === 3 ? "Alle 3 XXL-Schnitzel!" : "XXL-Schnitzel!");
-          if (G.schn === 2 && G.form !== "opa") { G.form = "opa"; G.p.inv = Math.max(G.p.inv, 60); burst(p.x + p.w / 2, p.y + p.h / 2, "#ffffff", 40); sfx("boss"); setTimeout(() => G && !G.done && banner("VERWANDLUNG: TISCHTENNIS-OPA!"), 900); } }
+          if (G.schn === 2 && G.form !== "opa") { G.form = "opa"; G.p.inv = Math.max(G.p.inv, 60); burst(p.x + p.w / 2, p.y + p.h / 2, "#ffffff", 40); sfx("boss"); setTimeout(() => G && !G.done && banner("VERWANDLUNG: ROLF!"), 900); } }
         updateHud();
       }
       continue;
