@@ -416,6 +416,7 @@ function loop(now) {
 function hurt() {
   const p = G.p; if (p.inv > 0 || G.done) return;
   G.lives--; sfx("hurt"); G.shake = 14; burst(p.x + p.w / 2, p.y + p.h / 2, "#ff3d5a", 18);
+  banner("NATÖRLICH STERBE ICH ALS STREAMER ZUERST");
   updateHud();
   if (G.lives <= 0) return gameOver();
   spawnPlayer();
