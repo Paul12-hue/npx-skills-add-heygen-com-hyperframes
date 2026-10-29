@@ -390,7 +390,7 @@ function helpModal(back) {
   modal(`<h2>Steuerung</h2><ul class="help">
     <li><b>iPad:</b> ◀ ▶ zum Laufen, HOPP zum Springen. Länger drücken springt höher.</li>
     <li><b>Doppelsprung:</b> In der Luft nochmal HOPP drücken.</li>
-    <li><b>Wandsprung:</b> An eine Wand springen, Richtung Wand halten (du rutschst langsamer) und HOPP drücken. Danach ist dein Doppelsprung wieder aufgeladen.</li>
+    <li><b>Wandsprung:</b> An eine Wand springen, Richtung Wand halten (du rutschst langsamer) und HOPP drücken. Danach ist dein Doppelsprung wieder aufgeladen. Höchstens 2 Wandsprünge, bevor du wieder auf dem Boden landest, und nie zweimal hintereinander an derselben Wand.</li>
     <li><b>Tastatur:</b> Pfeiltasten oder A/D, Leertaste oder W zum Springen, P für Pause.</li>
     <li><b>PING</b> (Taste F): Tischtennisbälle schießen. Im Bosskampf immer, sonst nur als Rolf.</li>
     <li><b>2 XXL-Schnitzel</b> in einem Level verwandeln Tim für dieses Level in Rolf, den Tischtennis-Opa.</li>
@@ -441,7 +441,7 @@ function playLevel(n) {
     requestAnimationFrame(loop);
   });
 }
-function spawnPlayer() { G.p = { x: G.checkpoint[0], y: G.checkpoint[1], w: 30, h: 44, vx: 0, vy: 0, ground: false, coyote: 0, buffer: 0, face: 1, inv: 90, anim: 0, onMover: null, shotCd: 0, airJumps: 1, wall: 0, lastWall: 0, wallCoyote: 0, wallLock: 0, sliding: false }; }
+function spawnPlayer() { G.p = { x: G.checkpoint[0], y: G.checkpoint[1], w: 30, h: 44, vx: 0, vy: 0, ground: false, coyote: 0, buffer: 0, face: 1, inv: 90, anim: 0, onMover: null, shotCd: 0, airJumps: 1, wallJumpsLeft: 2, lastJumpWall: 0, wall: 0, lastWall: 0, wallCoyote: 0, wallLock: 0, sliding: false }; }
 
 let last = 0, acc = 0;
 function loop(now) {
@@ -489,15 +489,16 @@ function step() {
   // jump with coyote time and buffer
   // Jumps: ground (with coyote time + buffer), wall jump, then one double jump in the air.
   const pressed = input.jumpPressed; input.jumpPressed = false;
-  if (p.ground) p.airJumps = 1;
+  if (p.ground) { p.airJumps = 1; p.wallJumpsLeft = 2; p.lastJumpWall = 0; }
   p.coyote = p.ground ? 7 : Math.max(0, p.coyote - 1);
   p.buffer = pressed ? 8 : Math.max(0, p.buffer - 1);
   p.wall = p.ground ? 0 : touchWall(p, -1) ? -1 : touchWall(p, 1) ? 1 : 0;
   if (p.wall) { p.lastWall = p.wall; p.wallCoyote = 6; } else p.wallCoyote = Math.max(0, p.wallCoyote - 1);
   if (p.buffer > 0 && p.coyote > 0) { p.vy = -13.2; p.ground = false; p.coyote = 0; p.buffer = 0; sfx("jump"); }
-  else if (pressed && p.wallCoyote > 0) {
+  else if (pressed && p.wallCoyote > 0 && p.wallJumpsLeft > 0 && p.lastWall !== p.lastJumpWall) {
     const away = -p.lastWall;
     p.vy = -12.4; p.vx = away * 7.2; p.face = away; p.wallLock = 9; p.wallCoyote = 0; p.buffer = 0; p.airJumps = 1;
+    p.wallJumpsLeft--; p.lastJumpWall = p.lastWall;
     sfx("jump"); burst(p.x + (p.lastWall > 0 ? p.w : 0), p.y + p.h / 2, "#ffffff", 8);
   } else if (pressed && p.airJumps > 0) {
     p.airJumps--; p.vy = -11.6; p.buffer = 0;
