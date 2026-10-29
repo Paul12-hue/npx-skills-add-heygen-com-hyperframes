@@ -1,0 +1,235 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no" />
+  <meta name="theme-color" content="#05070b" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="description" content="SPIN LAB — The Science of Impossible Spin. Ein 3D-Tischtennis-Physik-Arcade-Spiel." />
+  <title>SPIN LAB</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%2305070b'/%3E%3Ccircle cx='32' cy='32' r='17' fill='%23f3f6f8'/%3E%3Cpath d='M15 32a17 17 0 0 0 34 0' fill='none' stroke='%233fe0ff' stroke-width='4'/%3E%3C/svg%3E" />
+</head>
+<body>
+  <div id="stage"></div>
+
+  <!-- BOOT: first gesture unlocks audio -->
+  <section id="boot" class="screen active">
+    <div class="boot-inner">
+      <div class="boot-code mono">SL-OS 4.2 · HOCHLEISTUNGSLABOR FÜR ROTATIONSPHYSIK</div>
+      <div class="boot-line"><i></i></div>
+      <button id="bootBtn" class="boot-btn mono">TIPPEN, UM DAS LABOR ZU BETRETEN</button>
+      <div class="boot-hint mono">Ton an für das volle Erlebnis</div>
+    </div>
+  </section>
+
+  <!-- INTRO -->
+  <section id="intro" class="screen">
+    <button id="skipIntro" class="ghost-btn mono skip">ÜBERSPRINGEN ›</button>
+    <div class="intro-title">
+      <div class="intro-kicker mono"><span>EXPERIMENTALREIHE 7</span><span>FREIGABE: ORANGE</span></div>
+      <h1 class="logo" aria-label="SPIN LAB"><span class="logo-word" data-w="SPIN">SPIN</span><span class="logo-word lab" data-w="LAB">LAB</span></h1>
+      <div class="logo-sub">THE SCIENCE OF IMPOSSIBLE SPIN</div>
+      <div class="status mono"><i class="dot"></i><span>PHYSICS ENGINE ONLINE</span></div>
+      <button id="introStart" class="primary-btn"><span>EXPERIMENT STARTEN</span><b>›</b></button>
+    </div>
+  </section>
+
+  <!-- MAIN MENU -->
+  <section id="menu" class="screen">
+    <div class="menu-col">
+      <div class="menu-head">
+        <div class="mini-logo">SPIN<b>LAB</b></div>
+        <div class="mono tiny dim">THE SCIENCE OF IMPOSSIBLE SPIN</div>
+      </div>
+      <nav class="menu-nav" id="menuNav">
+        <button data-act="campaign"><em class="mono">01</em><span>EXPERIMENT STARTEN</span><small class="mono">Alle Experimente · Finale</small></button>
+        <button data-act="challenges"><em class="mono">02</em><span>CHALLENGES</span><small class="mono">Einzelne Experimente wählen</small></button>
+        <button data-act="scores"><em class="mono">03</em><span>HIGH SCORES</span><small class="mono">Bestenliste dieses Geräts</small></button>
+        <button data-act="lab"><em class="mono">04</em><span>DAS LABOR</span><small class="mono">Rundgang · Freies Training</small></button>
+        <button data-act="settings"><em class="mono">05</em><span>EINSTELLUNGEN</span><small class="mono">Ton · Grafik · Spielername</small></button>
+      </nav>
+      <div class="menu-foot mono tiny dim">
+        <span id="menuPlayer">PROBAND: SPIELER</span>
+        <span>BUILD 1.0 · KEIN SERVER · KEIN LOGIN</span>
+      </div>
+    </div>
+    <div class="menu-readout mono tiny" aria-hidden="true">
+      <div><b>T</b><span id="roTemp">21.4 °C</span></div>
+      <div><b>ρ</b><span>1.204 kg/m³</span></div>
+      <div><b>g</b><span id="roG">9.81 m/s²</span></div>
+      <div><b>ω</b><span id="roW">0 rpm</span></div>
+    </div>
+  </section>
+
+  <!-- CHALLENGES -->
+  <section id="challenges" class="screen panel-screen">
+    <header class="sheet-head"><button class="back-btn" data-back>‹</button><div><div class="mono tiny dim">SL-02 / VERSUCHSAUSWAHL</div><h2>CHALLENGES</h2></div></header>
+    <div class="cards" id="challengeCards"></div>
+  </section>
+
+  <!-- HIGH SCORES -->
+  <section id="scores" class="screen panel-screen">
+    <header class="sheet-head"><button class="back-btn" data-back>‹</button><div><div class="mono tiny dim">SL-03 / MESSPROTOKOLL</div><h2>HIGH SCORES</h2></div></header>
+    <div class="tabs" id="scoreTabs"></div>
+    <div class="score-list" id="scoreList"></div>
+    <div class="mono tiny dim" id="scoreNote"></div>
+  </section>
+
+  <!-- LAB TOUR -->
+  <section id="lab" class="screen">
+    <div class="lab-card sheet">
+      <div class="mono tiny dim" id="labCode">STATION 1/5</div>
+      <h2 id="labTitle"></h2>
+      <p id="labText"></p>
+      <div class="lab-actions">
+        <button class="ghost-btn" id="labPrev">‹ ZURÜCK</button>
+        <button class="ghost-btn" id="labNext">WEITER ›</button>
+      </div>
+      <div class="lab-actions">
+        <button class="primary-btn small" id="labTrain"><span>FREIES TRAINING</span><b>›</b></button>
+        <button class="ghost-btn" data-back>MENÜ</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- SETTINGS -->
+  <section id="settings" class="screen panel-screen">
+    <header class="sheet-head"><button class="back-btn" data-back>‹</button><div><div class="mono tiny dim">SL-05 / KONFIGURATION</div><h2>EINSTELLUNGEN</h2></div></header>
+    <div class="settings-grid">
+      <label class="set-row"><span>TON</span><button class="toggle" id="setSound"></button></label>
+      <label class="set-row"><span>LABORATMOSPHÄRE</span><input type="range" min="0" max="1" step="0.05" id="setAmb" /></label>
+      <label class="set-row"><span>DR. SPIN SPRICHT <small class="mono dim">(Sprachausgabe des Geräts)</small></span><button class="toggle" id="setVoice"></button></label>
+      <label class="set-row"><span>FLUGBAHN-VORSCHAU</span><button class="toggle" id="setPreview"></button></label>
+      <div class="set-row"><span>GRAFIK</span><div class="seg" id="setQuality">
+        <button data-q="auto">AUTO</button><button data-q="high">HOCH</button><button data-q="medium">MITTEL</button><button data-q="low">NIEDRIG</button>
+      </div></div>
+      <label class="set-row"><span>SPIELERNAME</span><input type="text" maxlength="12" id="setName" autocomplete="off" spellcheck="false" /></label>
+      <div class="set-row"><span>BESTENLISTE</span><button class="ghost-btn danger" id="setReset">ZURÜCKSETZEN</button></div>
+    </div>
+    <div class="mono tiny dim" id="setNote"></div>
+  </section>
+
+  <!-- HUD -->
+  <section id="hud" class="screen">
+    <div class="hud-tl">
+      <div class="mono tiny cyan" id="hudCode">EXPERIMENT 01</div>
+      <div class="hud-name" id="hudName">THE PERFECT SPIN</div>
+      <div class="hud-round"><span id="hudRound">VERSUCH 1/6</span><span class="pips" id="hudPips"></span></div>
+      <div class="hud-brief mono" id="hudBrief"></div>
+    </div>
+    <div class="hud-tc">
+      <div class="score-num" id="hudScore">0</div>
+      <div class="mono tiny dim">PUNKTE <b id="hudMult" class="mult"></b></div>
+      <div class="gravity-bar" id="gravityBar"><div class="gb-track" id="gbTrack"></div><i class="gb-head"></i><div class="gb-label mono" id="gbLabel">1 g</div></div>
+      <div class="field-badge mono" id="fieldBadge">RESONANZFELD · MAGNUS ×3,2</div>
+    </div>
+    <div class="hud-tr">
+      <button class="icon-btn" id="btnSound" aria-label="Ton"><svg viewBox="0 0 24 24"><path d="M4 9h4l5-4v14l-5-4H4z"/><path class="w" d="M16 8.5a5 5 0 0 1 0 7M18.5 6a8.5 8.5 0 0 1 0 12"/><path class="x" d="M16 9l5 6M21 9l-5 6"/></svg></button>
+      <button class="icon-btn" id="btnPause" aria-label="Pause"><svg viewBox="0 0 24 24"><path d="M7 5h3v14H7zM14 5h3v14h-3z"/></svg></button>
+    </div>
+
+    <div class="analysis sheet" id="analysis">
+      <div class="mono tiny dim">AUSWERTUNG</div>
+      <div class="an-verdict" id="anVerdict">TREFFER</div>
+      <dl class="mono" id="anData"></dl>
+      <div class="an-points" id="anPoints"></div>
+    </div>
+
+    <div class="hud-br">
+      <div class="readouts mono">
+        <div><span>KRAFT</span><b id="roPower">—</b></div>
+        <div><span>TEMPO</span><b id="roSpeed">—</b></div>
+        <div><span>SPIN</span><b id="roSpin">0</b></div>
+      </div>
+      <div class="power-meter"><i id="powerFill"></i><s></s><s></s><s></s></div>
+      <div class="spinpad" id="spinPad">
+        <div class="sp-ball"><i class="sp-h"></i><i class="sp-v"></i><b id="spinDot"></b></div>
+        <div class="sp-cap mono tiny dim">TREFFPUNKT AM BALL</div>
+        <div class="sp-label mono" id="spinLabel">FLACH</div>
+        <span class="sp-t mono">TOP</span><span class="sp-b mono">UNTER</span>
+      </div>
+    </div>
+
+    <div class="substances" id="substances"></div>
+    <div class="swipe-hint mono" id="swipeHint"><i></i>NACH OBEN WISCHEN ZUM SCHLAGEN</div>
+    <div class="toast" id="toast"><div class="toast-main" id="toastMain"></div><div class="toast-sub mono" id="toastSub"></div></div>
+  </section>
+
+  <!-- DR. SPIN dialogue -->
+  <div id="dialog" class="dialog">
+    <canvas id="faceCanvas" width="128" height="128"></canvas>
+    <div class="dlg-body"><div class="mono tiny cyan">DR. SPIN</div><p id="dlgText"></p></div>
+  </div>
+
+  <!-- ROUND CARD -->
+  <div id="roundCard" class="round-card">
+    <div class="mono tiny cyan" id="rcCode"></div>
+    <div class="rc-title" id="rcTitle"></div>
+    <div class="rc-brief mono" id="rcBrief"></div>
+  </div>
+
+  <!-- SUMMARY -->
+  <section id="summary" class="screen modal-screen">
+    <div class="sheet summary-card">
+      <div class="mono tiny dim" id="sumCode">EXPERIMENT 01 · ABGESCHLOSSEN</div>
+      <h2 id="sumTitle">THE PERFECT SPIN</h2>
+      <div class="sum-grid">
+        <div class="sum-score"><div class="mono tiny dim">GESAMTPUNKTZAHL</div><div class="big" id="sumScore">0</div><div class="record mono" id="sumRecord">NEUER REKORD</div></div>
+        <div class="sum-rank"><div class="mono tiny dim">RANG</div><div class="rank-letter" id="sumRank">A</div><div class="mono tiny" id="sumRankName"></div></div>
+      </div>
+      <dl class="sum-data mono" id="sumData"></dl>
+      <blockquote id="sumQuote"></blockquote>
+      <div class="sum-actions">
+        <button class="primary-btn" id="sumNext"><span>WEITER</span><b>›</b></button>
+        <button class="ghost-btn" id="sumRetry">NOCHMAL</button>
+        <button class="ghost-btn" id="sumMenu">MENÜ</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- FINALE -->
+  <section id="finaleWin" class="screen">
+    <div class="fw-inner">
+      <div class="mono tiny cyan">EXPERIMENT 05 · ERGEBNIS BESTÄTIGT</div>
+      <h1 class="fw-title"><span>IMPOSSIBLE</span><span>WAS JUST A</span><span class="o">SUGGESTION.</span></h1>
+      <div class="fw-score"><span class="mono tiny dim">PUNKTZAHL</span><b id="fwScore">0</b><span class="mono tiny" id="fwTotal"></span></div>
+      <blockquote id="fwQuote"></blockquote>
+      <div class="sum-actions">
+        <button class="primary-btn" id="fwContinue"><span>ZUR AUSWERTUNG</span><b>›</b></button>
+        <button class="ghost-btn" id="fwAgain">NOCHMAL VERSUCHEN</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- PAUSE -->
+  <section id="pause" class="screen modal-screen">
+    <div class="sheet pause-card">
+      <div class="mono tiny dim">EXPERIMENT ANGEHALTEN</div>
+      <h2>PAUSE</h2>
+      <button class="primary-btn" id="pResume"><span>WEITER</span><b>›</b></button>
+      <button class="ghost-btn" id="pRestart">EXPERIMENT NEU STARTEN</button>
+      <button class="ghost-btn" id="pSound">TON: AN</button>
+      <button class="ghost-btn" id="pMenu">HAUPTMENÜ</button>
+    </div>
+  </section>
+
+  <!-- CONFIRM -->
+  <section id="confirm" class="screen modal-screen top">
+    <div class="sheet pause-card">
+      <div class="mono tiny dim">SICHERHEITSABFRAGE</div>
+      <h2 id="cfTitle">SICHER?</h2>
+      <p id="cfText" class="dim"></p>
+      <button class="primary-btn" id="cfYes"><span>JA</span><b>›</b></button>
+      <button class="ghost-btn" id="cfNo">ABBRECHEN</button>
+    </div>
+  </section>
+
+  <div id="rotateHint" class="rotate-hint mono"><span>⟲</span> Querformat empfohlen — das Labor ist breiter, als es hoch ist.<button id="rotateClose">✕</button></div>
+  <div id="flash" class="flash"></div>
+  <div id="letterbox" class="letterbox"><i></i><i></i></div>
+
+  <script type="module" src="/src/main.ts"></script>
+</body>
+</html>
