@@ -475,7 +475,7 @@ function helpModal(back) {
     <li><b>Wandsprung:</b> An eine Wand springen, Richtung Wand halten (du rutschst langsamer) und HOPP drücken. Danach ist dein Doppelsprung wieder aufgeladen. Höchstens 2 Wandsprünge, bevor du wieder auf dem Boden landest, und nie zweimal hintereinander an derselben Wand.</li>
     <li><b>Tastatur:</b> Pfeiltasten oder A/D, Leertaste oder W zum Springen, P für Pause.</li>
     <li><b>PING</b> (Taste F): Tischtennisbälle schießen. Im Bosskampf immer, sonst nur als Rolf.</li>
-    <li><b>2 XXL-Schnitzel</b> in einem Level verwandeln Tim für dieses Level zufällig in Rolf, Lena Laux oder Dennis.</li>
+    <li><b>2 XXL-Schnitzel</b> in einem Level verwandeln Tim für dieses Level zufällig in Rolf, Lena Laux, Dennis oder Brendon.</li>
     <li><b>Versteckte Outfits</b> liegen in schweren Extra-Passagen der Kapitel 4 bis 6. Anziehen kannst du sie im Menü unter „Outfits“.</li>
     <li><b>Grüne Tassen</b> sammeln. Alle 100 Tassen gibt es ein Extraleben.</li>
     <li><b>XXL-Schnitzel:</b> drei gut versteckte pro Level.</li>
@@ -702,6 +702,7 @@ function step() {
             G.form = "opa"; G.ttChar = TT_CHARS[Math.floor(Math.random() * TT_CHARS.length)];
             G.p.inv = Math.max(G.p.inv, 60); burst(p.x + p.w / 2, p.y + p.h / 2, "#ffffff", 40); sfx("boss");
             const nm = TT_NAMES[G.ttChar]; setTimeout(() => G && !G.done && banner(`VERWANDLUNG: ${nm}!`), 900);
+            if (G.ttChar === "brendon") setTimeout(() => G && !G.done && banner("STEEL AN EGG"), 2600);
           } }
         updateHud();
       }
@@ -850,7 +851,7 @@ function faroStep() {
   }
 }
 // Randomizer: 2 schnitzel turn Tim into one of these table-tennis players for the rest of the level.
-const TT_CHARS = ["rolf", "lena", "dennis"];
+const TT_CHARS = ["rolf", "lena", "dennis", "brendon"];
 const TT_NAMES = { rolf: "ROLF", lena: "LENA LAUX", dennis: "DENNIS", brendon: "BRENDON" };
 function damageBoss(n) {
   const b = G.boss; if (!b || b.hp <= 0) return;
@@ -954,7 +955,7 @@ const SPRITES = {
     legs("#f2c6a8", "#e8e8e8", 0, "#fff"); ctx.fillStyle = "#141418"; rr(-15, -18, 30, 8, 3); ctx.fill();
     ctx.fillStyle = "#16161c"; ctx.beginPath(); ctx.ellipse(0, -24, 17, 14, 0, 0, Math.PI * 2); ctx.fill(); ctx.fillStyle = "#2f9e44"; ctx.fillRect(-16, -29, 32, 6);
     arm("#16161c", "#f2c6a8", .2, () => { ctx.fillStyle = "#1ec8f0"; rr(-4, 12, 9, 15, 2); ctx.fill(); ctx.fillStyle = "#c0c4d0"; ctx.fillRect(-4, 12, 9, 2); ctx.fillStyle = "#0a2a3a"; ctx.font = "900 5px Nunito"; ctx.textAlign = "center"; ctx.save(); ctx.translate(.5, 22); ctx.rotate(-Math.PI / 2); ctx.fillText("NRG", 0, 2); ctx.restore(); });
-    face({ skin: "#f2c6a8", hw: 14, hair: () => { ctx.fillStyle = "rgba(90,60,40,.75)"; ctx.beginPath(); ctx.ellipse(-1, -54, 13.5, 7, 0, Math.PI, 0); ctx.fill(); for (let i = -10; i < 12; i += 3) circ(i, -58, .8, "#4a3020"); } });
+    face({ skin: "#f2c6a8", hw: 14, hair: () => { ctx.fillStyle = "#5a3c28"; ctx.beginPath(); ctx.ellipse(-1, -54, 13.5, 7, 0, Math.PI, 0); ctx.fill(); for (let i = -10; i < 12; i += 3) circ(i, -58, .8, "#3a2414"); } });
   },
   faroo_1900(w = 60) {
     const hw = w / 2;
@@ -1055,6 +1056,26 @@ SPRITES.rolf_default = () => {
   ctx.fillStyle = "#16161c"; rr(-15, -34, 30, 20, 8); ctx.fill(); ctx.fillStyle = "#7a1420"; ctx.fillRect(-15, -29, 30, 7);
   arm("#16161c", "#e9b896", -.3, () => { ctx.fillStyle = "#7a4a1a"; ctx.fillRect(-1, 15, 4, 9); ctx.fillStyle = "#d4202a"; ctx.beginPath(); ctx.ellipse(1, 30, 8, 9, 0, 0, Math.PI * 2); ctx.fill(); });
   face({ skin: "#efc3a4", glasses: true, hair: () => { ctx.strokeStyle = "#8a8580"; ctx.lineWidth = 1.2; for (let k = -6; k <= 6; k += 3) { ctx.beginPath(); ctx.moveTo(k, -58); ctx.quadraticCurveTo(k + 2, -63, k + 4, -59); ctx.stroke(); } } });
+};
+SPRITES.brendon = () => {
+  ctx.scale(.86, .86);
+  // grey joggers + green/white/black sneakers
+  ctx.fillStyle = "#8d9097"; ctx.fillRect(-10, -16, 9, 13); ctx.fillRect(2, -16, 9, 13);
+  ctx.fillStyle = "#7a7d84"; ctx.fillRect(-10, -6, 9, 2); ctx.fillRect(2, -6, 9, 2);
+  for (const x of [-12, 1]) { ctx.fillStyle = "#f4f4f4"; ctx.fillRect(x, -4, 12, 5); ctx.fillStyle = "#2e9e44"; ctx.fillRect(x + 3, -4, 6, 3); ctx.fillStyle = "#111"; ctx.fillRect(x, 0, 12, 1.5); }
+  // beige tee, slightly chubby belly
+  ctx.fillStyle = "#d9c4a0"; ctx.beginPath(); ctx.ellipse(0, -25, 15, 13, 0, 0, Math.PI * 2); ctx.fill();
+  // open thin black down jacket (quilted)
+  ctx.fillStyle = "#18181d";
+  ctx.beginPath(); ctx.moveTo(-16, -36); ctx.lineTo(-6, -36); ctx.lineTo(-7, -13); ctx.lineTo(-16, -14); ctx.closePath(); ctx.fill();
+  ctx.beginPath(); ctx.moveTo(16, -36); ctx.lineTo(6, -36); ctx.lineTo(7, -13); ctx.lineTo(16, -14); ctx.closePath(); ctx.fill();
+  ctx.strokeStyle = "#34343c"; ctx.lineWidth = 1; for (let y = -31; y < -14; y += 5) { ctx.beginPath(); ctx.moveTo(-16, y); ctx.lineTo(-7, y); ctx.moveTo(7, y); ctx.lineTo(16, y); ctx.stroke(); }
+  arm("#18181d", "#d9a27c", .15);
+  // head with brown curly sticking-out hair
+  face({ skin: "#d9a27c", hw: 14, hair: () => {
+    for (const [x, y, r] of [[-13, -52, 5], [-9, -59, 5.5], [-2, -62, 6], [6, -61, 5.5], [12, -56, 5], [15, -50, 4], [-15, -45, 4], [3, -66, 3.5], [-6, -66, 3.5]]) circ(x, y, r, "#6b4424");
+    for (const [x, y] of [[-9, -60], [1, -63], [9, -59]]) { ctx.strokeStyle = "#8a5a32"; ctx.lineWidth = 1.2; ctx.beginPath(); ctx.arc(x, y, 2.5, 0, Math.PI * 1.5); ctx.stroke(); }
+  } });
 };
 // Story portrait overlays: body goes under the neck, top (hair/hats) over everything.
 const splitOver = (str, marker) => { const i = str.indexOf(marker); return { body: str.slice(0, i), top: str.slice(i) }; };
