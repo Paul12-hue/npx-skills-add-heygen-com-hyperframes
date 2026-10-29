@@ -1,0 +1,6 @@
+KaskadeCore/.build/
+KaskadeCore/.swiftpm/
+build/
+DerivedData/
+xcuserdata/
+*.xcresult

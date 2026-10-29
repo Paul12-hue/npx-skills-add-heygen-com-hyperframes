@@ -1,0 +1,124 @@
+name: Kaskade iPad build & tests
+
+on:
+  push:
+    branches: ["claude/kaskade-ipad-game", "main"]
+    paths: ["kaskade/**", ".github/workflows/kaskade-ios.yml"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  ipad:
+    runs-on: macos-15
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Select newest Xcode 16+
+        run: |
+          ls -d /Applications/Xcode*.app
+          XCODE=$(ls -d /Applications/Xcode_1[6-9]*.app /Applications/Xcode_2*.app 2>/dev/null | sort -V | tail -1)
+          echo "Using $XCODE"
+          sudo xcode-select -s "$XCODE"
+          xcodebuild -version
+          mkdir -p out
+
+      - name: Core logic tests (swift test)
+        working-directory: kaskade/KaskadeCore
+        run: |
+          set -o pipefail
+          swift test 2>&1 | tee ../../out/core-tests.log | grep -E "error:|failed|Executed" || true
+          exit ${PIPESTATUS[0]}
+
+      - name: Pick an iPad simulator
+        run: |
+          xcrun simctl list devices available -j > devices.json
+          UDID=$(python3 - <<'PY'
+          import json, re
+          data = json.load(open("devices.json"))["devices"]
+          best = None
+          for runtime, devices in data.items():
+              m = re.search(r"iOS-(\d+)-(\d+)", runtime)
+              if not m:
+                  continue
+              version = (int(m.group(1)), int(m.group(2)))
+              for d in devices:
+                  name = d["name"]
+                  if not name.startswith("iPad"):
+                      continue
+                  score = (version, "iPad Pro 13" in name, "iPad Pro" in name)
+                  if best is None or score > best[0]:
+                      best = (score, d["udid"], name, runtime)
+          print(best[1])
+          import sys; print(best[2], best[3], file=sys.stderr)
+          PY
+          )
+          echo "SIM_UDID=$UDID" >> "$GITHUB_ENV"
+          xcrun simctl boot "$UDID" || true
+
+      - name: Build app and UI tests for simulator
+        run: |
+          set -o pipefail
+          xcodebuild -project kaskade/Kaskade.xcodeproj -scheme Kaskade -configuration Debug \
+            -destination "id=$SIM_UDID" -derivedDataPath build/dd build-for-testing 2>&1 \
+            | tee out/build-sim.log | grep -E "error:|warning:|\*\* (BUILD|TEST)" || true
+          exit ${PIPESTATUS[0]}
+
+      - name: Run UI tests on iPad simulator
+        run: |
+          set -o pipefail
+          xcodebuild -project kaskade/Kaskade.xcodeproj -scheme Kaskade -configuration Debug \
+            -destination "id=$SIM_UDID" -derivedDataPath build/dd -resultBundlePath build/UITests.xcresult \
+            test-without-building 2>&1 | tee out/ui-tests.log | grep -E "error:|Test Case|Executed|\*\* TEST" || true
+          exit ${PIPESTATUS[0]}
+
+      - name: Release build for device (unsigned)
+        if: always()
+        run: |
+          set -o pipefail
+          xcodebuild -project kaskade/Kaskade.xcodeproj -scheme Kaskade -configuration Release \
+            -destination "generic/platform=iOS" -derivedDataPath build/dd-release \
+            CODE_SIGNING_ALLOWED=NO build 2>&1 | tee out/build-device.log | grep -E "error:|warning:|\*\* BUILD" || true
+          exit ${PIPESTATUS[0]}
+
+      - name: Export screenshots
+        if: always()
+        run: |
+          if [ -d build/UITests.xcresult ]; then
+            xcrun xcresulttool export attachments --path build/UITests.xcresult --output-path out/raw || true
+            python3 - <<'PY'
+          import json, os, shutil
+          raw = "out/raw"
+          dest = "out/screenshots"
+          os.makedirs(dest, exist_ok=True)
+          manifest = os.path.join(raw, "manifest.json")
+          if os.path.exists(manifest):
+              for test in json.load(open(manifest)):
+                  for a in test.get("attachments", []):
+                      name = a.get("suggestedHumanReadableName") or a["exportedFileName"]
+                      src = os.path.join(raw, a["exportedFileName"])
+                      if os.path.exists(src):
+                          shutil.copy(src, os.path.join(dest, name if name.endswith(".png") else name + ".png"))
+          PY
+            rm -rf out/raw
+          fi
+          ls -la out out/screenshots || true
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: kaskade-ci-results
+          path: out
+
+      - name: Publish results to ci-results branch
+        if: always()
+        run: |
+          cd out
+          echo "commit ${GITHUB_SHA}" > COMMIT.txt
+          git init -q
+          git checkout -q -b ci-results
+          git add -A
+          git -c user.name="ci" -c user.email="ci@users.noreply.github.com" commit -q -m "CI results for ${GITHUB_SHA}"
+          git push -q -f "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git" ci-results
