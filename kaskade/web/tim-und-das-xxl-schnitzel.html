@@ -68,7 +68,7 @@ canvas { position: fixed; inset: 0; width: 100%; height: 100%; display: block; }
 .tally div { display: flex; align-items: center; gap: 8px; }
 .tally svg { width: 44px; height: 44px; }
 .help { text-align: left; } .help li { color: var(--fg2); line-height: 1.5; margin-bottom: 4px; }
-.banner { position: fixed; left: 50%; top: 38%; transform: translate(-50%, -50%); font-family: var(--display); font-size: clamp(40px, 7vw, 84px); letter-spacing: .04em; color: var(--green); text-shadow: 0 5px 0 #0c5a00, 0 9px 0 #000; z-index: 8; pointer-events: none; white-space: nowrap; animation: bannerIn 1.6s ease-out forwards; }
+.banner { position: fixed; left: 50%; top: 38%; transform: translate(-50%, -50%); font-family: var(--display); font-size: clamp(40px, 7vw, 84px); letter-spacing: .04em; color: var(--green); text-shadow: 0 5px 0 #0c5a00, 0 9px 0 #000; z-index: 8; pointer-events: none; text-align: center; width: max-content; max-width: 92vw; line-height: 1; animation: bannerIn 1.6s ease-out forwards; }
 @keyframes bannerIn { 0% { transform: translate(-50%, -50%) scale(.3); opacity: 0; } 18% { transform: translate(-50%, -50%) scale(1.12); opacity: 1; } 75% { opacity: 1; } 100% { transform: translate(-50%, -62%); opacity: 0; } }
 @media (max-aspect-ratio: 1/1) { .actor { width: 44vw; bottom: 200px; } .pad .k { width: 80px; height: 80px; } .pad .k.jump { width: 100px; height: 100px; } }
 @media (prefers-reduced-motion: reduce) { .banner, .tap, .actor.talk svg .mouth { animation: none !important; } }
@@ -82,7 +82,7 @@ canvas { position: fixed; inset: 0; width: 100%; height: 100%; display: block; }
   <div class="lvl" id="hLevel"></div>
   <button class="pause" id="pauseBtn" type="button" aria-label="Pause">❚❚</button>
 </div>
-<div class="bossbar" id="bossbar" hidden><div>BRIXX</div><div class="bar"><i id="bossHp"></i></div></div>
+<div class="bossbar" id="bossbar" hidden><div>OPA BRIXX</div><div class="bar"><i id="bossHp"></i></div></div>
 <div class="pad" id="pad" hidden>
   <div class="grp"><button class="k" data-k="left" type="button" aria-label="Links">◀</button><button class="k" data-k="right" type="button" aria-label="Rechts">▶</button></div>
   <button class="k jump" data-k="jump" type="button" aria-label="Springen">HOPP</button>
@@ -143,9 +143,23 @@ function person(o) {
 const PORTRAIT = {
   tim: () => person({ skin: "#f2c6a8", skinDark: "#dba585", hair: "short", hairColor: "#6b4a2f", hairLight: "#9a7250", outfit: "hoodie", top: "#5e6170", topDark: "#4a4c59", brow: "#5a3d27", iris: "#5b4a3a", eyeW: 9 }),
   valle: () => person({ skin: "#e3a27c", skinDark: "#c98560", hair: "bandana", outfit: "black", brow: "#8a6a55", iris: "#5f8fb5", eyeW: 10, grin: true, earring: true }),
-  bot: () => `<svg viewBox="0 0 240 300" xmlns="http://www.w3.org/2000/svg"><rect x="112" y="10" width="16" height="40" fill="#999"/><ellipse cx="120" cy="12" rx="70" ry="9" fill="#cfd3e0"/><rect x="40" y="50" width="160" height="150" rx="40" fill="#6a2be2" stroke="#2a0a5a" stroke-width="8"/><circle cx="120" cy="120" r="40" fill="#1a0a2e"/><circle cx="120" cy="120" r="24" fill="#ff2d2d"/><circle cx="110" cy="110" r="7" fill="#fff"/><path class="mouth" d="M80 172 h80" stroke="#ffcf3f" stroke-width="10" stroke-linecap="round" stroke-dasharray="10 8"/><rect x="60" y="200" width="120" height="70" rx="20" fill="#4a1aa0"/><path d="M30 120 l-20 40 M210 120 l20 40" stroke="#cfd3e0" stroke-width="14" stroke-linecap="round"/></svg>`,
+  bot: () => `<svg viewBox="0 0 240 300" xmlns="http://www.w3.org/2000/svg">
+    <path d="M18 300 C22 228 60 198 120 198 C180 198 218 228 222 300Z" fill="#6b7f4a"/><path d="M100 200 L120 236 L140 200Z" fill="#e9e2d0"/>
+    <circle cx="120" cy="246" r="4" fill="#d8c9a0"/><circle cx="120" cy="264" r="4" fill="#d8c9a0"/><circle cx="120" cy="282" r="4" fill="#d8c9a0"/>
+    <rect x="102" y="170" width="36" height="34" rx="12" fill="#d9a888"/>
+    <ellipse cx="66" cy="128" rx="10" ry="15" fill="#d9a888"/><ellipse cx="174" cy="128" rx="10" ry="15" fill="#d9a888"/>
+    <path d="M66 112 C66 64 92 44 120 44 C148 44 174 64 174 112 C174 154 154 188 120 188 C86 188 66 154 66 112Z" fill="#efc3a4"/>
+    <ellipse cx="102" cy="64" rx="18" ry="7" fill="#fff" opacity=".45" transform="rotate(-15 102 64)"/>
+    <path d="M62 120 C54 96 62 80 74 76 C72 92 74 106 80 118Z M178 120 C186 96 178 80 166 76 C168 92 166 106 160 118Z" fill="#f2f2f2"/>
+    <path d="M84 102 l26 6 M156 102 l-26 6" stroke="#f2f2f2" stroke-width="7" stroke-linecap="round"/>
+    <g fill="none" stroke="#222" stroke-width="4"><circle cx="99" cy="124" r="15"/><circle cx="141" cy="124" r="15"/><path d="M114 124 h12"/></g>
+    <circle cx="100" cy="125" r="4.5" fill="#3a5a7a"/><circle cx="142" cy="125" r="4.5" fill="#3a5a7a"/>
+    <path d="M120 128 C116 140 114 146 120 149 C124 150 128 148 128 145" stroke="#c98d6c" stroke-width="3.5" fill="none" stroke-linecap="round"/>
+    <path d="M88 160 C98 146 114 150 120 156 C126 150 142 146 152 160 C140 158 128 162 120 160 C112 162 100 158 88 160Z" fill="#f2f2f2"/>
+    <ellipse class="mouth" cx="120" cy="170" rx="11" ry="7" fill="#5a1f1f"/>
+    <ellipse cx="88" cy="148" rx="11" ry="6" fill="#ff7b7b" opacity=".3"/><ellipse cx="152" cy="148" rx="11" ry="6" fill="#ff7b7b" opacity=".3"/></svg>`,
 };
-const PEOPLE = { tim: "Tim Oliver Schmidt", valle: "Valle Weber", bot: "Brixx" };
+const PEOPLE = { tim: "Tim Oliver Schmidt", valle: "Valle Weber", bot: "Opa Brixx" };
 const MUG_SVG = `<svg viewBox="0 0 40 40"><path d="M8 10 h20 v18 a6 6 0 0 1 -6 6 h-8 a6 6 0 0 1 -6 -6z" fill="#39ff14" stroke="#0c5a00" stroke-width="2.5"/><path d="M28 14 h3 a5 5 0 0 1 0 10 h-3" fill="none" stroke="#0c5a00" stroke-width="5"/><path d="M28 14 h3 a5 5 0 0 1 0 10 h-3" fill="none" stroke="#39ff14" stroke-width="2.5"/><rect x="11" y="13" width="4" height="14" rx="2" fill="#d8ffcc" opacity=".8"/></svg>`;
 const SCHN_SVG = `<svg viewBox="0 0 40 40"><path d="M4 22 C3 12 14 7 22 8 C32 9 38 14 36 22 C35 31 24 34 16 33 C8 32 4 28 4 22Z" fill="#e59a2a" stroke="#7a4300" stroke-width="2.5"/><circle cx="13" cy="18" r="1.6" fill="#ffd27a"/><circle cx="22" cy="14" r="1.6" fill="#ffd27a"/><circle cx="27" cy="23" r="1.6" fill="#ffd27a"/><circle cx="16" cy="26" r="1.6" fill="#ffd27a"/><path d="M28 6 l8 2 l-4 7z" fill="#fff35a" stroke="#a08a00" stroke-width="1.5"/></svg>`;
 const HEART_SVG = `<svg viewBox="0 0 40 40"><path d="M20 34 C6 24 4 16 8 11 C12 6 18 8 20 13 C22 8 28 6 32 11 C36 16 34 24 20 34Z" fill="#ff3d5a" stroke="#7a0010" stroke-width="2.5"/></svg>`;
@@ -222,7 +236,7 @@ const STORY = [
   { kind: "scene", chapter: "Kapitel 2", L: "tim", R: "valle", lines: [
     S("valle", "Alta GiG! Wie geil ist Dustin?", true),
     S("tim", "Valle, wer ist Dustin?"),
-    S("valle", "Ist doch egal! Brixx wurde auf dem Neonmarkt gesehen. Pass auf, seine kleinen Brix sind dort schneller."),
+    S("valle", "Ist doch egal! Brixx wurde auf dem Neonmarkt gesehen. Pass auf, seine Brix sind dort unterwegs. Das sind lebende Parkbänke, und manche sind richtig schnell."),
   ]},
   { kind: "level", n: 1 },
   { kind: "scene", chapter: "Kapitel 3", L: "tim", R: "valle", lines: [
@@ -231,14 +245,14 @@ const STORY = [
   ]},
   { kind: "level", n: 2 },
   { kind: "scene", chapter: "Finale", L: "tim", R: "bot", lines: [
-    S("bot", "PIEP. ICH BIN BRIXX. SCHNITZEL GEHÖRT MIR. PARTY ABGESAGT. PIEP."),
+    S("bot", "BADABOOM! HIER REGELT NUR EINER! Ich bin Opa Brixx, und das XXL-Schnitzel gehört mir!", true),
     S("tim", "Nicht mit mir. Ja! Ja! Hol ihn raus!", true),
-    S("valle", "Das ist Brixx, der Boss der Brix! Spring ihm auf den Kopf, wenn er landet! Und weich den Bomben aus!"),
+    S("valle", "Opa Brixx, der Chef der Brix-Bänke! Wenn sein Propeller-Sessel landet, spring drauf! Und weich seinen Handbällen aus!"),
   ]},
   { kind: "level", n: 3 },
   { kind: "scene", chapter: "Epilog", L: "tim", R: "valle", end: true, lines: [
-    S("bot", "PIEP … SYSTEM … WILL … AUCH … SCHNITZEL …"),
-    S("valle", "Na gut, du darfst mitfeiern. Aber du spülst die Tassen."),
+    S("bot", "Badaboom … na gut, Jungs. Ich wollte doch nur nicht allein zu Hause sitzen."),
+    S("valle", "Dann feierst du einfach mit, Opa Brixx! Aber du spülst die Tassen."),
     S("valle", "Alta GiG! Wie geil ist Dustin? Die Party ist gerettet!", true),
     S("tim", "Ja! Ja! Hol ihn raus! Das XXL-Schnitzel!", true),
   ]},
@@ -345,7 +359,7 @@ function helpModal(back) {
     <li><b>Tastatur:</b> Pfeiltasten oder A/D, Leertaste oder W zum Springen, P für Pause.</li>
     <li><b>Grüne Tassen</b> sammeln. Alle 100 Tassen gibt es ein Extraleben.</li>
     <li><b>XXL-Schnitzel:</b> drei gut versteckte pro Level.</li>
-    <li>Die kleinen Brix besiegst du, indem du ihnen auf den Kopf springst. Seitlich berühren kostet ein Leben, Stacheln und Abgründe auch.</li>
+    <li>Die Brix (wandelnde Bänke) besiegst du, indem du ihnen auf den Kopf springst. Seitlich berühren kostet ein Leben, Stacheln und Abgründe auch.</li>
     <li>Fahnen sind Kontrollpunkte. Valle wartet am Ziel.</li></ul>
     <div class="rowb"><button class="btn go" id="okHelp" type="button">Alles klar</button></div>`);
   $("okHelp").onclick = back;
@@ -481,7 +495,7 @@ function step() {
     }
   }
   // checkpoints
-  for (const [cx, cy] of L.checkpoints) { const key = cx + ":" + cy; if (!G.reached.has(key) && Math.abs(p.x - cx * T) < 40) { G.reached.add(key); G.checkpoint = [cx * T, cy * T - 4]; sfx("check"); banner("Kontrollpunkt"); } }
+  for (const [cx, cy] of L.checkpoints) { const key = cx + ":" + cy; if (!G.reached.has(key) && Math.abs(p.x - cx * T) < 40) { G.reached.add(key); G.checkpoint = [cx * T, cy * T - 4]; sfx("check"); banner("ICH HAB NEN NEUEN CHECKPOINT"); } }
   // finish
   if (L.finish && p.x > L.finish[0] * T - 20) return finishLevel();
   if (G.boss) bossStep();
@@ -656,14 +670,24 @@ function drawSchnitzel(cx, cy) {
   ctx.restore();
 }
 function drawBot(x, y, vx, fast) {
-  const t = G.time / 6;
-  ctx.save(); ctx.translate(x + 18, y + 17);
-  ctx.fillStyle = fast ? "#ff3d5a" : "#8a3cff"; roundRect(-17, -15, 34, 28, 9); ctx.fill();
-  ctx.strokeStyle = "#1a0a2e"; ctx.lineWidth = 3; ctx.stroke();
-  ctx.fillStyle = "#fff"; ctx.beginPath(); ctx.arc(vx < 0 ? -5 : 5, -3, 7, 0, Math.PI * 2); ctx.fill();
-  ctx.fillStyle = "#ff2d2d"; ctx.beginPath(); ctx.arc(vx < 0 ? -7 : 7, -3, 3.5, 0, Math.PI * 2); ctx.fill();
-  ctx.strokeStyle = "#cfd3e0"; ctx.beginPath(); ctx.moveTo(0, -15); ctx.lineTo(0, -24); ctx.stroke(); ctx.fillStyle = "#ffc531"; ctx.beginPath(); ctx.arc(0, -25, 3.5, 0, Math.PI * 2); ctx.fill();
-  ctx.fillStyle = "#1a0a2e"; ctx.fillRect(-14 + Math.sin(t) * 2, 13, 9, 5); ctx.fillRect(5 - Math.sin(t) * 2, 13, 9, 5);
+  // Brix: a grumpy walking park bench.
+  const t = G.time / 5, dir = vx < 0 ? -1 : 1, step = Math.sin(t * (fast ? 1.6 : 1)) * 4;
+  ctx.save(); ctx.translate(x + 18, y + 17); ctx.scale(dir, 1);
+  const wood = fast ? "#b5462e" : "#a0682e", dark = fast ? "#6e2414" : "#5e3712";
+  // legs (walking)
+  ctx.fillStyle = "#3a3f4a"; ctx.fillRect(-16 + step, 6, 5, 12); ctx.fillRect(11 - step, 6, 5, 12);
+  ctx.fillRect(-18 + step, 16, 9, 3); ctx.fillRect(9 - step, 16, 9, 3);
+  // backrest slats + posts
+  ctx.fillStyle = "#3a3f4a"; ctx.fillRect(-19, -20, 4, 24); ctx.fillRect(15, -20, 4, 24);
+  ctx.fillStyle = wood; roundRect(-21, -20, 42, 7, 3); ctx.fill(); roundRect(-21, -11, 42, 7, 3); ctx.fill();
+  // seat
+  roundRect(-22, 0, 44, 8, 3); ctx.fill();
+  ctx.strokeStyle = dark; ctx.lineWidth = 2; for (const yy of [-20, -11, 0]) { roundRect(yy === 0 ? -22 : -21, yy, yy === 0 ? 44 : 42, yy === 0 ? 8 : 7, 3); ctx.stroke(); }
+  ctx.fillStyle = "rgba(255,255,255,.25)"; ctx.fillRect(-19, -19, 36, 2); ctx.fillRect(-20, 1, 38, 2);
+  // angry face on the backrest
+  ctx.fillStyle = "#fff"; ctx.beginPath(); ctx.arc(2, -8, 4.5, 0, Math.PI * 2); ctx.arc(12, -8, 4.5, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = "#111"; ctx.beginPath(); ctx.arc(4, -7, 2.2, 0, Math.PI * 2); ctx.arc(14, -7, 2.2, 0, Math.PI * 2); ctx.fill();
+  ctx.strokeStyle = "#111"; ctx.lineWidth = 2.2; ctx.beginPath(); ctx.moveTo(-2, -15); ctx.lineTo(6, -12); ctx.moveTo(16, -15); ctx.lineTo(8, -12); ctx.stroke();
   ctx.restore();
 }
 function drawTim(p) {
@@ -713,21 +737,55 @@ function drawValle(x, groundY) {
 function drawSchnitzelMini(x, y) { ctx.fillStyle = "#e59a2a"; ctx.beginPath(); ctx.ellipse(x, y + 6, 22, 9, 0, 0, Math.PI * 2); ctx.fill(); ctx.strokeStyle = "#7a4300"; ctx.lineWidth = 2; ctx.stroke(); }
 function drawMugMini(x, y) { ctx.fillStyle = "#39ff14"; roundRect(x - 7, y - 4, 14, 18, 4); ctx.fill(); ctx.strokeStyle = "#0c5a00"; ctx.lineWidth = 2; ctx.stroke(); }
 function drawBoss(b) {
+  // Brixx: a human grandpa on a propeller armchair, throwing handballs.
   if (b.hp <= 0 && Math.floor(G.time / 4) % 2) return;
-  const hurtFlash = b.inv > 0 && Math.floor(b.inv / 4) % 2;
+  const flash = b.inv > 0 && Math.floor(b.inv / 4) % 2, grounded = b.state === "ground";
+  const look = G.p.x < b.x + b.w / 2 ? -1 : 1;
   ctx.save(); ctx.translate(b.x, b.y);
-  // propeller
-  if (b.state !== "ground") { ctx.fillStyle = "#cfd3e0"; const w = Math.abs(Math.sin(G.time / 2)) * 80 + 20; ctx.fillRect(b.w / 2 - w / 2, -16, w, 6); ctx.fillStyle = "#888"; ctx.fillRect(b.w / 2 - 4, -12, 8, 14); }
-  else { ctx.fillStyle = "#ffc531"; ctx.font = "900 18px Nunito, sans-serif"; ctx.textAlign = "center"; ctx.fillText("JETZT DRAUF!", b.w / 2, -14); }
-  ctx.fillStyle = hurtFlash ? "#fff" : "#6a2be2"; roundRect(0, 0, b.w, b.h - 24, 26); ctx.fill(); ctx.strokeStyle = "#2a0a5a"; ctx.lineWidth = 6; ctx.stroke();
-  ctx.fillStyle = "#1a0a2e"; ctx.beginPath(); ctx.arc(b.w / 2, 40, 28, 0, Math.PI * 2); ctx.fill();
-  const look = Math.max(-8, Math.min(8, (G.p.x - b.x - b.w / 2) / 30));
-  ctx.fillStyle = b.state === "ground" ? "#ffc531" : "#ff2d2d"; ctx.beginPath(); ctx.arc(b.w / 2 + look, 42, 15, 0, Math.PI * 2); ctx.fill();
-  ctx.fillStyle = "#fff"; ctx.beginPath(); ctx.arc(b.w / 2 + look - 5, 37, 4, 0, Math.PI * 2); ctx.fill();
-  ctx.strokeStyle = "#ffcf3f"; ctx.lineWidth = 6; ctx.setLineDash([8, 6]); ctx.beginPath(); ctx.moveTo(24, 74); ctx.lineTo(b.w - 24, 74); ctx.stroke(); ctx.setLineDash([]);
-  ctx.fillStyle = "#4a1aa0"; roundRect(18, b.h - 28, b.w - 36, 28, 10); ctx.fill();
+  // propeller on the chair back
+  if (!grounded) { ctx.fillStyle = "#cfd3e0"; const w = Math.abs(Math.sin(G.time / 2)) * 90 + 20; ctx.fillRect(b.w / 2 - w / 2, -14, w, 6); ctx.fillStyle = "#777"; ctx.fillRect(b.w / 2 - 4, -10, 8, 16); }
+  else { ctx.fillStyle = "#ffc531"; ctx.font = "900 18px Nunito, sans-serif"; ctx.textAlign = "center"; ctx.fillText("JETZT DRAUF!", b.w / 2, -16); }
+  // armchair
+  ctx.fillStyle = flash ? "#fff" : "#7a2a3a"; roundRect(8, 4, b.w - 16, 70, 18); ctx.fill();
+  ctx.fillStyle = flash ? "#fff" : "#5a1a28"; roundRect(0, 50, 26, 44, 10); ctx.fill(); roundRect(b.w - 26, 50, 26, 44, 10); ctx.fill();
+  ctx.fillStyle = flash ? "#fff" : "#8a3a4a"; roundRect(14, 70, b.w - 28, 22, 8); ctx.fill();
+  ctx.fillStyle = "#3a2010"; ctx.fillRect(16, 92, 8, 14); ctx.fillRect(b.w - 24, 92, 8, 14);
+  // grandpa: cardigan body
+  ctx.fillStyle = "#6b7f4a"; roundRect(30, 40, b.w - 60, 36, 12); ctx.fill();
+  ctx.fillStyle = "#e9e2d0"; ctx.beginPath(); ctx.moveTo(b.w / 2 - 8, 40); ctx.lineTo(b.w / 2, 56); ctx.lineTo(b.w / 2 + 8, 40); ctx.fill();
+  ctx.fillStyle = "#d8c9a0"; for (let i = 0; i < 3; i++) { ctx.beginPath(); ctx.arc(b.w / 2, 58 + i * 7, 2, 0, Math.PI * 2); ctx.fill(); }
+  // arm raised when flying (throwing)
+  ctx.fillStyle = "#6b7f4a"; ctx.save(); ctx.translate(b.w / 2 + 22 * look, 46); ctx.rotate(grounded ? .4 * look : -2.2 * look + Math.sin(G.time / 6) * .2); roundRect(-5, 0, 10, 24, 5); ctx.fill(); ctx.fillStyle = "#efc3a4"; ctx.beginPath(); ctx.arc(0, 26, 6, 0, Math.PI * 2); ctx.fill(); ctx.restore();
+  // head
+  const hx = b.w / 2, hy = 22;
+  ctx.fillStyle = "#efc3a4"; ctx.beginPath(); ctx.ellipse(hx, hy, 19, 21, 0, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = "#f4f4f4"; ctx.beginPath(); ctx.ellipse(hx - 18, hy - 2, 7, 10, 0, 0, Math.PI * 2); ctx.ellipse(hx + 18, hy - 2, 7, 10, 0, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = "rgba(255,255,255,.5)"; ctx.beginPath(); ctx.ellipse(hx - 5, hy - 14, 7, 3, -.3, 0, Math.PI * 2); ctx.fill();
+  // glasses + eyes
+  ctx.strokeStyle = "#222"; ctx.lineWidth = 2.5; ctx.beginPath(); ctx.arc(hx - 8, hy - 1, 6, 0, Math.PI * 2); ctx.moveTo(hx + 14, hy - 1); ctx.arc(hx + 8, hy - 1, 6, 0, Math.PI * 2); ctx.moveTo(hx - 2, hy - 1); ctx.lineTo(hx + 2, hy - 1); ctx.stroke();
+  ctx.fillStyle = "#222"; ctx.beginPath(); ctx.arc(hx - 8 + look * 2, hy - 1, 2, 0, Math.PI * 2); ctx.arc(hx + 8 + look * 2, hy - 1, 2, 0, Math.PI * 2); ctx.fill();
+  ctx.strokeStyle = "#f4f4f4"; ctx.lineWidth = 3.5; ctx.beginPath(); ctx.moveTo(hx - 15, hy - 11); ctx.lineTo(hx - 3, hy - 8); ctx.moveTo(hx + 15, hy - 11); ctx.lineTo(hx + 3, hy - 8); ctx.stroke();
+  // big white mustache + mouth
+  ctx.fillStyle = "#f4f4f4"; ctx.beginPath(); ctx.ellipse(hx - 7, hy + 9, 9, 4.5, .25, 0, Math.PI * 2); ctx.ellipse(hx + 7, hy + 9, 9, 4.5, -.25, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = "#5a1f1f"; ctx.beginPath(); ctx.ellipse(hx, hy + 15, grounded ? 4 : 6, grounded ? 2 : 4, 0, 0, Math.PI * 2); ctx.fill();
+  if (grounded) { ctx.fillStyle = "#ffc531"; ctx.font = "900 16px Nunito, sans-serif"; ctx.textAlign = "center"; ctx.fillText("✦ ✦", hx, hy - 30 + Math.sin(G.time / 5) * 3); }
   ctx.restore();
-  for (const bo of b.bombs) { ctx.fillStyle = "#1a1a1a"; ctx.beginPath(); ctx.arc(bo.x + 14, bo.y + 14, 13, 0, Math.PI * 2); ctx.fill(); ctx.fillStyle = Math.floor(G.time / 4) % 2 ? "#ff5a3d" : "#ffc531"; ctx.beginPath(); ctx.arc(bo.x + 20, bo.y + 2, 4, 0, Math.PI * 2); ctx.fill(); }
+  // shout bubble while flying
+  if (!grounded && b.hp > 0 && Math.floor(G.time / 180) % 2 === 0) {
+    ctx.save(); ctx.fillStyle = "#fff"; roundRect(b.x - 60, b.y - 70, 240, 44, 12); ctx.fill();
+    ctx.fillStyle = "#1a0f2e"; ctx.font = "900 15px Nunito, sans-serif"; ctx.textAlign = "center"; ctx.fillText("BADABOOM!", b.x + 60, b.y - 52); ctx.font = "800 12px Nunito, sans-serif"; ctx.fillText("HIER REGELT NUR EINER", b.x + 60, b.y - 35); ctx.restore();
+  }
+  // handballs
+  for (const bo of b.bombs) {
+    const cx = bo.x + 14, cy = bo.y + 14, rot = (G.time + bo.x) / 6;
+    ctx.save(); ctx.translate(cx, cy); ctx.rotate(rot);
+    ctx.fillStyle = "#f4f6fb"; ctx.beginPath(); ctx.arc(0, 0, 14, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = "#1f5fd6"; for (let k = 0; k < 3; k++) { ctx.beginPath(); ctx.moveTo(0, 0); ctx.arc(0, 0, 14, k * 2.09, k * 2.09 + .9); ctx.closePath(); ctx.fill(); }
+    ctx.strokeStyle = "#1a2a4a"; ctx.lineWidth = 1.6; ctx.beginPath(); ctx.arc(0, 0, 14, 0, Math.PI * 2); ctx.stroke();
+    ctx.beginPath(); ctx.arc(0, 0, 6, 0, Math.PI * 2); ctx.stroke();
+    ctx.fillStyle = "rgba(255,255,255,.5)"; ctx.beginPath(); ctx.arc(-5, -6, 3.5, 0, Math.PI * 2); ctx.fill();
+    ctx.restore();
+  }
 }
 
 // ================= HUD =================
