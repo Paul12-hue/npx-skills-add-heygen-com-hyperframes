@@ -6,7 +6,7 @@ kaskade/
 ├── KaskadeCore/             Swift Package: Regeln, KI, Fortschritt – ohne UI, plattformneutral
 │   ├── Sources/KaskadeCore  Bibliothek (wird von der App eingebunden)
 │   ├── Sources/KaskadeSim   Kommandozeilen-Selbstspiel für Balancing und KI-Stärkemessung
-│   └── Tests/               73 Unit-Tests (XCTest), laufen auf macOS und Linux
+│   └── Tests/               74 Unit-Tests (XCTest), laufen auf macOS und Linux
 ├── KaskadeApp/              SwiftUI-App (Ansichten, Controller, Audio, Speicherung)
 ├── KaskadeUITests/          End-to-End-Tests im iPad-Simulator mit Screenshots
 ├── Support/Info.plist       Launchscreen-Farbe, Multitasking
