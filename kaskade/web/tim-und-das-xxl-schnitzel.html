@@ -70,6 +70,9 @@ button { font: inherit; color: inherit; border: 0; background: none; cursor: poi
 .tally { display: flex; justify-content: center; gap: 26px; font-family: var(--display); font-size: 34px; letter-spacing: .04em; }
 .tally div { display: flex; align-items: center; gap: 8px; }
 .tally svg { width: 44px; height: 44px; }
+.popcv { display: block; margin: 0 auto; background: radial-gradient(circle, rgba(255,255,255,.18), transparent 70%); border-radius: 20px; }
+.popname { font-size: 24px !important; color: #fff !important; font-weight: 900; }
+.popline { font-family: var(--display); font-size: 30px; letter-spacing: .04em; color: var(--green); text-shadow: 0 3px 0 #000; }
 .skins { display: flex; flex-direction: column; gap: 12px; text-align: left; }
 .skinrow b { font-family: var(--display); font-size: 24px; letter-spacing: .04em; color: var(--cyan); }
 .skinopts { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 6px; }
@@ -114,6 +117,7 @@ button { font: inherit; color: inherit; border: 0; background: none; cursor: poi
       <button class="btn go" id="contBtn" type="button" hidden>Weiterspielen</button>
       <button class="btn go" id="levelsBtn" type="button" hidden>Levelauswahl</button>
       <button class="btn" id="outfitBtn" type="button">Outfits</button>
+      <button class="btn" id="musicTitleBtn" type="button">Musik: An</button>
       <button class="btn" id="helpBtn" type="button">Steuerung</button>
     </div>
   </div>
@@ -208,7 +212,7 @@ function builder(w, theme, name) {
   L.outfit = (x, y, who, id) => { L.ents.push({ t: "outfit", x, y, who, id }); return L; };
   // Optional wall-jump shaft: two hanging walls (rows 5-9, you can walk under them), ledge with a hidden outfit on top of the right wall.
   // Route: jump, wall jump left wall -> right wall, wall jump back, double jump while holding right.
-  L.shaft = (x, who, id) => { L.wall(x, 5, 9).wall(x + 5, 5, 9).brick(x + 6, 5, 3).outfit(x + 7, 4, who, id).mugs(x + 1, 8, 4).mugs(x + 1, 6, 4); return L; };
+  L.shaft = (x, who, id) => { L.wall(x, 5, 9).wall(x + 5, 5, 9).brick(x + 6, 5, 3).mugs(x + 1, 8, 4).mugs(x + 1, 6, 4); if (who) L.outfit(x + 7, 4, who, id); else L.mugs(x + 6, 4, 3); return L; };
   L.enemy = (x, y = 11, kind = "bot") => { L.ents.push({ t: kind, x, y }); return L; };
   L.check = (x, y = 11) => { L.checkpoints.push([x, y]); return L; };
   L.mover = (x, y, n, range, speed = 1.4) => { L.movers.push({ x: x * T, y: y * T, w: n * T, x0: x * T, range: range * T, speed }); return L; };
@@ -224,7 +228,7 @@ function makeLevels() {
     .enemy(44).enemy(48).mugs(43, 10, 6)
     .ground(54, 74).spikes(60, 62).arc(59, 10, 5).plat(66, 10, 4).mugs(66, 9, 4).enemy(70)
     .check(76).ground(76, 96).brick(80, 10, 5).plat(82, 8, 2).schn(82, 6).mugs(80, 9, 5)
-    .enemy(88).enemy(92).ground(100, 106, 11).ground(110, 116, 10).arc(106, 9, 4).arc(116, 8, 4)
+    .enemy(88).enemy(92).shaft(86, "tim", "business").ground(100, 106, 11).ground(110, 116, 10).arc(106, 9, 4).arc(116, 8, 4)
     .ground(120, 149).spikes(126, 127).mugs(123, 10, 3).enemy(132).plat(133, 10, 2).plat(136, 8, 2).schn(137, 6).mugs(138, 10, 6)
     .finishAt(146);
   const L2 = builder(170, "night", "Level 2 · Neonmarkt")
@@ -234,7 +238,7 @@ function makeLevels() {
     .brick(66, 10, 3).brick(67, 7, 1).mugs(66, 9, 3)
     .check(72).ground(72, 86).enemy(80, 11, "fast")
     .plat(90, 10, 2).plat(95, 9, 2).plat(100, 8, 2).mugs(90, 9, 2).mugs(95, 8, 2).mugs(100, 7, 2).schn(105, 5).plat(104, 7, 3)
-    .ground(108, 134).spikes(114, 116).spikes(122, 124).mugs(113, 9, 4).mugs(121, 9, 4).enemy(118).enemy(128, 11, "fast")
+    .ground(108, 134).spikes(114, 116).spikes(122, 124).mugs(113, 9, 4).mugs(121, 9, 4).enemy(118).enemy(128, 11, "fast").shaft(125, "valle", "punk1")
     .check(136).ground(136, 140).ground(146, 169).mover(141, 11, 2, 3, 1.2).arc(141, 9, 5)
     .enemy(152).enemy(156, 11, "fast").brick(158, 9, 4).schn(160, 7).mugs(150, 10, 4)
     .finishAt(166);
@@ -246,7 +250,7 @@ function makeLevels() {
     .check(76, 9).mover(78, 10, 2, 5, 1.6).mugs(80, 8, 4)
     .ground(90, 110).spikes(96, 98).spikes(104, 106).plat(96, 8, 3).plat(104, 8, 3).mugs(96, 7, 3).mugs(104, 7, 3).enemy(100, 11, "fast").enemy(108)
     .ground(114, 118, 10).ground(122, 126, 8).ground(130, 134, 9).schn(124, 5).arc(118, 6, 4).arc(126, 6, 4)
-    .check(136, 11).ground(136, 150).enemy(142, 11, "fast").enemy(146, 11, "fast").mugs(138, 10, 10)
+    .check(136, 11).ground(136, 150).enemy(142, 11, "fast").enemy(146, 11, "fast").mugs(138, 10, 10).shaft(140, "rolf", "grey")
     .mover(152, 10, 2, 5, 1.9).ground(162, 179).mugs(164, 10, 6).finishAt(175);
   const L4 = builder(22, "boss", "Finale · Anton Weilamier Schule").ground(0, 21).wall(0, 0, 13).wall(21, 0, 13).startAt(3, 10);
   L4.boss = "brixx";
@@ -257,13 +261,12 @@ function makeLevels() {
   const L7 = builder(170, "day", "Level 4 · Baustelle")
     .ground(0, 18).mugs(4, 10, 6).enemy(14, 11, "fast")
     .ground(22, 44).spikes(28, 30).arc(27, 10, 5).enemy(36).enemy(41, 11, "fast")
-    .shaft(33, "tim", "business")
     .ground(49, 60, 10).enemy(55, 9, "fast").mugs(50, 8, 6).schn(52, 5)
     .ground(64, 68).check(66)
     .spikes(69, 84, 11).ground(69, 84).plat(70, 9, 2).plat(75, 7, 2).plat(80, 9, 2).schn(77, 4)
-    .mover(72, 3, 2, 8, 1.3).brick(84, 2, 3).outfit(85, 1, "valle", "punk1")
+    .mover(72, 3, 2, 8, 1.3).brick(84, 2, 3).outfit(85, 1, "faroo", "1900")
     .ground(85, 130).spikes(100, 101).spikes(108, 110).enemy(104, 11, "fast").enemy(114, 11, "fast").enemy(120).arc(99, 9, 4).arc(107, 9, 5)
-    .shaft(116, "rolf", "grey").check(127)
+    .shaft(116, "brixx", "flex").check(127)
     .ground(134, 140, 10).schn(137, 6)
     .ground(144, 169).enemy(150, 11, "fast").enemy(158, 11, "fast").mugs(146, 10, 6).finishAt(165);
   const L8 = builder(180, "night", "Level 5 · Bahnhof")
@@ -275,7 +278,7 @@ function makeLevels() {
     .check(72).ground(72, 80)
     .ground(84, 88, 9).ground(92, 96, 7).ground(100, 104, 9).schn(94, 4)
     .ground(108, 140).spikes(114, 117).spikes(126, 129).enemy(120, 11, "fast").enemy(134, 11, "fast").arc(113, 9, 6).arc(125, 9, 6)
-    .plat(116, 8, 2).mover(118, 4, 2, 10, 1.5).brick(132, 3, 3).outfit(133, 2, "faroo", "1900")
+    .plat(116, 8, 2).mover(118, 4, 2, 10, 1.5).brick(132, 3, 3).mugs(132, 2, 3)
     .check(142).ground(142, 150).mover(152, 10, 2, 6, 2.0)
     .ground(162, 179).enemy(168, 11, "fast").schn(170, 7).mugs(163, 10, 4).finishAt(176);
   const L9 = builder(190, "sunset", "Level 6 · Turnhalle")
@@ -287,7 +290,7 @@ function makeLevels() {
     .mover(80, 5, 2, 8, 1.6).brick(92, 4, 3).outfit(93, 3, "faroo", "clown")
     .ground(104, 112, 9).schn(110, 5)
     .ground(116, 140).check(118).enemy(122, 11, "fast").enemy(135, 11, "fast")
-    .shaft(124, "brixx", "flex")
+    .shaft(124, null)
     .mover(142, 10, 2, 6, 2.2)
     .ground(152, 189).spikes(160, 163).spikes(170, 173).enemy(166, 11, "fast").enemy(178, 11, "fast").arc(159, 9, 6).arc(169, 9, 6).schn(180, 8)
     .finishAt(186);
@@ -383,14 +386,70 @@ const touchUI = matchMedia("(pointer: coarse)").matches || "ontouchstart" in win
 function banner(t) { document.querySelectorAll(".banner").forEach(x => x.remove()); const b = document.createElement("div"); b.className = "banner"; b.textContent = t; document.body.appendChild(b); setTimeout(() => b.remove(), 1600); }
 
 // ================= Audio =================
-let ac = null;
+let ac = null, sfxGain = null, musicGain = null, noiseBuf = null;
+function audioInit() {
+  if (!ac) {
+    ac = new (window.AudioContext || window.webkitAudioContext)();
+    sfxGain = ac.createGain(); sfxGain.gain.value = 1; sfxGain.connect(ac.destination);
+    musicGain = ac.createGain(); musicGain.gain.value = .55; musicGain.connect(ac.destination);
+    noiseBuf = ac.createBuffer(1, ac.sampleRate * .5, ac.sampleRate);
+    const d = noiseBuf.getChannelData(0); for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+  }
+  if (ac.state === "suspended") ac.resume();
+}
+// iPad/Safari only allow sound after a touch: unlock the audio context on the very first interaction.
+for (const ev of ["pointerdown", "touchstart", "keydown"]) addEventListener(ev, () => { try { audioInit(); } catch (e) {} }, { passive: true });
+function noise(t, d, v, hp = 6000) {
+  const src = ac.createBufferSource(), f = ac.createBiquadFilter(), g = ac.createGain();
+  src.buffer = noiseBuf; f.type = "highpass"; f.frequency.value = hp; g.gain.setValueAtTime(v, t); g.gain.exponentialRampToValueAtTime(.0001, t + d);
+  src.connect(f).connect(g).connect(sfxGain); src.start(t); src.stop(t + d + .02);
+}
+// ----- Chiptune music: a small step sequencer (bass, arpeggio, melody, drums) per level theme -----
+const SONGS = {
+  day:    { bpm: 138, root: 60, minor: false, prog: [0, 7, 9, 5], mel: [0, 2, 4, 2, 7, 4, 2, 0, 4, 7, 9, 7, 4, 2, 4, -1] },
+  night:  { bpm: 124, root: 57, minor: true,  prog: [0, 5, 3, 7], mel: [0, -1, 3, 5, 7, -1, 5, 3, 0, 3, 5, 10, 7, -1, 5, 3] },
+  sunset: { bpm: 130, root: 62, minor: false, prog: [0, 9, 5, 7], mel: [4, 2, 0, 2, 4, 4, 4, -1, 2, 2, 2, -1, 4, 7, 7, -1] },
+  boss:   { bpm: 156, root: 52, minor: true,  prog: [0, 8, 5, 7], mel: [0, 3, 7, 3, 0, 3, 8, 7, 0, 3, 7, 10, 12, 10, 7, 3] },
+};
+const music = { timer: null, next: 0, step: 0, song: SONGS.day };
+const midi = n => 440 * Math.pow(2, (n - 69) / 12);
+function musicOn() { return save.musicOn !== false; }
+function musicStart() {
+  if (!ac || !musicOn() || music.timer || !G || !G.L) return;
+  music.song = SONGS[G.L.boss ? "boss" : G.L.theme] || SONGS.day;
+  music.next = ac.currentTime + .08; music.step = 0;
+  music.timer = setInterval(musicTick, 25);
+}
+function musicStop() { clearInterval(music.timer); music.timer = null; }
+function musicTick() {
+  if (!ac) return;
+  const s = music.song, dur = 60 / s.bpm / 2;
+  while (music.next < ac.currentTime + .2) { musicStep(music.step, music.next, s, dur); music.next += dur; music.step++; }
+}
+function musicNote(f, t, d, v, type) {
+  const o = ac.createOscillator(), g = ac.createGain(); o.type = type; o.frequency.value = f;
+  g.gain.setValueAtTime(v, t); g.gain.exponentialRampToValueAtTime(.0001, t + d);
+  o.connect(g).connect(musicGain); o.start(t); o.stop(t + d + .02);
+}
+function musicStep(i, t, s, dur) {
+  const bar = Math.floor(i / 8) % 4, root = s.root + s.prog[bar], third = s.minor ? 3 : 4;
+  musicNote(midi(root - 24 + (i % 2 ? 12 : 0)), t, dur * .9, .09, "triangle");                 // bass
+  musicNote(midi(root + [0, third, 7, 12][i % 4]), t, dur * .6, .022, "square");               // arpeggio
+  const m = s.mel[i % 16];
+  if (i % 2 === 0 && m >= 0) musicNote(midi(s.root + 12 + m), t, dur * 1.7, .035, "square");  // melody
+  if (i % 4 === 0) { const o = ac.createOscillator(), g = ac.createGain(); o.frequency.setValueAtTime(150, t); o.frequency.exponentialRampToValueAtTime(40, t + .12); g.gain.setValueAtTime(.16, t); g.gain.exponentialRampToValueAtTime(.0001, t + .14); o.connect(g).connect(musicGain); o.start(t); o.stop(t + .16); }
+  if (i % 2 === 1) { const src = ac.createBufferSource(), f = ac.createBiquadFilter(), g = ac.createGain(); src.buffer = noiseBuf; f.type = "highpass"; f.frequency.value = 7000; g.gain.setValueAtTime(.03, t); g.gain.exponentialRampToValueAtTime(.0001, t + .05); src.connect(f).connect(g).connect(musicGain); src.start(t); src.stop(t + .06); }
+}
 function sfx(kind) {
   try {
-    if (!ac) ac = new (window.AudioContext || window.webkitAudioContext)();
+    audioInit();
     const t = ac.currentTime;
-    const tone = (f, d, v, type, delay = 0, f2) => { const o = ac.createOscillator(), gn = ac.createGain(); o.type = type || "square"; o.frequency.setValueAtTime(f, t + delay); if (f2) o.frequency.exponentialRampToValueAtTime(f2, t + delay + d); gn.gain.setValueAtTime(v, t + delay); gn.gain.exponentialRampToValueAtTime(.0001, t + delay + d); o.connect(gn).connect(ac.destination); o.start(t + delay); o.stop(t + delay + d + .05); };
-    ({ jump: () => tone(300, .18, .07, "square", 0, 700),
-       mug: () => { tone(988, .08, .07, "square"); tone(1319, .18, .07, "square", .07); },
+    const tone = (f, d, v, type, delay = 0, f2) => { const o = ac.createOscillator(), gn = ac.createGain(); o.type = type || "square"; o.frequency.setValueAtTime(f, t + delay); if (f2) o.frequency.exponentialRampToValueAtTime(f2, t + delay + d); gn.gain.setValueAtTime(v, t + delay); gn.gain.exponentialRampToValueAtTime(.0001, t + delay + d); o.connect(gn).connect(sfxGain); o.start(t + delay); o.stop(t + delay + d + .05); };
+    ({ jump: () => { tone(240, .16, .1, "square", 0, 620); tone(480, .12, .04, "triangle", .02, 1100); },
+       wjump: () => { noise(t, .06, .08, 3000); tone(330, .14, .09, "square", .01, 880); },
+       mug: () => { tone(988, .07, .1, "square"); tone(1319, .22, .1, "square", .07); tone(2637, .12, .025, "triangle", .07); },
+       throw: () => { noise(t, .08, .07, 1500); tone(600, .1, .05, "triangle", 0, 300); },
+       outfit: () => [523, 659, 784, 1046, 1318, 1568].forEach((f, i) => { tone(f, .3, .08, "square", i * .08); tone(f / 2, .3, .05, "triangle", i * .08); }),
        schn: () => [523, 659, 784, 1046, 1318].forEach((f, i) => tone(f, .25, .08, "square", i * .07)),
        ping: () => { tone(1700, .05, .06, "square"); tone(2400, .04, .04, "triangle", .03); },
        djump: () => { tone(500, .14, .06, "square", 0, 1100); tone(800, .12, .05, "triangle", .05, 1400); },
@@ -476,7 +535,7 @@ function helpModal(back) {
     <li><b>Tastatur:</b> Pfeiltasten oder A/D, Leertaste oder W zum Springen, P für Pause.</li>
     <li><b>PING</b> (Taste F): Tischtennisbälle schießen. Im Bosskampf immer, sonst nur als Rolf.</li>
     <li><b>2 XXL-Schnitzel</b> in einem Level verwandeln Tim für dieses Level zufällig in Rolf, Lena Laux, Dennis oder Brendon.</li>
-    <li><b>Versteckte Outfits</b> liegen in schweren Extra-Passagen der Kapitel 4 bis 6. Anziehen kannst du sie im Menü unter „Outfits“.</li>
+    <li><b>Versteckte Outfits</b> liegen in schweren Extra-Passagen, in jedem Level mindestens eins. Anziehen kannst du sie im Menü unter „Outfits“.</li>
     <li><b>Grüne Tassen</b> sammeln. Alle 100 Tassen gibt es ein Extraleben.</li>
     <li><b>XXL-Schnitzel:</b> drei gut versteckte pro Level.</li>
     <li>Die Brix (wandelnde Bänke) besiegst du, indem du ihnen auf den Kopf springst. Seitlich berühren kostet ein Leben, Stacheln und Abgründe auch.</li>
@@ -573,6 +632,7 @@ function playLevel(n) {
     banner(L.boss === "faroo" ? "PLOT-TWIST!" : L.boss ? "BOSS!" : L.name.split("·")[1].trim());
     if (L.boss) sfx("boss");
     last = performance.now(); acc = 0;
+    musicStop(); musicStart();
     requestAnimationFrame(loop);
   });
 }
@@ -596,6 +656,7 @@ function hurt() {
   spawnPlayer();
 }
 function gameOver() {
+  musicStop();
   if (G.L.endless) {
     G.done = true; const n = G.n, res = G.resolve, dist = G.best, schn = G.schn, mugs = G.mugs;
     const record = dist > (save.bestEndless || 0);
@@ -615,7 +676,7 @@ function gameOver() {
   $("quitBtn").onclick = () => { G = null; res("quit"); };
 }
 function finishLevel() {
-  if (G.done) return; G.done = true; sfx("win");
+  if (G.done) return; G.done = true; musicStop(); sfx("win");
   const r = { mugs: G.mugs, schn: G.schn }, res = G.resolve, lives = G.lives;
   banner(G.boss ? "Gewonnen!" : "Alta GiG!");
   setTimeout(() => { G = { keepLives: true, lives }; res(r); }, 1500);
@@ -648,7 +709,7 @@ function step() {
     const away = -p.lastWall;
     p.vy = -12.4; p.vx = away * 7.2; p.face = away; p.wallLock = 9; p.wallCoyote = 0; p.buffer = 0; p.airJumps = 1;
     p.wallJumpsLeft--; p.lastJumpWall = p.lastWall;
-    sfx("jump"); burst(p.x + (p.lastWall > 0 ? p.w : 0), p.y + p.h / 2, "#ffffff", 8);
+    sfx("wjump"); burst(p.x + (p.lastWall > 0 ? p.w : 0), p.y + p.h / 2, "#ffffff", 8);
   } else if (pressed && p.airJumps > 0) {
     p.airJumps--; p.vy = -11.6; p.buffer = 0;
     sfx("djump"); burst(p.x + p.w / 2, p.y + p.h, "#33e1ff", 12);
@@ -680,8 +741,8 @@ function step() {
     if (!e.alive) continue;
     if (e.t === "outfit") {
       if (rects(p, { x: e.px + 4, y: e.py + 4, w: 40, h: 40 })) {
-        e.alive = false; unlockSkin(e.who, e.id); sfx("schn"); burst(e.px + 24, e.py + 24, "#ffffff", 30);
-        banner(OUTFIT_LINES[e.who]);
+        e.alive = false; unlockSkin(e.who, e.id); sfx("outfit"); burst(e.px + 24, e.py + 24, "#ffffff", 30);
+        outfitPopup(e.who, e.id);
       }
       continue;
     }
@@ -741,7 +802,8 @@ function step() {
     let vx = p.face * 11, vy = -1.5;
     const b = G.boss;
     if (b && b.hp > 0) { const dx = b.x + b.w / 2 - sx, dy = b.y + b.h / 2 - sy, d = Math.hypot(dx, dy) || 1; vx = dx / d * 12; vy = dy / d * 12; p.face = dx < 0 ? -1 : 1; }
-    G.shots.push({ x: sx, y: sy, vx, vy, life: 90 }); sfx("ping");
+    const kind = G.form === "opa" ? (G.ttChar || "rolf") : "tim";
+    G.shots.push({ x: sx, y: sy, vx, vy, life: 90, kind, rot: 0 }); sfx(kind === "tim" || kind === "rolf" ? "ping" : "throw");
   }
   for (const sh of G.shots) {
     sh.x += sh.vx; sh.y += sh.vy; if (!G.boss) sh.vy += .12; sh.life--;
@@ -1097,7 +1159,7 @@ const SKIN_DEFS = {
   brixx: [["default", "Klassisch"], ["flex", "Bizeps-Flex"]],
 };
 const OUTFIT_LINES = { tim: "ICH HAB EIN NEUES OUTFIT", valle: "EY WIE GEIL IST DAS OUTFIT?", faroo: "CHAT IST DAS SPIELBAR?", rolf: "ROLF HAT EIN NEUES TRIKOT!", brixx: "BADABOOM, HIER FLEXT NUR EINER" };
-const OUTFIT_WHERE = { "tim:business": "Versteckt in Kapitel 4", "valle:punk1": "Versteckt in Kapitel 4", "rolf:grey": "Versteckt in Kapitel 4", "faroo:1900": "Versteckt in Kapitel 5", "valle:punk2": "Versteckt in Kapitel 5", "tim:schlabber": "Versteckt in Kapitel 6", "faroo:clown": "Versteckt in Kapitel 6", "brixx:flex": "Versteckt in Kapitel 6" };
+const OUTFIT_WHERE = { "tim:business": "Versteckt in Level 1", "valle:punk1": "Versteckt in Level 2", "rolf:grey": "Versteckt in Level 3", "faroo:1900": "Versteckt in Level 4", "brixx:flex": "Versteckt in Level 4", "valle:punk2": "Versteckt in Level 5", "tim:schlabber": "Versteckt in Level 6", "faroo:clown": "Versteckt in Level 6" };
 function skinOf(who) { return (save.skins && save.skins.sel && save.skins.sel[who]) || "default"; }
 function hasSkin(who, id) { return id === "default" || !!(save.skins && save.skins.unlocked && (save.skins.unlocked[who] || []).includes(id)); }
 function unlockSkin(who, id) {
@@ -1112,6 +1174,30 @@ function drawSpritePlayer(p, fn) {
   SPR_ARM = p.shotCd > 6 ? -1.6 : (run ? Math.sin(p.anim * 2.4) * .5 : (p.ground ? 0 : -1.1));
   ctx.save(); ctx.translate(p.x + p.w / 2, p.y + p.h); ctx.scale(p.face, 1); fn(p.w); ctx.restore();
   SPR_LEG = 0; SPR_ARM = 0;
+}
+function drawShot(sh) {
+  sh.rot = (sh.rot || 0) + .3;
+  ctx.fillStyle = "rgba(255,255,255,.3)"; ctx.beginPath(); ctx.arc(sh.x - sh.vx * .8, sh.y - sh.vy * .8, 5, 0, Math.PI * 2); ctx.fill();
+  ctx.save(); ctx.translate(sh.x, sh.y); ctx.rotate(sh.rot);
+  if (sh.kind === "lena") {          // small handball
+    ctx.fillStyle = "#f4f6fb"; ctx.beginPath(); ctx.arc(0, 0, 9, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = "#1f5fd6"; for (let k = 0; k < 3; k++) { ctx.beginPath(); ctx.moveTo(0, 0); ctx.arc(0, 0, 9, k * 2.09, k * 2.09 + .9); ctx.closePath(); ctx.fill(); }
+    ctx.strokeStyle = "#1a2a4a"; ctx.lineWidth = 1.2; ctx.beginPath(); ctx.arc(0, 0, 9, 0, Math.PI * 2); ctx.stroke();
+  } else if (sh.kind === "brendon") { // small pizza
+    ctx.fillStyle = "#d9902f"; ctx.beginPath(); ctx.arc(0, 0, 10, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = "#ffd45a"; ctx.beginPath(); ctx.arc(0, 0, 7.5, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = "#d4202a"; for (const [x, y] of [[-3, -3], [3, -1], [-1, 4], [4, 4]]) { ctx.beginPath(); ctx.arc(x, y, 1.8, 0, Math.PI * 2); ctx.fill(); }
+    ctx.strokeStyle = "rgba(0,0,0,.25)"; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(-7, 0); ctx.lineTo(7, 0); ctx.moveTo(0, -7); ctx.lineTo(0, 7); ctx.stroke();
+  } else if (sh.kind === "dennis") {  // energy can
+    ctx.fillStyle = "#1ec8f0"; roundRect(-5, -9, 10, 18, 2); ctx.fill();
+    ctx.fillStyle = "#c0c4d0"; ctx.fillRect(-5, -9, 10, 3); ctx.fillRect(-5, 7, 10, 2);
+    ctx.fillStyle = "#0a2a3a"; ctx.font = "900 5px Nunito, sans-serif"; ctx.textAlign = "center"; ctx.save(); ctx.rotate(-Math.PI / 2); ctx.fillText("NRG", 0, 2); ctx.restore();
+  } else {                            // ping-pong ball
+    ctx.fillStyle = "#ffffff"; ctx.beginPath(); ctx.arc(0, 0, 7, 0, Math.PI * 2); ctx.fill();
+    ctx.strokeStyle = "#c9ccd6"; ctx.lineWidth = 1.5; ctx.stroke();
+    ctx.fillStyle = "#e0262c"; ctx.font = "900 8px Nunito, sans-serif"; ctx.textAlign = "center"; ctx.fillText("★", 0, 3);
+  }
+  ctx.restore();
 }
 function drawOutfitPickup(cx, cy, who) {
   const col = { tim: "#a9cff2", valle: "#39ff14", faroo: "#ffd23f", rolf: "#9aa0a8", brixx: "#ff9a3d" }[who] || "#fff";
@@ -1182,12 +1268,7 @@ function draw() {
     else drawBot(e.px, e.py + 14, e.vx, e.t === "fast");
   }
   if (G.boss) (G.boss.kind === "faroo" ? drawFaroo(G.boss) : drawBoss(G.boss));
-  for (const sh of G.shots) {
-    ctx.fillStyle = "#ffffff"; ctx.beginPath(); ctx.arc(sh.x, sh.y, 7, 0, Math.PI * 2); ctx.fill();
-    ctx.strokeStyle = "#c9ccd6"; ctx.lineWidth = 1.5; ctx.stroke();
-    ctx.fillStyle = "#e0262c"; ctx.font = "900 8px Nunito, sans-serif"; ctx.textAlign = "center"; ctx.fillText("★", sh.x, sh.y + 3);
-    ctx.fillStyle = "rgba(255,255,255,.35)"; ctx.beginPath(); ctx.arc(sh.x - sh.vx * .8, sh.y - sh.vy * .8, 5, 0, Math.PI * 2); ctx.fill();
-  }
+  for (const sh of G.shots) drawShot(sh);
   // player
   if (!(p.inv > 0 && Math.floor(p.inv / 5) % 2)) drawTim(p);
   for (const q of G.particles) { ctx.globalAlpha = Math.max(0, q.life / 50); ctx.fillStyle = q.color; ctx.fillRect(q.x - 3, q.y - 3, 6, 6); }
@@ -1574,11 +1655,13 @@ function togglePause() {
   if (!G || !G.L || G.done) return;
   G.paused = !G.paused;
   if (G.paused) {
-    modal(`<h2>Pause</h2><div class="rowb"><button class="btn go" id="resBtn" type="button">Weiter</button><button class="btn" id="restartBtn" type="button">Level neu starten</button><button class="btn" id="titleBtn" type="button">Titelbildschirm</button></div>`);
+    musicStop();
+    modal(`<h2>Pause</h2><div class="rowb"><button class="btn go" id="resBtn" type="button">Weiter</button><button class="btn" id="musicBtn" type="button">Musik: ${musicOn() ? "An" : "Aus"}</button><button class="btn" id="restartBtn" type="button">Level neu starten</button><button class="btn" id="titleBtn" type="button">Titelbildschirm</button></div>`);
     $("resBtn").onclick = togglePause;
+    $("musicBtn").onclick = () => { save.musicOn = !musicOn(); store.write(); $("musicBtn").textContent = `Musik: ${musicOn() ? "An" : "Aus"}`; };
     $("restartBtn").onclick = () => { const n = G.n, res = G.resolve; G.done = true; G = null; playLevel(n).then(res); };
-    $("titleBtn").onclick = () => { const res = G.resolve; G.done = true; G = null; res("quit"); };
-  } else { screen(null); last = performance.now(); acc = 0; }
+    $("titleBtn").onclick = () => { musicStop(); const res = G.resolve; G.done = true; G = null; res("quit"); };
+  } else { screen(null); last = performance.now(); acc = 0; musicStart(); }
 }
 $("pauseBtn").onclick = togglePause;
 document.addEventListener("visibilitychange", () => { if (document.hidden) clearInput(); if (document.hidden && G && G.L && !G.paused && !G.done) togglePause(); });
@@ -1590,6 +1673,7 @@ function toTitle() {
   $("titleChars").innerHTML = PORTRAIT.tim() + PORTRAIT.faroo() + PORTRAIT.valle();
   $("contBtn").hidden = !(save.step > 0 && save.step < STORY.length);
   $("levelsBtn").hidden = !(save.completed || save.step >= STORY.length);
+  $("musicTitleBtn").textContent = `Musik: ${musicOn() ? "An" : "Aus"}`; musicStop();
   document.querySelectorAll("#diff button").forEach(b => b.classList.toggle("sel", b.dataset.d === difficulty));
 }
 $("diff").addEventListener("click", e => { const b = e.target.closest("button"); if (!b) return; difficulty = b.dataset.d; store.write(); sfx("tap"); toTitle(); });
@@ -1599,9 +1683,9 @@ const LEVEL_MENU = [
   { n: 0, title: "Level 1 · Altstadt", sub: "Tassen, Schnitzel, erste Brix-Bänke" },
   { n: 1, title: "Level 2 · Neonmarkt", sub: "Nachts, schnelle rote Bänke" },
   { n: 2, title: "Level 3 · Dachterrassen", sub: "Schwebende Plattformen" },
-  { n: 6, title: "Level 4 · Baustelle", sub: "Schwer · 3 versteckte Outfits" },
-  { n: 7, title: "Level 5 · Bahnhof", sub: "Schwer · 2 versteckte Outfits" },
-  { n: 8, title: "Level 6 · Turnhalle", sub: "Sehr schwer · 3 versteckte Outfits" },
+  { n: 6, title: "Level 4 · Baustelle", sub: "Schwer · 2 versteckte Outfits" },
+  { n: 7, title: "Level 5 · Bahnhof", sub: "Schwer · 1 verstecktes Outfit" },
+  { n: 8, title: "Level 6 · Turnhalle", sub: "Sehr schwer · 2 versteckte Outfits" },
   { n: 3, title: "Boss · Opa Brixx", sub: "BADABOOM auf der XXL-Bank" },
   { n: 4, title: "Boss · Riesen-Faroo", sub: "Der Plot-Twist-Kampf" },
   { n: 5, title: "Endlos · Faroo läuft", sub: "Spiel als Faroo, jedes 3. Schnitzel macht ihn schmaler" },
@@ -1620,16 +1704,29 @@ async function playSingle(n) {
 }
 $("levelsBtn").onclick = levelSelect;
 $("helpBtn").onclick = () => helpModal(toTitle);
-function previewSkin(canvas, who, id) {
+function outfitPopup(who, id) {
+  if (!G) return;
+  G.paused = true; musicStop(); clearInput();
+  const label = SKIN_DEFS[who].find(x => x[0] === id)[1];
+  const names = { tim: "Tim", valle: "Valle", faroo: "Faroo", rolf: "Rolf", brixx: "Opa Brixx" };
+  modal(`<h2>Neues Outfit!</h2><canvas id="popCv" width="260" height="250" class="popcv"></canvas>
+    <p class="popname">${names[who]} · ${label}</p><div class="popline">„${OUTFIT_LINES[who]}“</div>
+    <div class="rowb"><button class="btn go" id="popWear" type="button">Direkt anziehen</button><button class="btn" id="popOk" type="button">Weiter spielen</button></div>`);
+  previewSkin($("popCv"), who, id, 2);
+  const resume = () => { screen(null); if (G && !G.done) { G.paused = false; last = performance.now(); acc = 0; musicStart(); } };
+  $("popOk").onclick = resume;
+  $("popWear").onclick = () => { save.skins.sel = save.skins.sel || {}; save.skins.sel[who] = id; store.write(); sfx("tap"); resume(); };
+}
+function previewSkin(canvas, who, id, zoom = 1) {
   const c2 = canvas.getContext("2d"), oldCtx = ctx, oldG = G, oldSel = save.skins && save.skins.sel ? { ...save.skins.sel } : null;
   save.skins = save.skins || { unlocked: {}, sel: {} }; save.skins.sel = save.skins.sel || {}; save.skins.sel[who] = id;
   ctx = c2; G = { time: 0, form: "tim", p: { x: 9999, w: 30 }, L: { w: 22 } };
   try {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     const fake = { x: -15, y: -44, w: 30, h: 44, vx: 0, ground: true, face: 1, anim: 0, shotCd: 0 };
-    if (who === "brixx") { ctx.translate(canvas.width / 2 - 30, 40); ctx.scale(.5, .5); drawBoss({ kind: "brixx", x: 0, y: 0, w: 120, h: 110, hp: 1, inv: 0, hit: 0, state: "ground", bombs: [] }); }
-    else if (who === "valle") { ctx.translate(canvas.width / 2 - 24, canvas.height - 6); ctx.scale(1.3, 1.3); ctx.translate(-14, 0); if (id === "default") { ctx.save(); ctx.translate(24, 0); ctx.fillStyle = "#141418"; ctx.fillRect(-10, -16, 8, 16); ctx.fillRect(2, -16, 8, 16); roundRect(-17, -40, 34, 27, 10); ctx.fill(); ctx.fillStyle = "#e3a27c"; ctx.beginPath(); ctx.ellipse(0, -53, 13, 14, 0, 0, Math.PI * 2); ctx.fill(); ctx.fillStyle = "#141418"; ctx.beginPath(); ctx.ellipse(0, -60, 14, 9, 0, Math.PI, 0); ctx.fill(); ctx.fillStyle = "#1a1a1a"; ctx.beginPath(); ctx.arc(-5, -53, 2, 0, Math.PI * 2); ctx.arc(5, -53, 2, 0, Math.PI * 2); ctx.fill(); ctx.fillStyle = "#fff"; ctx.beginPath(); ctx.arc(0, -46, 6, 0, Math.PI); ctx.fill(); ctx.restore(); } else { ctx.translate(24, 0); SPRITES["valle_" + id](); } }
-    else { ctx.translate(canvas.width / 2, canvas.height - 6); ctx.scale(1.4, 1.4);
+    if (who === "brixx") { ctx.translate(canvas.width / 2 - 30 * zoom, 40 * zoom); ctx.scale(.5 * zoom, .5 * zoom); drawBoss({ kind: "brixx", x: 0, y: 0, w: 120, h: 110, hp: 1, inv: 0, hit: 0, state: "ground", bombs: [] }); }
+    else if (who === "valle") { ctx.translate(canvas.width / 2 - 24 * zoom, canvas.height - 6); ctx.scale(1.3 * zoom, 1.3 * zoom); ctx.translate(-14, 0); if (id === "default") { ctx.save(); ctx.translate(24, 0); ctx.fillStyle = "#141418"; ctx.fillRect(-10, -16, 8, 16); ctx.fillRect(2, -16, 8, 16); roundRect(-17, -40, 34, 27, 10); ctx.fill(); ctx.fillStyle = "#e3a27c"; ctx.beginPath(); ctx.ellipse(0, -53, 13, 14, 0, 0, Math.PI * 2); ctx.fill(); ctx.fillStyle = "#141418"; ctx.beginPath(); ctx.ellipse(0, -60, 14, 9, 0, Math.PI, 0); ctx.fill(); ctx.fillStyle = "#1a1a1a"; ctx.beginPath(); ctx.arc(-5, -53, 2, 0, Math.PI * 2); ctx.arc(5, -53, 2, 0, Math.PI * 2); ctx.fill(); ctx.fillStyle = "#fff"; ctx.beginPath(); ctx.arc(0, -46, 6, 0, Math.PI); ctx.fill(); ctx.restore(); } else { ctx.translate(24, 0); SPRITES["valle_" + id](); } }
+    else { ctx.translate(canvas.width / 2, canvas.height - 6); ctx.scale(1.4 * zoom, 1.4 * zoom);
       if (who === "tim") drawTim(fake);
       else if (who === "rolf") { G.form = "opa"; G.ttChar = "rolf"; drawOpa(fake); }
       else if (who === "faroo") { fake.w = 44; fake.x = -22; fake.h = 50; fake.y = -50; G.form = "faroo"; drawFarooPlayer(fake); } }
@@ -1637,7 +1734,7 @@ function previewSkin(canvas, who, id) {
 }
 function outfitMenu() {
   const who = [["tim", "Tim"], ["valle", "Valle"], ["faroo", "Faroo"], ["rolf", "Rolf"], ["brixx", "Opa Brixx"]];
-  modal(`<h2>Outfits</h2><p>Versteckte Outfits findest du in schweren Extra-Passagen der Kapitel 4 bis 6.</p><div class="skins">${who.map(([w, n]) => `<div class="skinrow"><b>${n}</b><div class="skinopts">${SKIN_DEFS[w].map(([id, label]) => { const ok = hasSkin(w, id), sel = skinOf(w) === id; return `<button class="skinopt${sel ? " on" : ""}${ok ? "" : " locked"}" data-w="${w}" data-id="${id}" type="button" ${ok ? "" : "disabled"}><canvas width="110" height="120" data-w="${w}" data-id="${id}"></canvas><span>${label}</span><small>${ok ? (sel ? "Angezogen" : "Anziehen") : OUTFIT_WHERE[w + ":" + id]}</small></button>`; }).join("")}</div></div>`).join("")}</div><div class="rowb"><button class="btn go" id="skinBack" type="button">Fertig</button></div>`);
+  modal(`<h2>Outfits</h2><p>In jedem Level ist mindestens ein Outfit in einer schweren Extra-Passage versteckt.</p><div class="skins">${who.map(([w, n]) => `<div class="skinrow"><b>${n}</b><div class="skinopts">${SKIN_DEFS[w].map(([id, label]) => { const ok = hasSkin(w, id), sel = skinOf(w) === id; return `<button class="skinopt${sel ? " on" : ""}${ok ? "" : " locked"}" data-w="${w}" data-id="${id}" type="button" ${ok ? "" : "disabled"}><canvas width="110" height="120" data-w="${w}" data-id="${id}"></canvas><span>${label}</span><small>${ok ? (sel ? "Angezogen" : "Anziehen") : OUTFIT_WHERE[w + ":" + id]}</small></button>`; }).join("")}</div></div>`).join("")}</div><div class="rowb"><button class="btn go" id="skinBack" type="button">Fertig</button></div>`);
   document.querySelectorAll(".skinopt canvas").forEach(c => previewSkin(c, c.dataset.w, c.dataset.id));
   document.querySelectorAll(".skinopt:not(.locked)").forEach(b => b.onclick = () => {
     save.skins = save.skins || { unlocked: {}, sel: {} }; save.skins.sel = save.skins.sel || {};
@@ -1646,6 +1743,7 @@ function outfitMenu() {
   $("skinBack").onclick = toTitle;
 }
 $("outfitBtn").onclick = outfitMenu;
+$("musicTitleBtn").onclick = () => { save.musicOn = !musicOn(); store.write(); $("musicTitleBtn").textContent = `Musik: ${musicOn() ? "An" : "Aus"}`; sfx("tap"); };
 store.load();
 toTitle();
 </script>
