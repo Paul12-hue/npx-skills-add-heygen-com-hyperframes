@@ -14,7 +14,7 @@ html, body { height: 100%; }
 [hidden] { display: none !important; }
 body { margin: 0; background: var(--ink); color: var(--fg); font-family: var(--body); overflow: hidden; -webkit-user-select: none; user-select: none; -webkit-tap-highlight-color: transparent; touch-action: none; }
 button { font: inherit; color: inherit; border: 0; background: none; cursor: pointer; }
-canvas { position: fixed; inset: 0; width: 100%; height: 100%; display: block; }
+#cv { position: fixed; inset: 0; width: 100%; height: 100%; display: block; }
 .btn { font-weight: 900; font-size: 18px; min-height: 54px; padding: 0 26px; border-radius: 16px; background: rgba(255,255,255,.12); border: 2px solid rgba(255,255,255,.2); }
 .btn.hot { background: linear-gradient(var(--pink), #c4125e); border: 0; box-shadow: 0 6px 0 #7a0a3a, 0 10px 24px rgba(255,61,139,.4); }
 .btn.go { background: linear-gradient(#6aff4a, #1fb800); color: #062200; border: 0; box-shadow: 0 6px 0 #0c5a00; }
@@ -70,6 +70,15 @@ canvas { position: fixed; inset: 0; width: 100%; height: 100%; display: block; }
 .tally { display: flex; justify-content: center; gap: 26px; font-family: var(--display); font-size: 34px; letter-spacing: .04em; }
 .tally div { display: flex; align-items: center; gap: 8px; }
 .tally svg { width: 44px; height: 44px; }
+.skins { display: flex; flex-direction: column; gap: 12px; text-align: left; }
+.skinrow b { font-family: var(--display); font-size: 24px; letter-spacing: .04em; color: var(--cyan); }
+.skinopts { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 6px; }
+.skinopt { display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 8px; border-radius: 16px; background: rgba(255,255,255,.08); border: 2px solid rgba(255,255,255,.15); min-width: 120px; font-weight: 900; }
+.skinopt small { font-size: 11px; color: var(--fg2); font-weight: 800; max-width: 120px; text-align: center; }
+.skinopt.on { border-color: var(--green); background: rgba(57,255,20,.14); }
+.skinopt.locked canvas { filter: brightness(0) opacity(.55); }
+.skinopt.locked { cursor: default; opacity: .8; }
+.card { width: min(760px, 100%); }
 .help { text-align: left; } .help li { color: var(--fg2); line-height: 1.5; margin-bottom: 4px; }
 .banner { position: fixed; left: 50%; top: 38%; transform: translate(-50%, -50%); font-family: var(--display); font-size: clamp(40px, 7vw, 84px); letter-spacing: .04em; color: var(--green); text-shadow: 0 5px 0 #0c5a00, 0 9px 0 #000; z-index: 8; pointer-events: none; text-align: center; width: max-content; max-width: 92vw; line-height: 1; animation: bannerIn 1.6s ease-out forwards; }
 @keyframes bannerIn { 0% { transform: translate(-50%, -50%) scale(.3); opacity: 0; } 18% { transform: translate(-50%, -50%) scale(1.12); opacity: 1; } 75% { opacity: 1; } 100% { transform: translate(-50%, -62%); opacity: 0; } }
@@ -104,6 +113,7 @@ canvas { position: fixed; inset: 0; width: 100%; height: 100%; display: block; }
       <button class="btn hot" id="newBtn" type="button">Neues Abenteuer</button>
       <button class="btn go" id="contBtn" type="button" hidden>Weiterspielen</button>
       <button class="btn go" id="levelsBtn" type="button" hidden>Levelauswahl</button>
+      <button class="btn" id="outfitBtn" type="button">Outfits</button>
       <button class="btn" id="helpBtn" type="button">Steuerung</button>
     </div>
   </div>
@@ -154,9 +164,12 @@ function person(o) {
     ${mouth}</svg>`;
 }
 const PORTRAIT = {
-  tim: () => person({ skin: "#f2c6a8", skinDark: "#dba585", hair: "short", hairColor: "#6b4a2f", hairLight: "#9a7250", outfit: "hoodie", top: "#5e6170", topDark: "#4a4c59", brow: "#5a3d27", iris: "#5b4a3a", eyeW: 9 }),
-  faroo: (emote, angry) => person({ skin: "#7a4a2e", skinDark: "#5e3720", hair: "afro", hairColor: "#17110c", hairLight: "#5a4636", outfit: "jersey", brow: "#17110c", iris: "#3a2414", eyeW: 10, grin: true, wide: true, blush: .12, arms: emote, angry }),
-  valle: () => person({ skin: "#e3a27c", skinDark: "#c98560", hair: "bandana", outfit: "black", brow: "#8a6a55", iris: "#5f8fb5", eyeW: 10, grin: true, earring: true }),
+  tim: () => dress(PORTRAIT.timBase(), OVL["tim_" + skinOf("tim")]),
+  valle: () => skinOf("valle") === "default" ? PORTRAIT.valleBase() : dress(person({ skin: "#e3a27c", skinDark: "#c98560", hair: "short", hairColor: "#2a2a2a", hairLight: "#444", outfit: "black", brow: "#8a6a55", iris: "#5f8fb5", eyeW: 10, grin: true, earring: true }), OVL["valle_" + skinOf("valle")]),
+  faroo: (emote, angry) => dress(PORTRAIT.farooBase(emote, angry), OVL["faroo_" + skinOf("faroo")]),
+  timBase: () => person({ skin: "#f2c6a8", skinDark: "#dba585", hair: "short", hairColor: "#6b4a2f", hairLight: "#9a7250", outfit: "hoodie", top: "#5e6170", topDark: "#4a4c59", brow: "#5a3d27", iris: "#5b4a3a", eyeW: 9 }),
+  farooBase: (emote, angry) => person({ skin: "#7a4a2e", skinDark: "#5e3720", hair: "afro", hairColor: "#17110c", hairLight: "#5a4636", outfit: "jersey", brow: "#17110c", iris: "#3a2414", eyeW: 10, grin: true, wide: true, blush: .12, arms: emote, angry }),
+  valleBase: () => person({ skin: "#e3a27c", skinDark: "#c98560", hair: "bandana", outfit: "black", brow: "#8a6a55", iris: "#5f8fb5", eyeW: 10, grin: true, earring: true }),
   bot: () => `<svg viewBox="0 0 240 300" xmlns="http://www.w3.org/2000/svg">
     <path d="M18 300 C22 228 60 198 120 198 C180 198 218 228 222 300Z" fill="#6b7f4a"/><path d="M100 200 L120 236 L140 200Z" fill="#e9e2d0"/>
     <circle cx="120" cy="246" r="4" fill="#d8c9a0"/><circle cx="120" cy="264" r="4" fill="#d8c9a0"/><circle cx="120" cy="282" r="4" fill="#d8c9a0"/>
@@ -192,6 +205,10 @@ function builder(w, theme, name) {
   L.mugs = (x, y, n = 1, dx = 1, dy = 0) => { for (let i = 0; i < n; i++) { L.ents.push({ t: "mug", x: x + i * dx, y: y + i * dy }); L.mugTotal++; } return L; };
   L.arc = (x, y, n) => { for (let i = 0; i < n; i++) { const k = i / (n - 1); L.ents.push({ t: "mug", x: x + i, y: y - Math.round(Math.sin(k * Math.PI) * 2) }); L.mugTotal++; } return L; };
   L.schn = (x, y) => { L.ents.push({ t: "schn", x, y }); return L; };
+  L.outfit = (x, y, who, id) => { L.ents.push({ t: "outfit", x, y, who, id }); return L; };
+  // Optional wall-jump shaft: two hanging walls (rows 5-9, you can walk under them), ledge with a hidden outfit on top of the right wall.
+  // Route: jump, wall jump left wall -> right wall, wall jump back, double jump while holding right.
+  L.shaft = (x, who, id) => { L.wall(x, 5, 9).wall(x + 5, 5, 9).brick(x + 6, 5, 3).outfit(x + 7, 4, who, id).mugs(x + 1, 8, 4).mugs(x + 1, 6, 4); return L; };
   L.enemy = (x, y = 11, kind = "bot") => { L.ents.push({ t: kind, x, y }); return L; };
   L.check = (x, y = 11) => { L.checkpoints.push([x, y]); return L; };
   L.mover = (x, y, n, range, speed = 1.4) => { L.movers.push({ x: x * T, y: y * T, w: n * T, x0: x * T, range: range * T, speed }); return L; };
@@ -236,7 +253,45 @@ function makeLevels() {
   const L5 = builder(22, "boss", "Plot-Twist · Anton Weilamier Schule").ground(0, 21).wall(0, 0, 13).wall(21, 0, 13).startAt(3, 10);
   L5.boss = "faroo";
   const L6 = { endless: true, name: "Endlos · Faroo läuft" };
-  return [L1, L2, L3, L4, L5, L6];
+  // Harder chapters with optional, tough passages that hide outfits.
+  const L7 = builder(170, "day", "Level 4 · Baustelle")
+    .ground(0, 18).mugs(4, 10, 6).enemy(14, 11, "fast")
+    .ground(22, 44).spikes(28, 30).arc(27, 10, 5).enemy(36).enemy(41, 11, "fast")
+    .shaft(33, "tim", "business")
+    .ground(49, 60, 10).enemy(55, 9, "fast").mugs(50, 8, 6).schn(52, 5)
+    .ground(64, 68).check(66)
+    .spikes(69, 84, 11).ground(69, 84).plat(70, 9, 2).plat(75, 7, 2).plat(80, 9, 2).schn(77, 4)
+    .mover(72, 3, 2, 8, 1.3).brick(84, 2, 3).outfit(85, 1, "valle", "punk1")
+    .ground(85, 130).spikes(100, 101).spikes(108, 110).enemy(104, 11, "fast").enemy(114, 11, "fast").enemy(120).arc(99, 9, 4).arc(107, 9, 5)
+    .shaft(116, "rolf", "grey").check(127)
+    .ground(134, 140, 10).schn(137, 6)
+    .ground(144, 169).enemy(150, 11, "fast").enemy(158, 11, "fast").mugs(146, 10, 6).finishAt(165);
+  const L8 = builder(180, "night", "Level 5 · Bahnhof")
+    .ground(0, 16).mugs(4, 10, 5)
+    .ground(20, 34).enemy(26, 11, "fast").enemy(31, 11, "fast")
+    .mover(36, 11, 2, 6, 1.8).schn(40, 8)
+    .ground(46, 70).spikes(52, 56).plat(52, 9, 5).mugs(52, 8, 5).enemy(62, 11, "fast").enemy(68)
+    .shaft(58, "valle", "punk2")
+    .check(72).ground(72, 80)
+    .ground(84, 88, 9).ground(92, 96, 7).ground(100, 104, 9).schn(94, 4)
+    .ground(108, 140).spikes(114, 117).spikes(126, 129).enemy(120, 11, "fast").enemy(134, 11, "fast").arc(113, 9, 6).arc(125, 9, 6)
+    .plat(116, 8, 2).mover(118, 4, 2, 10, 1.5).brick(132, 3, 3).outfit(133, 2, "faroo", "1900")
+    .check(142).ground(142, 150).mover(152, 10, 2, 6, 2.0)
+    .ground(162, 179).enemy(168, 11, "fast").schn(170, 7).mugs(163, 10, 4).finishAt(176);
+  const L9 = builder(190, "sunset", "Level 6 · Turnhalle")
+    .ground(0, 14).mugs(3, 10, 6)
+    .ground(18, 40).enemy(24, 11, "fast").enemy(36, 11, "fast")
+    .shaft(26, "tim", "schlabber")
+    .ground(44, 52, 10).ground(56, 60, 8).ground(64, 68, 10).schn(58, 4)
+    .check(70).ground(70, 100).spikes(76, 79).spikes(88, 92).plat(76, 9, 4).plat(88, 9, 5).enemy(84, 11, "fast").enemy(96, 11, "fast")
+    .mover(80, 5, 2, 8, 1.6).brick(92, 4, 3).outfit(93, 3, "faroo", "clown")
+    .ground(104, 112, 9).schn(110, 5)
+    .ground(116, 140).check(118).enemy(122, 11, "fast").enemy(135, 11, "fast")
+    .shaft(124, "brixx", "flex")
+    .mover(142, 10, 2, 6, 2.2)
+    .ground(152, 189).spikes(160, 163).spikes(170, 173).enemy(166, 11, "fast").enemy(178, 11, "fast").arc(159, 9, 6).arc(169, 9, 6).schn(180, 8)
+    .finishAt(186);
+  return [L1, L2, L3, L4, L5, L6, L7, L8, L9];
 }
 
 // ================= Story =================
@@ -265,6 +320,23 @@ const STORY = [
     S("faroo", "Halbe Stunde noch! Ich halte die Stellung im Redo XXL."),
   ]},
   { kind: "level", n: 2 },
+  { kind: "scene", chapter: "Kapitel 4 · 18:35 Uhr", L: "tim", R: "valle", lines: [
+    S("valle", "Die Baustelle ist eine Abkürzung, aber Brixx hat dort seine schnellsten Bänke versteckt."),
+    S("tim", "Und ganz oben zwischen den Wänden glitzert was … sind das Klamotten?"),
+    S("valle", "Versteckte Outfits! Wer sie findet, kann sie im Menü unter „Outfits“ anziehen."),
+  ]},
+  { kind: "level", n: 6 },
+  { kind: "scene", chapter: "Kapitel 5 · 18:40 Uhr", L: "tim", R: "faroo", lines: [
+    S("faroo", "Tim, wo bleibst du? Der Bahnhof ist der schnellste Weg!"),
+    S("faroo", "CHAT 19 UHHHRRR!", true, { emote: true }),
+    S("tim", "Ich komme! Hoffentlich fährt da keine Bank mit."),
+  ]},
+  { kind: "level", n: 7 },
+  { kind: "scene", chapter: "Kapitel 6 · 18:45 Uhr", L: "tim", R: "valle", lines: [
+    S("valle", "Letzte Etappe: die Turnhalle. Danach bist du an der Schule."),
+    S("tim", "Ja! Ja! Hol ihn raus!", true),
+  ]},
+  { kind: "level", n: 8 },
   { kind: "scene", chapter: "Finale · 18:50 Uhr", L: "tim", R: "bot", lines: [
     S("bot", "BADABOOM! HIER REGELT NUR EINER! Der Tisch um 19 Uhr gehört mir!", true),
     S("tim", "Nicht mit mir. Ja! Ja! Hol ihn raus!", true),
@@ -302,6 +374,7 @@ const $ = id => document.getElementById(id);
 function screen(id) {
   for (const s of ["title", "story", "modal"]) $(s).hidden = s !== id;
   const inGame = id === null; $("hud").hidden = !inGame; $("pad").hidden = !inGame || !touchUI;
+  $("bossbar").hidden = !inGame || !(G && G.boss);
   // Any screen change drops held buttons, so no input can stay stuck "pressed".
   if (typeof clearInput === "function") clearInput();
   if (inGame && document.activeElement && document.activeElement.blur) document.activeElement.blur();
@@ -402,7 +475,8 @@ function helpModal(back) {
     <li><b>Wandsprung:</b> An eine Wand springen, Richtung Wand halten (du rutschst langsamer) und HOPP drücken. Danach ist dein Doppelsprung wieder aufgeladen. Höchstens 2 Wandsprünge, bevor du wieder auf dem Boden landest, und nie zweimal hintereinander an derselben Wand.</li>
     <li><b>Tastatur:</b> Pfeiltasten oder A/D, Leertaste oder W zum Springen, P für Pause.</li>
     <li><b>PING</b> (Taste F): Tischtennisbälle schießen. Im Bosskampf immer, sonst nur als Rolf.</li>
-    <li><b>2 XXL-Schnitzel</b> in einem Level verwandeln Tim für dieses Level in Rolf, den Tischtennis-Opa.</li>
+    <li><b>2 XXL-Schnitzel</b> in einem Level verwandeln Tim für dieses Level zufällig in Rolf, Lena Laux oder Dennis.</li>
+    <li><b>Versteckte Outfits</b> liegen in schweren Extra-Passagen der Kapitel 4 bis 6. Anziehen kannst du sie im Menü unter „Outfits“.</li>
     <li><b>Grüne Tassen</b> sammeln. Alle 100 Tassen gibt es ein Extraleben.</li>
     <li><b>XXL-Schnitzel:</b> drei gut versteckte pro Level.</li>
     <li>Die Brix (wandelnde Bänke) besiegst du, indem du ihnen auf den Kopf springst. Seitlich berühren kostet ein Leben, Stacheln und Abgründe auch.</li>
@@ -412,7 +486,7 @@ function helpModal(back) {
 }
 
 // ================= Game engine =================
-const cv = $("cv"), ctx = cv.getContext("2d");
+const cv = $("cv"); let ctx = cv.getContext("2d");
 let LEVELS = makeLevels();
 let G = null; // running level
 const input = { left: false, right: false, jump: false, jumpPressed: false, fire: false };
@@ -484,7 +558,7 @@ function playLevel(n) {
     const lives = G && G.keepLives ? G.lives : (difficulty === "hard" ? 3 : 5);
     G = {
       n, L, resolve, lives, mugs: 0, schn: 0, mugBank: 0, time: 0,
-      ents: L.ents.map(e => ({ ...e, px: e.x * T, py: e.y * T, alive: true, vx: e.t === "fast" ? -2.4 : -1.2, bob: Math.random() * 6 })),
+      ents: L.ents.filter(e => e.t !== "outfit" || !hasSkin(e.who, e.id)).map(e => ({ ...e, px: e.x * T, py: e.y * T, alive: true, vx: e.t === "fast" ? -2.4 : -1.2, bob: Math.random() * 6 })),
       movers: L.movers.map(m => ({ ...m, dir: 1, dx: 0 })),
       checkpoint: [L.start[0] * T, L.start[1] * T - 4], reached: new Set(),
       particles: [], cam: 0, paused: false, done: false, shake: 0,
@@ -604,6 +678,13 @@ function step() {
   // entities
   for (const e of G.ents) {
     if (!e.alive) continue;
+    if (e.t === "outfit") {
+      if (rects(p, { x: e.px + 4, y: e.py + 4, w: 40, h: 40 })) {
+        e.alive = false; unlockSkin(e.who, e.id); sfx("schn"); burst(e.px + 24, e.py + 24, "#ffffff", 30);
+        banner(OUTFIT_LINES[e.who]);
+      }
+      continue;
+    }
     if (e.t === "mug" || e.t === "schn") {
       const sz = e.t === "schn" ? 44 : 30;
       if (rects(p, { x: e.px + (T - sz) / 2, y: e.py + (T - sz) / 2, w: sz, h: sz })) {
@@ -617,7 +698,11 @@ function step() {
           } else banner("XXL-Schnitzel!");
         }
         else { G.schn++; sfx("schn"); burst(e.px + 24, e.py + 24, "#ffc531", 26); banner(G.schn === 3 ? "Alle 3 XXL-Schnitzel!" : "XXL-Schnitzel!");
-          if (G.schn === 2 && G.form !== "opa") { G.form = "opa"; G.p.inv = Math.max(G.p.inv, 60); burst(p.x + p.w / 2, p.y + p.h / 2, "#ffffff", 40); sfx("boss"); setTimeout(() => G && !G.done && banner("VERWANDLUNG: ROLF!"), 900); } }
+          if (G.schn === 2 && G.form !== "opa") {
+            G.form = "opa"; G.ttChar = TT_CHARS[Math.floor(Math.random() * TT_CHARS.length)];
+            G.p.inv = Math.max(G.p.inv, 60); burst(p.x + p.w / 2, p.y + p.h / 2, "#ffffff", 40); sfx("boss");
+            const nm = TT_NAMES[G.ttChar]; setTimeout(() => G && !G.done && banner(`VERWANDLUNG: ${nm}!`), 900);
+          } }
         updateHud();
       }
       continue;
@@ -764,6 +849,9 @@ function faroStep() {
     } else if (b.inv === 0 && p.inv === 0) { hurt(); if (G.p) G.p.vx = (G.p.x < b.x + b.w / 2 ? -9 : 9); }
   }
 }
+// Randomizer: 2 schnitzel turn Tim into one of these table-tennis players for the rest of the level.
+const TT_CHARS = ["rolf", "lena", "dennis"];
+const TT_NAMES = { rolf: "ROLF", lena: "LENA LAUX", dennis: "DENNIS", brendon: "BRENDON" };
 function damageBoss(n) {
   const b = G.boss; if (!b || b.hp <= 0) return;
   b.hp = Math.max(0, b.hp - n); b.hit = 4; updateHud();
@@ -802,6 +890,217 @@ function bossStep() {
       if (b.hp > 0) { banner(b.hp <= 8 ? "Noch einmal!" : "Treffer!"); b.state = "rise"; b.t = 0; }
     } else if (b.inv === 0) { hurt(); p.vx = (p.x < b.x ? -8 : 8); }
   }
+}
+
+// ===== New skins: in-game sprites (canvas) and story portrait overlays (SVG) =====
+function rr(x, y, w, h, r) { ctx.beginPath(); ctx.moveTo(x + r, y); ctx.arcTo(x + w, y, x + w, y + h, r); ctx.arcTo(x + w, y + h, x, y + h, r); ctx.arcTo(x, y + h, x, y, r); ctx.arcTo(x, y, x + w, y, r); ctx.closePath(); }
+function circ(x, y, r, c) { ctx.fillStyle = c; ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fill(); }
+function face(o) {
+  // shared chibi head at (0,-46); o: skin, hair fn, glasses, mouth
+  ctx.fillStyle = o.skin; ctx.beginPath(); ctx.ellipse(0, -46, o.hw || 13, 14, 0, 0, Math.PI * 2); ctx.fill();
+  if (o.hair) o.hair();
+  circ(5, -46, 2, "#1a1a1a");
+  if (o.glasses) { ctx.strokeStyle = "#222"; ctx.lineWidth = 1.6; ctx.beginPath(); ctx.arc(5, -46, 4.2, 0, Math.PI * 2); ctx.moveTo(1, -46); ctx.lineTo(-11, -47); ctx.stroke(); }
+  ctx.fillStyle = "rgba(255,120,120,.35)"; ctx.beginPath(); ctx.arc(7, -41, 3, 0, Math.PI * 2); ctx.fill();
+  ctx.strokeStyle = "#7a2b2b"; ctx.lineWidth = 1.8; ctx.beginPath(); ctx.arc(5, -40, 3.5, .2, Math.PI - .4); ctx.stroke();
+}
+let SPR_LEG = 0, SPR_ARM = 0;
+function legs(c, shoe, leg = SPR_LEG, sock) {
+  ctx.fillStyle = c; ctx.fillRect(-9 + leg * .6, -14, 8, 14); ctx.fillRect(2 - leg * .6, -14, 8, 14);
+  if (sock) { ctx.fillStyle = sock; ctx.fillRect(-9 + leg * .6, -6, 8, 3); ctx.fillRect(2 - leg * .6, -6, 8, 3); }
+  ctx.fillStyle = shoe; ctx.fillRect(-11 + leg * .6, -4, 11, 5); ctx.fillRect(1 - leg * .6, -4, 11, 5);
+}
+function arm(c, hand, rot = 0, extra) {
+  ctx.save(); ctx.translate(6, -30); ctx.rotate(rot + SPR_ARM); ctx.fillStyle = c; rr(-3, 0, 7, 15, 3); ctx.fill();
+  circ(.5, 16, 3.5, hand); if (extra) extra(); ctx.restore();
+}
+const TIM_SKIN = "#f2c6a8", TIM_HAIR = "#6b4a2f";
+const timHair = () => { ctx.fillStyle = TIM_HAIR; ctx.beginPath(); ctx.ellipse(-1, -54, 13.5, 8, 0, Math.PI, 0); ctx.fill(); ctx.fillRect(-14, -55, 6, 6); };
+const SPRITES = {
+  tim_business() {
+    legs("#2b3348", "#111"); ctx.fillStyle = "#2b3348"; rr(-14, -18, 28, 8, 3); ctx.fill();
+    ctx.fillStyle = "#a9cff2"; rr(-15, -34, 30, 21, 8); ctx.fill();
+    ctx.fillStyle = "#8db8e0"; ctx.beginPath(); ctx.moveTo(-6, -34); ctx.lineTo(0, -29); ctx.lineTo(6, -34); ctx.lineTo(3, -34); ctx.lineTo(0, -31); ctx.lineTo(-3, -34); ctx.fill();
+    for (let k = 0; k < 3; k++) circ(0, -27 + k * 5, 1, "#ffffff");
+    ctx.fillStyle = "#111"; ctx.fillRect(-14, -15, 28, 2);
+    arm("#a9cff2", TIM_SKIN, 0, () => { ctx.fillStyle = "#3a2410"; rr(-4, 16, 9, 7, 1.5); ctx.fill(); });
+    face({ skin: TIM_SKIN, hair: () => { ctx.fillStyle = TIM_HAIR; ctx.beginPath(); ctx.ellipse(-1, -55, 13, 7, 0, Math.PI, 0); ctx.fill(); ctx.fillStyle = "rgba(255,255,255,.35)"; ctx.fillRect(-6, -60, 9, 2); } });
+  },
+  tim_schlabber() {
+    legs("#8a8f99", "#2e7d32", 0, "#f4f4f4");
+    ctx.fillStyle = "#8a8f99"; ctx.fillRect(-11, -16, 22, 6);
+    ctx.fillStyle = "#8d9097"; rr(-18, -36, 36, 27, 11); ctx.fill();
+    ctx.fillStyle = "#7a7d84"; rr(-12, -38, 24, 6, 3); ctx.fill();
+    ctx.strokeStyle = "#7a7d84"; ctx.lineWidth = 1.2; for (let y = -30; y < -12; y += 4) { ctx.beginPath(); ctx.moveTo(-16, y); ctx.lineTo(16, y); ctx.stroke(); }
+    ctx.fillStyle = "#6e7178"; ctx.fillRect(-18, -12, 36, 3);
+    arm("#8d9097", TIM_SKIN, .3);
+    face({ skin: TIM_SKIN, hair: () => { ctx.fillStyle = TIM_HAIR; ctx.beginPath(); ctx.ellipse(-1, -55, 14, 8, 0, Math.PI, 0); ctx.fill(); for (const [x, y] of [[-10, -60], [-3, -63], [5, -61], [11, -57]]) { ctx.beginPath(); ctx.moveTo(x - 3, y + 4); ctx.lineTo(x, y - 3); ctx.lineTo(x + 3, y + 4); ctx.fill(); } } });
+  },
+  rolf_grey() {
+    legs("#e9b896", "#222", 0, "#f4f4f4"); ctx.fillStyle = "#3a3d44"; rr(-14, -18, 28, 8, 3); ctx.fill();
+    ctx.fillStyle = "#9aa0a8"; rr(-15, -34, 30, 20, 8); ctx.fill(); ctx.fillStyle = "#7d838c"; ctx.fillRect(-15, -29, 30, 4);
+    ctx.fillStyle = "#fff"; ctx.font = "8px Bangers, Impact"; ctx.textAlign = "center"; ctx.fillText("ROLF", 0, -18);
+    arm("#9aa0a8", "#e9b896", -.3, () => { ctx.fillStyle = "#7a4a1a"; ctx.fillRect(-1, 15, 4, 9); ctx.fillStyle = "#d4202a"; ctx.beginPath(); ctx.ellipse(1, 30, 8, 9, 0, 0, Math.PI * 2); ctx.fill(); });
+    face({ skin: "#efc3a4", glasses: true, hair: () => { ctx.strokeStyle = "#8a8580"; ctx.lineWidth = 1.2; for (let k = -6; k <= 6; k += 3) { ctx.beginPath(); ctx.moveTo(k, -58); ctx.quadraticCurveTo(k + 2, -63, k + 4, -59); ctx.stroke(); } } });
+  },
+  lena() {
+    legs("#d9a07e", "#222", 0, "#f4f4f4"); ctx.fillStyle = "#141418"; rr(-15, -18, 30, 8, 3); ctx.fill();
+    ctx.fillStyle = "#16161c"; rr(-16, -34, 32, 21, 9); ctx.fill(); ctx.fillStyle = "#2f9e44"; ctx.fillRect(-16, -29, 32, 7);
+    arm("#16161c", "#e8b493", .1);
+    face({ skin: "#e8b493", hw: 14, glasses: true, hair: () => { ctx.fillStyle = "#b08d57"; ctx.beginPath(); ctx.ellipse(-1, -52, 15, 11, 0, Math.PI, 0); ctx.fill(); ctx.fillRect(-15, -53, 7, 16); rr(-15, -40, 7, 6, 3); ctx.fill(); } });
+  },
+  dennis() {
+    ctx.scale(.86, .86);
+    legs("#f2c6a8", "#e8e8e8", 0, "#fff"); ctx.fillStyle = "#141418"; rr(-15, -18, 30, 8, 3); ctx.fill();
+    ctx.fillStyle = "#16161c"; ctx.beginPath(); ctx.ellipse(0, -24, 17, 14, 0, 0, Math.PI * 2); ctx.fill(); ctx.fillStyle = "#2f9e44"; ctx.fillRect(-16, -29, 32, 6);
+    arm("#16161c", "#f2c6a8", .2, () => { ctx.fillStyle = "#1ec8f0"; rr(-4, 12, 9, 15, 2); ctx.fill(); ctx.fillStyle = "#c0c4d0"; ctx.fillRect(-4, 12, 9, 2); ctx.fillStyle = "#0a2a3a"; ctx.font = "900 5px Nunito"; ctx.textAlign = "center"; ctx.save(); ctx.translate(.5, 22); ctx.rotate(-Math.PI / 2); ctx.fillText("NRG", 0, 2); ctx.restore(); });
+    face({ skin: "#f2c6a8", hw: 14, hair: () => { ctx.fillStyle = "rgba(90,60,40,.75)"; ctx.beginPath(); ctx.ellipse(-1, -54, 13.5, 7, 0, Math.PI, 0); ctx.fill(); for (let i = -10; i < 12; i += 3) circ(i, -58, .8, "#4a3020"); } });
+  },
+  faroo_1900(w = 60) {
+    const hw = w / 2;
+    ctx.fillStyle = "#7a4a2e"; ctx.fillRect(-hw * .45 - 4, -14, 9, 10); ctx.fillRect(hw * .45 - 5, -14, 9, 10);
+    ctx.fillStyle = "#111"; ctx.fillRect(-hw * .45 - 6, -4, 12, 5); ctx.fillRect(hw * .45 - 6, -4, 12, 5);
+    ctx.fillStyle = "#2b3a67"; rr(-hw + 2, -20, w - 4, 8, 4); ctx.fill();
+    ctx.fillStyle = "#f4f4f4"; rr(-hw, -38, w, 22, Math.min(12, hw)); ctx.fill();
+    ctx.fillStyle = "#111"; ctx.font = "900 11px Nunito"; ctx.textAlign = "center"; ctx.fillText("19:00", 0, -23);
+    farooHead(w);
+  },
+  faroo_clown(w = 60) {
+    const hw = w / 2;
+    ctx.fillStyle = "#ff3d8b"; ctx.fillRect(-hw * .45 - 4, -14, 9, 10); ctx.fillStyle = "#33e1ff"; ctx.fillRect(hw * .45 - 5, -14, 9, 10);
+    ctx.fillStyle = "#e0262c"; ctx.beginPath(); ctx.ellipse(-hw * .45 - 2, -2, 10, 4, 0, 0, Math.PI * 2); ctx.ellipse(hw * .45 - 1, -2, 10, 4, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = "#ffd23f"; rr(-hw, -38, w, 26, Math.min(12, hw)); ctx.fill();
+    for (let i = 0; i < 8; i++) circ(-hw + 6 + (i * 13) % (w - 10), -32 + (i * 7) % 18, 3, ["#ff3d8b", "#33e1ff", "#39ff14"][i % 3]);
+    ctx.fillStyle = "#fff"; ctx.beginPath(); for (let i = 0; i < 6; i++) { ctx.moveTo(-12 + i * 5, -38); ctx.arc(-12 + i * 5 + 2.5, -38, 3.5, Math.PI, 0); } ctx.fill();
+    farooHead(w, true);
+  },
+};
+function farooHead(w, clown) {
+  const hr = 13 + (w - 30) * .05;
+  if (clown) { for (const [x, y, c] of [[-hr - 4, -50, "#ff3d8b"], [hr + 4, -50, "#ff3d8b"], [-hr + 2, -62, "#ff9a3d"], [hr - 2, -62, "#ff9a3d"], [0, -66, "#39ff14"]]) circ(x, y, 10, c); }
+  else { ctx.fillStyle = "#17110c"; ctx.beginPath(); ctx.ellipse(0, -52, hr + 8, hr + 2, 0, 0, Math.PI * 2); ctx.fill(); }
+  ctx.fillStyle = "#7a4a2e"; ctx.beginPath(); ctx.ellipse(1, -47, hr, hr - 1, 0, 0, Math.PI * 2); ctx.fill();
+  if (!clown) { ctx.fillStyle = "#17110c"; ctx.beginPath(); ctx.ellipse(0, -56, hr + 2, 6, 0, Math.PI, 0); ctx.fill(); }
+  circ(6, -48, 2.6, "#fff"); circ(6.6, -48, 1.4, "#1a1a1a");
+  ctx.fillStyle = "#fff"; ctx.beginPath(); ctx.arc(5, -41, 4, 0, Math.PI); ctx.fill();
+  if (clown) { ctx.fillStyle = "#fff"; ctx.globalAlpha = .7; ctx.beginPath(); ctx.ellipse(5, -40, 7, 4, 0, 0, Math.PI * 2); ctx.fill(); ctx.globalAlpha = 1; ctx.fillStyle = "#e0262c"; ctx.beginPath(); ctx.arc(5, -41, 4, 0, Math.PI); ctx.fill(); }
+}
+// Valle sprites (stands at the goal, faces the player)
+function valleBase(outfit, hair) {
+  ctx.fillStyle = outfit.legs; ctx.fillRect(-10, -16, 8, 16); ctx.fillRect(2, -16, 8, 16);
+  ctx.fillStyle = outfit.boots; ctx.fillRect(-12, -5, 11, 5); ctx.fillRect(1, -5, 11, 5);
+  outfit.body();
+  ctx.save(); ctx.translate(-12, -36); ctx.rotate(-2.4); ctx.fillStyle = outfit.sleeve; rr(-3, 0, 7, 16, 3); ctx.fill(); circ(.5, 17, 4, "#e3a27c"); ctx.restore();
+  ctx.fillStyle = "#e3a27c"; ctx.beginPath(); ctx.ellipse(0, -53, 13, 14, 0, 0, Math.PI * 2); ctx.fill();
+  hair();
+  circ(-5, -53, 2, "#1a1a1a"); circ(5, -53, 2, "#1a1a1a");
+  ctx.fillStyle = "#fff"; ctx.beginPath(); ctx.arc(0, -46, 6, 0, Math.PI); ctx.fill(); ctx.strokeStyle = outfit.lips || "#5a1f1f"; ctx.lineWidth = outfit.lips ? 2.4 : 1.5; ctx.stroke();
+  circ(-13, -50, 1.6, "#c9cdd8"); circ(13, -50, 1.6, "#c9cdd8");
+}
+SPRITES.valle_punk1 = () => valleBase({ legs: "#141418", boots: "#2a1a10", sleeve: "#1b1b1b", body() {
+  ctx.fillStyle = "#1b1b1b"; rr(-17, -40, 34, 27, 9); ctx.fill();
+  ctx.fillStyle = "#c9cdd8"; for (let i = 0; i < 5; i++) { circ(-12 + i * 6, -38, 1.6, "#c9cdd8"); circ(-13, -32 + i * 4, 1.4, "#c9cdd8"); }
+  ctx.fillStyle = "#e0262c"; rr(-6, -36, 12, 18, 2); ctx.fill(); ctx.fillStyle = "#fff"; ctx.font = "900 7px Nunito"; ctx.textAlign = "center"; ctx.fillText("XXL", 0, -24);
+} }, () => { ctx.fillStyle = "#39ff14"; for (let i = -2; i <= 2; i++) { ctx.beginPath(); ctx.moveTo(i * 4 - 3, -62); ctx.lineTo(i * 4, -80 + Math.abs(i) * 3); ctx.lineTo(i * 4 + 3, -62); ctx.fill(); } ctx.fillStyle = "#2a2a2a"; ctx.beginPath(); ctx.ellipse(0, -63, 13, 4, 0, Math.PI, 0); ctx.fill(); });
+SPRITES.valle_punk2 = () => valleBase({ legs: "#111", boots: "#111", sleeve: "#111", lips: "#1a1a1a", body() {
+  ctx.fillStyle = "#111"; rr(-17, -40, 34, 27, 9); ctx.fill();
+  ctx.strokeStyle = "#c9cdd8"; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.moveTo(-14, -20); ctx.quadraticCurveTo(0, -12, 14, -20); ctx.stroke();
+  for (const [x, y] of [[-8, -34], [7, -30], [-4, -26]]) { ctx.strokeStyle = "#d8d8e2"; ctx.lineWidth = 1.4; ctx.beginPath(); ctx.ellipse(x, y, 4, 1.6, -.4, 0, Math.PI * 2); ctx.stroke(); }
+} }, () => {
+  // bald head with shine, punk make-up (dark eyeshadow + black lips), crown
+  ctx.fillStyle = "rgba(255,255,255,.4)"; ctx.beginPath(); ctx.ellipse(-4, -62, 6, 2.5, -.3, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = "#3a1a4a"; ctx.beginPath(); ctx.ellipse(-5, -55, 4.5, 3.5, 0, 0, Math.PI * 2); ctx.ellipse(5, -55, 4.5, 3.5, 0, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = "#ffcf3f"; ctx.strokeStyle = "#a86b00"; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.moveTo(-11, -64); ctx.lineTo(-11, -76); ctx.lineTo(-5, -69); ctx.lineTo(0, -78); ctx.lineTo(5, -69); ctx.lineTo(11, -76); ctx.lineTo(11, -64); ctx.closePath(); ctx.fill(); ctx.stroke(); circ(0, -68, 2, "#ff3d8b");
+});
+// Brixx flexing on his XXL bench
+function drawBrixxFlex() {
+  const w = 120;
+  ctx.fillStyle = "#30343f"; ctx.fillRect(-26, 8, 9, 98); ctx.fillRect(w + 17, 8, 9, 98);
+  for (const yy of [10, 30, 50]) { ctx.fillStyle = "#a0682e"; rr(-32, yy, w + 64, 14, 5); ctx.fill(); ctx.strokeStyle = "#5e3712"; ctx.lineWidth = 2; ctx.stroke(); }
+  ctx.fillStyle = "#a0682e"; rr(-36, 74, w + 72, 16, 5); ctx.fill(); ctx.strokeStyle = "#5e3712"; ctx.stroke();
+  ctx.fillStyle = "#6b7f4a"; rr(30, 40, w - 60, 36, 12); ctx.fill();
+  // both arms up, flexing
+  for (const d of [-1, 1]) {
+    ctx.fillStyle = "#6b7f4a"; ctx.save(); ctx.translate(w / 2 + d * 26, 46); ctx.rotate(d * 1.25); rr(-6, -4, 12, 26, 6); ctx.fill(); ctx.restore();
+    ctx.fillStyle = "#efc3a4"; ctx.beginPath(); ctx.ellipse(w / 2 + d * 50, 34, 13, 11, 0, 0, Math.PI * 2); ctx.fill(); // bulging biceps
+    ctx.save(); ctx.translate(w / 2 + d * 58, 30); ctx.rotate(d * -.3); ctx.fillStyle = "#efc3a4"; rr(-5, -26, 10, 26, 5); ctx.fill(); circ(0, -28, 7, "#efc3a4"); ctx.restore();
+    ctx.strokeStyle = "#ffc531"; ctx.lineWidth = 2; for (let k = 0; k < 3; k++) { ctx.beginPath(); ctx.moveTo(w / 2 + d * (66 + k * 2), 18 - k * 8); ctx.lineTo(w / 2 + d * (76 + k * 3), 14 - k * 9); ctx.stroke(); }
+  }
+  const hx = w / 2, hy = 22;
+  ctx.fillStyle = "#efc3a4"; ctx.beginPath(); ctx.ellipse(hx, hy, 19, 21, 0, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = "#f4f4f4"; ctx.beginPath(); ctx.ellipse(hx - 18, hy - 2, 7, 10, 0, 0, Math.PI * 2); ctx.ellipse(hx + 18, hy - 2, 7, 10, 0, 0, Math.PI * 2); ctx.fill();
+  ctx.strokeStyle = "#222"; ctx.lineWidth = 2.5; ctx.beginPath(); ctx.arc(hx - 8, hy - 1, 6, 0, Math.PI * 2); ctx.moveTo(hx + 14, hy - 1); ctx.arc(hx + 8, hy - 1, 6, 0, Math.PI * 2); ctx.stroke();
+  circ(hx - 8, hy - 1, 2, "#222"); circ(hx + 8, hy - 1, 2, "#222");
+  ctx.fillStyle = "#f4f4f4"; ctx.beginPath(); ctx.ellipse(hx - 7, hy + 9, 9, 4.5, .25, 0, Math.PI * 2); ctx.ellipse(hx + 7, hy + 9, 9, 4.5, -.25, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = "#fff"; ctx.beginPath(); ctx.arc(hx, hy + 13, 6, 0, Math.PI); ctx.fill();
+  ctx.fillStyle = "#fff"; rr(-50, -66, 220, 40, 12); ctx.fill(); ctx.fillStyle = "#1a0f2e"; ctx.font = "900 14px Nunito"; ctx.textAlign = "center"; ctx.fillText("BADABOOM,", 60, -50); ctx.font = "800 11px Nunito"; ctx.fillText("HIER FLEXT NUR EINER", 60, -35);
+}
+// ===== Portrait overlays (SVG) =====
+const OVER = {
+  tim_business: `<path d="M20 300 C24 230 58 196 120 196 C182 196 216 230 220 300Z" fill="#a9cff2"/><path d="M94 196 L110 224 L120 206 L130 224 L146 196 L132 198 L120 212 L108 198Z" fill="#8db8e0"/><path d="M120 214 V300" stroke="#8db8e0" stroke-width="3"/><g fill="#ffffff">${[234,256,278].map(y=>`<circle cx="120" cy="${y}" r="4"/>`).join("")}</g><path d="M40 300 L52 250 M200 300 L188 250" stroke="#8db8e0" stroke-width="3"/>`,
+  tim_schlabber: `<path d="M4 300 C8 222 50 190 120 190 C190 190 232 222 236 300Z" fill="#8d9097"/><path d="M84 194 C96 214 144 214 156 194 C144 200 96 200 84 194Z" fill="#6e7178" stroke="#6e7178" stroke-width="10"/><g stroke="#7a7d84" stroke-width="3">${[226,240,254,268,282,296].map(y=>`<path d="M14 ${y} H226"/>`).join("")}</g><path d="M62 92 l6 -24 l10 18 l8 -26 l12 22 l10 -28 l10 24 l12 -22 l8 26 l12 -18 l8 26" fill="#6b4a2f"/>`,
+  valle_punk1: `<path d="M18 300 C22 228 60 198 120 198 C180 198 218 228 222 300Z" fill="#1b1b1b"/><path d="M96 200 L120 250 L144 200" fill="#e3a27c"/><g fill="#c9cdd8">${[0,1,2,3,4,5].map(i=>`<circle cx="${50+i*10}" cy="${222+i*6}" r="4"/><circle cx="${190-i*10}" cy="${222+i*6}" r="4"/>`).join("")}</g><rect x="100" y="250" width="40" height="44" rx="4" fill="#e0262c"/><text x="120" y="282" font-family="Bangers, Impact" font-size="22" text-anchor="middle" fill="#fff">XXL</text><path d="M60 92 C60 70 180 70 180 92 L176 80 C150 66 90 66 64 80Z" fill="#2a2a2a"/>${[-2,-1,0,1,2].map(i=>`<path d="M${108+i*12} 64 L${120+i*12} ${4+Math.abs(i)*12} L${132+i*12} 64Z" fill="#39ff14"/>`).join("")}`,
+  valle_punk2: `<path d="M18 300 C22 228 60 198 120 198 C180 198 218 228 222 300Z" fill="#111"/><path d="M96 200 L120 250 L144 200" fill="#e3a27c"/><path d="M60 262 C90 284 150 284 180 262" fill="none" stroke="#c9cdd8" stroke-width="5"/><g fill="none" stroke="#d8d8e2" stroke-width="4">${[[70,230],[160,236],[90,276]].map(([x,y])=>`<ellipse cx="${x}" cy="${y}" rx="12" ry="5" transform="rotate(-25 ${x} ${y})"/>`).join("")}</g>
+    <path d="M60 104 C58 60 90 40 120 40 C150 40 182 60 180 104 C176 80 160 66 120 64 C80 66 64 80 60 104Z" fill="#e3a27c"/><ellipse cx="96" cy="58" rx="16" ry="6" fill="#fff" opacity=".4" transform="rotate(-15 96 58)"/>
+    <g fill="#3a1a4a" opacity=".85"><ellipse cx="99" cy="118" rx="17" ry="11"/><ellipse cx="141" cy="118" rx="17" ry="11"/></g>
+    <ellipse cx="99" cy="122" rx="10" ry="7" fill="#fff"/><ellipse cx="141" cy="122" rx="10" ry="7" fill="#fff"/><circle cx="100" cy="123" r="4.6" fill="#5f8fb5"/><circle cx="142" cy="123" r="4.6" fill="#5f8fb5"/><circle cx="100" cy="123" r="2.2" fill="#111"/><circle cx="142" cy="123" r="2.2" fill="#111"/>
+    <path d="M98 160 C108 178 132 178 142 160 Z" fill="#1a1a1a"/><path d="M101 161 C110 167 130 167 139 161 L139 164 C130 169 110 169 101 164Z" fill="#fff"/><path d="M98 160 C108 156 132 156 142 160" fill="none" stroke="#1a1a1a" stroke-width="5"/>
+    <path d="M76 52 L76 12 L98 34 L120 4 L142 34 L164 12 L164 52Z" fill="#ffcf3f" stroke="#a86b00" stroke-width="4"/><circle cx="120" cy="36" r="7" fill="#ff3d8b"/>`,
+  faroo_1900: `<path d="M-114 300 C-104 214 10 184 120 184 C230 184 344 214 354 300Z" fill="#f4f4f4"/><path d="M84 186 C96 204 144 204 156 186" fill="none" stroke="#d0d0d8" stroke-width="8"/><text x="120" y="276" font-family="Nunito, sans-serif" font-weight="900" font-size="58" text-anchor="middle" fill="#111">19:00</text>`,
+  faroo_clown: `<path d="M-114 300 C-104 214 10 184 120 184 C230 184 344 214 354 300Z" fill="#ffd23f"/>${[[-60,240,"#ff3d8b"],[0,270,"#33e1ff"],[60,232,"#39ff14"],[180,232,"#ff3d8b"],[240,270,"#33e1ff"],[300,240,"#39ff14"]].map(([x,y,c])=>`<circle cx="${x}" cy="${y}" r="16" fill="${c}"/>`).join("")}<path d="M60 196 q15 -20 30 0 q15 -20 30 0 q15 -20 30 0 q15 -20 30 0 v14 h-120z" fill="#fff"/>${[[10,70,"#ff3d8b"],[230,70,"#ff3d8b"],[40,30,"#ff9a3d"],[200,30,"#ff9a3d"],[120,10,"#39ff14"],[80,14,"#33e1ff"],[160,14,"#33e1ff"],[0,110,"#ff3d8b"],[240,110,"#ff3d8b"]].map(([x,y,c])=>`<circle cx="${x}" cy="${y}" r="34" fill="${c}"/>`).join("")}<path d="M90 158 C104 182 136 182 150 158" fill="none" stroke="#e0262c" stroke-width="8" stroke-linecap="round"/>`,
+};
+
+SPRITES.rolf_default = () => {
+  legs("#e9b896", "#222", undefined, "#f4f4f4"); ctx.fillStyle = "#141418"; rr(-14, -18, 28, 8, 3); ctx.fill();
+  ctx.fillStyle = "#16161c"; rr(-15, -34, 30, 20, 8); ctx.fill(); ctx.fillStyle = "#7a1420"; ctx.fillRect(-15, -29, 30, 7);
+  arm("#16161c", "#e9b896", -.3, () => { ctx.fillStyle = "#7a4a1a"; ctx.fillRect(-1, 15, 4, 9); ctx.fillStyle = "#d4202a"; ctx.beginPath(); ctx.ellipse(1, 30, 8, 9, 0, 0, Math.PI * 2); ctx.fill(); });
+  face({ skin: "#efc3a4", glasses: true, hair: () => { ctx.strokeStyle = "#8a8580"; ctx.lineWidth = 1.2; for (let k = -6; k <= 6; k += 3) { ctx.beginPath(); ctx.moveTo(k, -58); ctx.quadraticCurveTo(k + 2, -63, k + 4, -59); ctx.stroke(); } } });
+};
+// Story portrait overlays: body goes under the neck, top (hair/hats) over everything.
+const splitOver = (str, marker) => { const i = str.indexOf(marker); return { body: str.slice(0, i), top: str.slice(i) }; };
+const OVL = {
+  tim_business: { body: OVER.tim_business, top: "" },
+  tim_schlabber: splitOver(OVER.tim_schlabber, '<path d="M62 92'),
+  valle_punk1: splitOver(OVER.valle_punk1, '<path d="M60 92'),
+  valle_punk2: splitOver(OVER.valle_punk2, '\n    <path d="M60 104'),
+  faroo_1900: { body: OVER.faroo_1900, top: "" },
+  faroo_clown: splitOver(OVER.faroo_clown, '<circle cx="10"'),
+};
+function dress(svg, ov) { if (!ov) return svg; const j = svg.indexOf("<rect"); return svg.slice(0, j) + ov.body + svg.slice(j).replace(/<\/svg>$/, ov.top + "</svg>"); }
+// ---------- skin state ----------
+const SKIN_DEFS = {
+  tim: [["default", "Klassisch"], ["business", "Business"], ["schlabber", "Schlabber"]],
+  valle: [["default", "Klassisch"], ["punk1", "Punk XXL"], ["punk2", "Punk-König"]],
+  faroo: [["default", "Trikot 19"], ["1900", "19:00-Shirt"], ["clown", "Clown"]],
+  rolf: [["default", "Schwarz-Rot"], ["grey", "Graues Trikot"]],
+  brixx: [["default", "Klassisch"], ["flex", "Bizeps-Flex"]],
+};
+const OUTFIT_LINES = { tim: "ICH HAB EIN NEUES OUTFIT", valle: "EY WIE GEIL IST DAS OUTFIT?", faroo: "CHAT IST DAS SPIELBAR?", rolf: "ROLF HAT EIN NEUES TRIKOT!", brixx: "BADABOOM, HIER FLEXT NUR EINER" };
+const OUTFIT_WHERE = { "tim:business": "Versteckt in Kapitel 4", "valle:punk1": "Versteckt in Kapitel 4", "rolf:grey": "Versteckt in Kapitel 4", "faroo:1900": "Versteckt in Kapitel 5", "valle:punk2": "Versteckt in Kapitel 5", "tim:schlabber": "Versteckt in Kapitel 6", "faroo:clown": "Versteckt in Kapitel 6", "brixx:flex": "Versteckt in Kapitel 6" };
+function skinOf(who) { return (save.skins && save.skins.sel && save.skins.sel[who]) || "default"; }
+function hasSkin(who, id) { return id === "default" || !!(save.skins && save.skins.unlocked && (save.skins.unlocked[who] || []).includes(id)); }
+function unlockSkin(who, id) {
+  save.skins = save.skins || { unlocked: {}, sel: {} }; save.skins.unlocked = save.skins.unlocked || {}; save.skins.sel = save.skins.sel || {};
+  const list = save.skins.unlocked[who] = save.skins.unlocked[who] || [];
+  if (!list.includes(id)) list.push(id);
+  store.write();
+}
+function drawSpritePlayer(p, fn) {
+  const run = p.ground && Math.abs(p.vx) > .5;
+  SPR_LEG = run ? Math.sin(p.anim * 2.4) * 7 : 0;
+  SPR_ARM = p.shotCd > 6 ? -1.6 : (run ? Math.sin(p.anim * 2.4) * .5 : (p.ground ? 0 : -1.1));
+  ctx.save(); ctx.translate(p.x + p.w / 2, p.y + p.h); ctx.scale(p.face, 1); fn(p.w); ctx.restore();
+  SPR_LEG = 0; SPR_ARM = 0;
+}
+function drawOutfitPickup(cx, cy, who) {
+  const col = { tim: "#a9cff2", valle: "#39ff14", faroo: "#ffd23f", rolf: "#9aa0a8", brixx: "#ff9a3d" }[who] || "#fff";
+  ctx.save(); ctx.translate(cx, cy);
+  ctx.shadowColor = col; ctx.shadowBlur = 24;
+  ctx.strokeStyle = "#ddd"; ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(0, -20); ctx.quadraticCurveTo(6, -26, 0, -30); ctx.stroke();
+  ctx.fillStyle = col; ctx.beginPath(); ctx.moveTo(-18, -12); ctx.lineTo(-8, -18); ctx.lineTo(8, -18); ctx.lineTo(18, -12); ctx.lineTo(14, -4); ctx.lineTo(10, -6); ctx.lineTo(10, 16); ctx.lineTo(-10, 16); ctx.lineTo(-10, -6); ctx.lineTo(-14, -4); ctx.closePath(); ctx.fill();
+  ctx.shadowBlur = 0; ctx.strokeStyle = "rgba(0,0,0,.4)"; ctx.lineWidth = 2; ctx.stroke();
+  ctx.fillStyle = "#1a0f2e"; ctx.font = "900 12px Nunito, sans-serif"; ctx.textAlign = "center"; ctx.fillText("?", 0, 8);
+  ctx.restore();
 }
 
 // ================= Rendering =================
@@ -858,6 +1157,7 @@ function draw() {
     const bob = Math.sin(G.time / 12 + e.bob) * 4;
     if (e.t === "mug") drawMug(e.px + 24, e.py + 26 + bob, 1);
     else if (e.t === "schn") drawSchnitzel(e.px + 24, e.py + 24 + bob);
+    else if (e.t === "outfit") drawOutfitPickup(e.px + 24, e.py + 24 + bob, e.who);
     else drawBot(e.px, e.py + 14, e.vx, e.t === "fast");
   }
   if (G.boss) (G.boss.kind === "faroo" ? drawFaroo(G.boss) : drawBoss(G.boss));
@@ -962,27 +1262,28 @@ function drawBot(x, y, vx, fast) {
   ctx.restore();
 }
 function drawOpa(p) {
+  if (G.ttChar && G.ttChar !== "rolf") return drawSpritePlayer(p, SPRITES[G.ttChar]);
+  const grey = skinOf("rolf") === "grey", kit = grey ? "#9aa0a8" : "#16161c", stripe = grey ? "#7d838c" : "#7a1420", shorts = grey ? "#3a3d44" : "#141418";
   // Rolf (50-60): black shorts, black jersey with a broad dark-red chest stripe, glasses, thinning grey hair, paddle.
   const run = p.ground && Math.abs(p.vx) > .5, leg = run ? Math.sin(p.anim * 2.4) * 7 : 0;
   ctx.save(); ctx.translate(p.x + p.w / 2, p.y + p.h); ctx.scale(p.face, 1);
   ctx.fillStyle = "#e9b896"; ctx.fillRect(-9 + leg * .6, -12, 7, 10); ctx.fillRect(2 - leg * .6, -12, 7, 10);
   ctx.fillStyle = "#f4f4f4"; ctx.fillRect(-9 + leg * .6, -6, 7, 3); ctx.fillRect(2 - leg * .6, -6, 7, 3);
   ctx.fillStyle = "#222"; ctx.fillRect(-11 + leg * .6, -4, 11, 5); ctx.fillRect(1 - leg * .6, -4, 11, 5);
-  ctx.fillStyle = "#141418"; roundRect(-14, -18, 28, 8, 3); ctx.fill();
-  ctx.fillStyle = "#16161c"; roundRect(-15, -34, 30, 20, 8); ctx.fill();
-  ctx.fillStyle = "#7a1420"; ctx.fillRect(-15, -29, 30, 7);
+  ctx.fillStyle = shorts; roundRect(-14, -18, 28, 8, 3); ctx.fill();
+  ctx.fillStyle = kit; roundRect(-15, -34, 30, 20, 8); ctx.fill();
+  ctx.fillStyle = stripe; ctx.fillRect(-15, -29, 30, 7);
   ctx.fillStyle = "rgba(255,255,255,.12)"; ctx.fillRect(-15, -29, 30, 1.5);
   const swing = p.shotCd > 6 ? -1.6 : (run ? Math.sin(p.anim * 2.4) * .5 : -.3);
   ctx.save(); ctx.translate(7, -31); ctx.rotate(swing);
-  ctx.fillStyle = "#16161c"; roundRect(-3, 0, 7, 8, 3); ctx.fill();
+  ctx.fillStyle = kit; roundRect(-3, 0, 7, 8, 3); ctx.fill();
   ctx.fillStyle = "#e9b896"; roundRect(-2.5, 7, 6, 8, 3); ctx.fill(); ctx.beginPath(); ctx.arc(.5, 15, 3.5, 0, Math.PI * 2); ctx.fill();
   ctx.fillStyle = "#7a4a1a"; ctx.fillRect(-1, 15, 4, 9);
   ctx.fillStyle = "#d4202a"; ctx.beginPath(); ctx.ellipse(1, 30, 8, 9, 0, 0, Math.PI * 2); ctx.fill();
   ctx.strokeStyle = "#111"; ctx.lineWidth = 1.5; ctx.stroke();
   ctx.restore();
   ctx.fillStyle = "#efc3a4"; ctx.beginPath(); ctx.ellipse(0, -46, 13, 14, 0, 0, Math.PI * 2); ctx.fill();
-  ctx.fillStyle = "#8a8580"; ctx.beginPath(); ctx.ellipse(-11, -48, 4, 7, 0, 0, Math.PI * 2); ctx.fill();
-  ctx.beginPath(); ctx.ellipse(-2, -59, 9, 3, 0, Math.PI, 0); ctx.fill();
+  ctx.strokeStyle = "#8a8580"; ctx.lineWidth = 1.2; for (let k = -6; k <= 6; k += 3) { ctx.beginPath(); ctx.moveTo(k, -58); ctx.quadraticCurveTo(k + 2, -63, k + 4, -59); ctx.stroke(); }
   ctx.fillStyle = "rgba(255,255,255,.4)"; ctx.beginPath(); ctx.ellipse(2, -56, 5, 2, -.2, 0, Math.PI * 2); ctx.fill();
   ctx.strokeStyle = "#222"; ctx.lineWidth = 1.6; ctx.beginPath(); ctx.arc(5, -46, 4.2, 0, Math.PI * 2); ctx.moveTo(1, -46); ctx.lineTo(-11, -47); ctx.stroke();
   ctx.fillStyle = "#1a1a1a"; ctx.beginPath(); ctx.arc(6, -46, 1.6, 0, Math.PI * 2); ctx.fill();
@@ -990,6 +1291,7 @@ function drawOpa(p) {
   ctx.restore();
 }
 function drawFarooPlayer(p) {
+  if (skinOf("faroo") !== "default") return drawSpritePlayer(p, w => (skinOf("faroo") === "clown" ? SPRITES.faroo_clown : SPRITES.faroo_1900)(w));
   // Playable Faroo: width follows p.w (starts extra wide, slims down to Tim's width).
   const run = p.ground && Math.abs(p.vx) > .5, leg = run ? Math.sin(p.anim * 2.4) * 6 : 0, hw = p.w / 2;
   ctx.save(); ctx.translate(p.x + hw, p.y + p.h); ctx.scale(p.face, 1);
@@ -1016,6 +1318,7 @@ function drawFarooPlayer(p) {
 function drawTim(p) {
   if (G.form === "faroo") return drawFarooPlayer(p);
   if (G.form === "opa") return drawOpa(p);
+  if (skinOf("tim") !== "default") return drawSpritePlayer(p, SPRITES["tim_" + skinOf("tim")]);
   const run = p.ground && Math.abs(p.vx) > .5, leg = run ? Math.sin(p.anim * 2.4) * 7 : 0;
   ctx.save(); ctx.translate(p.x + p.w / 2, p.y + p.h); ctx.scale(p.face, 1);
   // legs
@@ -1043,6 +1346,7 @@ function drawValle(x, groundY) {
   ctx.fillStyle = "#8a5a2a"; ctx.fillRect(30, -34, 70, 8); ctx.fillRect(36, -26, 6, 26); ctx.fillRect(88, -26, 6, 26);
   ctx.save(); ctx.translate(58, -46); ctx.scale(.6, .6); ctx.translate(-58 / .6 + 58 / .6, 0); ctx.restore();
   drawSchnitzelMini(56, -44); drawMugMini(90, -44);
+  if (skinOf("valle") !== "default") { SPRITES["valle_" + skinOf("valle")](); } else {
   // legs + body (black)
   ctx.fillStyle = "#141418"; ctx.fillRect(-10, -16, 8, 16); ctx.fillRect(2, -16, 8, 16);
   roundRect(-17, -40, 34, 27, 10); ctx.fill();
@@ -1054,6 +1358,7 @@ function drawValle(x, groundY) {
   ctx.fillStyle = "#141418"; ctx.beginPath(); ctx.ellipse(0, -60, 14, 9, 0, Math.PI, 0); ctx.fill(); ctx.beginPath(); ctx.moveTo(12, -61); ctx.lineTo(22, -54); ctx.lineTo(15, -55); ctx.fill();
   ctx.fillStyle = "#1a1a1a"; ctx.beginPath(); ctx.arc(-5, -53, 2, 0, Math.PI * 2); ctx.arc(5, -53, 2, 0, Math.PI * 2); ctx.fill();
   ctx.fillStyle = "#fff"; ctx.beginPath(); ctx.arc(0, -46, 6, 0, Math.PI); ctx.fill(); ctx.strokeStyle = "#5a1f1f"; ctx.lineWidth = 1.5; ctx.stroke();
+  }
   // speech bubble
   const near = Math.abs(G.p.x - x) < 360;
   if (near) { ctx.fillStyle = "#fff"; roundRect(-70, -120, 150, 44, 12); ctx.fill(); ctx.beginPath(); ctx.moveTo(-6, -77); ctx.lineTo(4, -66); ctx.lineTo(10, -77); ctx.fill(); ctx.fillStyle = "#1a0f2e"; ctx.font = "900 15px Nunito, sans-serif"; ctx.textAlign = "center"; ctx.fillText("Alta GiG!", 5, -103); ctx.font = "800 11px Nunito, sans-serif"; ctx.fillText("Wie geil ist Dustin?", 5, -86); }
@@ -1065,7 +1370,8 @@ function drawFaroo(b) {
   // Giant Faroo: green-white jersey no. 19, big afro, arms spread wide when he shouts.
   if (b.hp <= 0 && Math.floor(G.time / 4) % 2) return;
   const dizzy = b.state === "dizzy", flash = b.hit > 2 || (b.inv > 0 && Math.floor(b.inv / 4) % 2);
-  const skin = flash ? "#a8785a" : "#7a4a2e", jersey = flash ? "#9ae06a" : "#65b32e";
+  const fs = skinOf("faroo");
+  const skin = flash ? "#a8785a" : "#7a4a2e", jersey = flash ? "#9ae06a" : fs === "1900" ? "#f4f4f4" : fs === "clown" ? "#ffd23f" : "#65b32e";
   const cx = b.x + b.w / 2, foot = b.y + b.h, sq = dizzy ? .68 : 1;
   const step = b.state === "walk" || b.state === "enter" ? Math.sin(G.time / 8) * 10 : 0;
   const spread = b.state === "enter" || (b.state === "kick" && b.t < 30) || (b.state === "walk" && b.t < 40);
@@ -1091,11 +1397,13 @@ function drawFaroo(b) {
   ctx.fillStyle = jersey; ctx.beginPath(); ctx.ellipse(0, -186, 116, 84, 0, 0, Math.PI * 2); ctx.fill();
   ctx.fillStyle = "#ffffff"; ctx.beginPath(); ctx.ellipse(-102, -186, 22, 70, 0, 0, Math.PI * 2); ctx.ellipse(102, -186, 22, 70, 0, 0, Math.PI * 2); ctx.fill();
   ctx.strokeStyle = "#ffffff"; ctx.lineWidth = 9; ctx.beginPath(); ctx.moveTo(-28, -262); ctx.lineTo(0, -236); ctx.lineTo(28, -262); ctx.stroke();
-  ctx.fillStyle = "#ffffff"; ctx.font = "56px Bangers, Impact, sans-serif"; ctx.textAlign = "center"; ctx.fillText("19", 0, -160);
+  if (fs === "clown") { for (let k = 0; k < 9; k++) { ctx.fillStyle = ["#ff3d8b", "#33e1ff", "#39ff14"][k % 3]; ctx.beginPath(); ctx.arc(-80 + (k * 47) % 160, -230 + (k * 31) % 90, 11, 0, Math.PI * 2); ctx.fill(); } }
+  else { ctx.fillStyle = fs === "1900" ? "#111" : "#ffffff"; ctx.font = fs === "1900" ? "900 44px Nunito, sans-serif" : "56px Bangers, Impact, sans-serif"; ctx.textAlign = "center"; ctx.fillText(fs === "1900" ? "19:00" : "19", 0, -160); }
   // head
   const hy = -300;
   ctx.fillStyle = "#17110c"; ctx.beginPath(); ctx.ellipse(0, hy - 18, 84, 62, 0, 0, Math.PI * 2); ctx.fill();
   ctx.fillStyle = "rgba(90,70,54,.5)"; for (const [x, y] of [[-40, -46], [0, -60], [40, -46], [-62, -14], [62, -14]]) { ctx.beginPath(); ctx.arc(x, hy + y, 7, 0, Math.PI * 2); ctx.fill(); }
+  if (fs === "clown") for (const [x, y, c] of [[-80, -10, "#ff3d8b"], [80, -10, "#ff3d8b"], [-56, -58, "#ff9a3d"], [56, -58, "#ff9a3d"], [0, -78, "#39ff14"], [-28, -74, "#33e1ff"], [28, -74, "#33e1ff"]]) { ctx.fillStyle = c; ctx.beginPath(); ctx.arc(x, hy + y, 30, 0, Math.PI * 2); ctx.fill(); }
   ctx.fillStyle = skin; ctx.beginPath(); ctx.ellipse(0, hy + 14, 62, 54, 0, 0, Math.PI * 2); ctx.fill();
   ctx.fillStyle = "#17110c"; ctx.beginPath(); ctx.ellipse(0, hy - 30, 66, 22, 0, Math.PI, 0); ctx.fill();
   if (dizzy) {
@@ -1153,8 +1461,17 @@ function drawBoss(b) {
   ctx.fillStyle = "#6b7f4a"; roundRect(30, 40, b.w - 60, 36, 12); ctx.fill();
   ctx.fillStyle = "#e9e2d0"; ctx.beginPath(); ctx.moveTo(b.w / 2 - 8, 40); ctx.lineTo(b.w / 2, 56); ctx.lineTo(b.w / 2 + 8, 40); ctx.fill();
   ctx.fillStyle = "#d8c9a0"; for (let i = 0; i < 3; i++) { ctx.beginPath(); ctx.arc(b.w / 2, 58 + i * 7, 2, 0, Math.PI * 2); ctx.fill(); }
-  // arm raised when flying (throwing)
+  // arm raised when flying (throwing); flex skin: both biceps up
+  if (skinOf("brixx") === "flex") {
+    for (const d of [-1, 1]) {
+      ctx.fillStyle = "#6b7f4a"; ctx.save(); ctx.translate(b.w / 2 + d * 26, 46); ctx.rotate(d * 1.25); roundRect(-6, -4, 12, 26, 6); ctx.fill(); ctx.restore();
+      const pump = 1 + Math.sin(G.time / 7) * .08;
+      ctx.fillStyle = "#efc3a4"; ctx.beginPath(); ctx.ellipse(b.w / 2 + d * 50, 34, 13 * pump, 11 * pump, 0, 0, Math.PI * 2); ctx.fill();
+      ctx.save(); ctx.translate(b.w / 2 + d * 58, 30); ctx.rotate(d * -.3); ctx.fillStyle = "#efc3a4"; roundRect(-5, -26, 10, 26, 5); ctx.fill(); ctx.beginPath(); ctx.arc(0, -28, 7, 0, Math.PI * 2); ctx.fill(); ctx.restore();
+    }
+  } else {
   ctx.fillStyle = "#6b7f4a"; ctx.save(); ctx.translate(b.w / 2 + 22 * look, 46); ctx.rotate(grounded ? .4 * look : -2.2 * look + Math.sin(G.time / 6) * .2); roundRect(-5, 0, 10, 24, 5); ctx.fill(); ctx.fillStyle = "#efc3a4"; ctx.beginPath(); ctx.arc(0, 26, 6, 0, Math.PI * 2); ctx.fill(); ctx.restore();
+  }
   // head
   const hx = b.w / 2, hy = 22;
   ctx.fillStyle = "#efc3a4"; ctx.beginPath(); ctx.ellipse(hx, hy, 19, 21, 0, 0, Math.PI * 2); ctx.fill();
@@ -1173,7 +1490,7 @@ function drawBoss(b) {
   if (!grounded && b.hp > 0 && Math.floor(G.time / 180) % 2 === 0) {
     const bx = Math.max(T + 6, Math.min((G.L.w - 1) * T - 246, b.x - 60));
     ctx.save(); ctx.fillStyle = "#fff"; roundRect(bx, b.y - 70, 240, 44, 12); ctx.fill();
-    ctx.fillStyle = "#1a0f2e"; ctx.font = "900 15px Nunito, sans-serif"; ctx.textAlign = "center"; ctx.fillText("BADABOOM!", bx + 120, b.y - 52); ctx.font = "800 12px Nunito, sans-serif"; ctx.fillText("HIER REGELT NUR EINER", bx + 120, b.y - 35); ctx.restore();
+    ctx.fillStyle = "#1a0f2e"; ctx.font = "900 15px Nunito, sans-serif"; ctx.textAlign = "center"; ctx.fillText(skinOf("brixx") === "flex" ? "BADABOOM," : "BADABOOM!", bx + 120, b.y - 52); ctx.font = "800 12px Nunito, sans-serif"; ctx.fillText(skinOf("brixx") === "flex" ? "HIER FLEXT NUR EINER" : "HIER REGELT NUR EINER", bx + 120, b.y - 35); ctx.restore();
   }
   // handballs
   for (const bo of b.bombs) {
@@ -1261,6 +1578,9 @@ const LEVEL_MENU = [
   { n: 0, title: "Level 1 · Altstadt", sub: "Tassen, Schnitzel, erste Brix-Bänke" },
   { n: 1, title: "Level 2 · Neonmarkt", sub: "Nachts, schnelle rote Bänke" },
   { n: 2, title: "Level 3 · Dachterrassen", sub: "Schwebende Plattformen" },
+  { n: 6, title: "Level 4 · Baustelle", sub: "Schwer · 3 versteckte Outfits" },
+  { n: 7, title: "Level 5 · Bahnhof", sub: "Schwer · 2 versteckte Outfits" },
+  { n: 8, title: "Level 6 · Turnhalle", sub: "Sehr schwer · 3 versteckte Outfits" },
   { n: 3, title: "Boss · Opa Brixx", sub: "BADABOOM auf der XXL-Bank" },
   { n: 4, title: "Boss · Riesen-Faroo", sub: "Der Plot-Twist-Kampf" },
   { n: 5, title: "Endlos · Faroo läuft", sub: "Spiel als Faroo, jedes 3. Schnitzel macht ihn schmaler" },
@@ -1279,6 +1599,32 @@ async function playSingle(n) {
 }
 $("levelsBtn").onclick = levelSelect;
 $("helpBtn").onclick = () => helpModal(toTitle);
+function previewSkin(canvas, who, id) {
+  const c2 = canvas.getContext("2d"), oldCtx = ctx, oldG = G, oldSel = save.skins && save.skins.sel ? { ...save.skins.sel } : null;
+  save.skins = save.skins || { unlocked: {}, sel: {} }; save.skins.sel = save.skins.sel || {}; save.skins.sel[who] = id;
+  ctx = c2; G = { time: 0, form: "tim", p: { x: 9999, w: 30 }, L: { w: 22 } };
+  try {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    const fake = { x: -15, y: -44, w: 30, h: 44, vx: 0, ground: true, face: 1, anim: 0, shotCd: 0 };
+    if (who === "brixx") { ctx.translate(canvas.width / 2 - 30, 40); ctx.scale(.5, .5); drawBoss({ kind: "brixx", x: 0, y: 0, w: 120, h: 110, hp: 1, inv: 0, hit: 0, state: "ground", bombs: [] }); }
+    else if (who === "valle") { ctx.translate(canvas.width / 2 - 24, canvas.height - 6); ctx.scale(1.3, 1.3); ctx.translate(-14, 0); if (id === "default") { ctx.save(); ctx.translate(24, 0); ctx.fillStyle = "#141418"; ctx.fillRect(-10, -16, 8, 16); ctx.fillRect(2, -16, 8, 16); roundRect(-17, -40, 34, 27, 10); ctx.fill(); ctx.fillStyle = "#e3a27c"; ctx.beginPath(); ctx.ellipse(0, -53, 13, 14, 0, 0, Math.PI * 2); ctx.fill(); ctx.fillStyle = "#141418"; ctx.beginPath(); ctx.ellipse(0, -60, 14, 9, 0, Math.PI, 0); ctx.fill(); ctx.fillStyle = "#1a1a1a"; ctx.beginPath(); ctx.arc(-5, -53, 2, 0, Math.PI * 2); ctx.arc(5, -53, 2, 0, Math.PI * 2); ctx.fill(); ctx.fillStyle = "#fff"; ctx.beginPath(); ctx.arc(0, -46, 6, 0, Math.PI); ctx.fill(); ctx.restore(); } else { ctx.translate(24, 0); SPRITES["valle_" + id](); } }
+    else { ctx.translate(canvas.width / 2, canvas.height - 6); ctx.scale(1.4, 1.4);
+      if (who === "tim") drawTim(fake);
+      else if (who === "rolf") { G.form = "opa"; G.ttChar = "rolf"; drawOpa(fake); }
+      else if (who === "faroo") { fake.w = 44; fake.x = -22; fake.h = 50; fake.y = -50; G.form = "faroo"; drawFarooPlayer(fake); } }
+  } finally { ctx = oldCtx; G = oldG; if (oldSel) save.skins.sel = oldSel; else delete save.skins.sel[who]; }
+}
+function outfitMenu() {
+  const who = [["tim", "Tim"], ["valle", "Valle"], ["faroo", "Faroo"], ["rolf", "Rolf"], ["brixx", "Opa Brixx"]];
+  modal(`<h2>Outfits</h2><p>Versteckte Outfits findest du in schweren Extra-Passagen der Kapitel 4 bis 6.</p><div class="skins">${who.map(([w, n]) => `<div class="skinrow"><b>${n}</b><div class="skinopts">${SKIN_DEFS[w].map(([id, label]) => { const ok = hasSkin(w, id), sel = skinOf(w) === id; return `<button class="skinopt${sel ? " on" : ""}${ok ? "" : " locked"}" data-w="${w}" data-id="${id}" type="button" ${ok ? "" : "disabled"}><canvas width="110" height="120" data-w="${w}" data-id="${id}"></canvas><span>${label}</span><small>${ok ? (sel ? "Angezogen" : "Anziehen") : OUTFIT_WHERE[w + ":" + id]}</small></button>`; }).join("")}</div></div>`).join("")}</div><div class="rowb"><button class="btn go" id="skinBack" type="button">Fertig</button></div>`);
+  document.querySelectorAll(".skinopt canvas").forEach(c => previewSkin(c, c.dataset.w, c.dataset.id));
+  document.querySelectorAll(".skinopt:not(.locked)").forEach(b => b.onclick = () => {
+    save.skins = save.skins || { unlocked: {}, sel: {} }; save.skins.sel = save.skins.sel || {};
+    save.skins.sel[b.dataset.w] = b.dataset.id; store.write(); sfx("tap"); outfitMenu();
+  });
+  $("skinBack").onclick = toTitle;
+}
+$("outfitBtn").onclick = outfitMenu;
 store.load();
 toTitle();
 </script>
