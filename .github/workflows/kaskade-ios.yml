@@ -10,8 +10,19 @@ permissions:
   contents: write
 
 jobs:
+  core-linux:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - name: Core logic tests (Linux)
+        working-directory: kaskade/KaskadeCore
+        run: |
+          swift --version
+          swift test 2>&1 | tail -40
+
   ipad:
-    runs-on: macos-15
+    runs-on: macos-latest
     timeout-minutes: 60
     steps:
       - uses: actions/checkout@v4
