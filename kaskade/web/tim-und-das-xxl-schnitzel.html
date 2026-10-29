@@ -82,7 +82,7 @@ canvas { position: fixed; inset: 0; width: 100%; height: 100%; display: block; }
   <div class="lvl" id="hLevel"></div>
   <button class="pause" id="pauseBtn" type="button" aria-label="Pause">❚❚</button>
 </div>
-<div class="bossbar" id="bossbar" hidden><div>CHAOS-BOT XXL</div><div class="bar"><i id="bossHp"></i></div></div>
+<div class="bossbar" id="bossbar" hidden><div>BRIXX</div><div class="bar"><i id="bossHp"></i></div></div>
 <div class="pad" id="pad" hidden>
   <div class="grp"><button class="k" data-k="left" type="button" aria-label="Links">◀</button><button class="k" data-k="right" type="button" aria-label="Rechts">▶</button></div>
   <button class="k jump" data-k="jump" type="button" aria-label="Springen">HOPP</button>
@@ -145,7 +145,7 @@ const PORTRAIT = {
   valle: () => person({ skin: "#e3a27c", skinDark: "#c98560", hair: "bandana", outfit: "black", brow: "#8a6a55", iris: "#5f8fb5", eyeW: 10, grin: true, earring: true }),
   bot: () => `<svg viewBox="0 0 240 300" xmlns="http://www.w3.org/2000/svg"><rect x="112" y="10" width="16" height="40" fill="#999"/><ellipse cx="120" cy="12" rx="70" ry="9" fill="#cfd3e0"/><rect x="40" y="50" width="160" height="150" rx="40" fill="#6a2be2" stroke="#2a0a5a" stroke-width="8"/><circle cx="120" cy="120" r="40" fill="#1a0a2e"/><circle cx="120" cy="120" r="24" fill="#ff2d2d"/><circle cx="110" cy="110" r="7" fill="#fff"/><path class="mouth" d="M80 172 h80" stroke="#ffcf3f" stroke-width="10" stroke-linecap="round" stroke-dasharray="10 8"/><rect x="60" y="200" width="120" height="70" rx="20" fill="#4a1aa0"/><path d="M30 120 l-20 40 M210 120 l20 40" stroke="#cfd3e0" stroke-width="14" stroke-linecap="round"/></svg>`,
 };
-const PEOPLE = { tim: "Tim Oliver Schmidt", valle: "Valle Weber", bot: "Chaos-Bot XXL" };
+const PEOPLE = { tim: "Tim Oliver Schmidt", valle: "Valle Weber", bot: "Brixx" };
 const MUG_SVG = `<svg viewBox="0 0 40 40"><path d="M8 10 h20 v18 a6 6 0 0 1 -6 6 h-8 a6 6 0 0 1 -6 -6z" fill="#39ff14" stroke="#0c5a00" stroke-width="2.5"/><path d="M28 14 h3 a5 5 0 0 1 0 10 h-3" fill="none" stroke="#0c5a00" stroke-width="5"/><path d="M28 14 h3 a5 5 0 0 1 0 10 h-3" fill="none" stroke="#39ff14" stroke-width="2.5"/><rect x="11" y="13" width="4" height="14" rx="2" fill="#d8ffcc" opacity=".8"/></svg>`;
 const SCHN_SVG = `<svg viewBox="0 0 40 40"><path d="M4 22 C3 12 14 7 22 8 C32 9 38 14 36 22 C35 31 24 34 16 33 C8 32 4 28 4 22Z" fill="#e59a2a" stroke="#7a4300" stroke-width="2.5"/><circle cx="13" cy="18" r="1.6" fill="#ffd27a"/><circle cx="22" cy="14" r="1.6" fill="#ffd27a"/><circle cx="27" cy="23" r="1.6" fill="#ffd27a"/><circle cx="16" cy="26" r="1.6" fill="#ffd27a"/><path d="M28 6 l8 2 l-4 7z" fill="#fff35a" stroke="#a08a00" stroke-width="1.5"/></svg>`;
 const HEART_SVG = `<svg viewBox="0 0 40 40"><path d="M20 34 C6 24 4 16 8 11 C12 6 18 8 20 13 C22 8 28 6 32 11 C36 16 34 24 20 34Z" fill="#ff3d5a" stroke="#7a0010" stroke-width="2.5"/></svg>`;
@@ -215,14 +215,14 @@ const STORY = [
     S("tim", "Ich bin 34 und war noch nie Ehrengast. Was gibt's denn?"),
     S("valle", "XXL-Schnitzel. So groß wie Wagenräder. Und dazu meine knallgrünen Riesentassen."),
     S("tim", "Ja! Ja! Hol ihn raus!", true),
-    S("valle", "Nur ein Problem … der Chaos-Bot XXL hat alles geklaut und quer durch die Stadt verstreut."),
+    S("valle", "Nur ein Problem … Brixx hat alles geklaut und quer durch die Stadt verstreut."),
     S("tim", "Dann sammle ich alles wieder ein. Jede Tasse. Jedes Schnitzel."),
   ]},
   { kind: "level", n: 0 },
   { kind: "scene", chapter: "Kapitel 2", L: "tim", R: "valle", lines: [
     S("valle", "Alta GiG! Wie geil ist Dustin?", true),
     S("tim", "Valle, wer ist Dustin?"),
-    S("valle", "Ist doch egal! Der Chaos-Bot wurde auf dem Neonmarkt gesehen. Pass auf, seine Mini-Bots sind dort schneller."),
+    S("valle", "Ist doch egal! Brixx wurde auf dem Neonmarkt gesehen. Pass auf, seine kleinen Brix sind dort schneller."),
   ]},
   { kind: "level", n: 1 },
   { kind: "scene", chapter: "Kapitel 3", L: "tim", R: "valle", lines: [
@@ -231,9 +231,9 @@ const STORY = [
   ]},
   { kind: "level", n: 2 },
   { kind: "scene", chapter: "Finale", L: "tim", R: "bot", lines: [
-    S("bot", "PIEP. SCHNITZEL GEHÖRT MIR. PARTY ABGESAGT. PIEP."),
+    S("bot", "PIEP. ICH BIN BRIXX. SCHNITZEL GEHÖRT MIR. PARTY ABGESAGT. PIEP."),
     S("tim", "Nicht mit mir. Ja! Ja! Hol ihn raus!", true),
-    S("valle", "Spring ihm auf den Kopf, wenn er landet! Und weich den Bomben aus!"),
+    S("valle", "Das ist Brixx, der Boss der Brix! Spring ihm auf den Kopf, wenn er landet! Und weich den Bomben aus!"),
   ]},
   { kind: "level", n: 3 },
   { kind: "scene", chapter: "Epilog", L: "tim", R: "valle", end: true, lines: [
@@ -322,7 +322,7 @@ function levelDone(n, res) {
     const lv = LEVELS[n];
     save.totalMugs += res.mugs; save.schnitzel[n] = Math.max(save.schnitzel[n] || 0, res.schn); store.write();
     const boss = n === 3;
-    modal(`<h2>${boss ? "Bot besiegt!" : "Geschafft!"}</h2><p>${lv.name}</p>
+    modal(`<h2>${boss ? "Brixx besiegt!" : "Geschafft!"}</h2><p>${lv.name}</p>
       <div class="tally"><div>${MUG_SVG} ${res.mugs}${boss ? "" : " / " + lv.mugTotal}</div>${boss ? "" : `<div>${SCHN_SVG} ${res.schn} / 3</div>`}</div>
       <p>${res.schn === 3 ? "Alle XXL-Schnitzel gefunden! Valle ist stolz." : boss ? "Die Party kann steigen." : "Es fehlen noch Schnitzel. Schau hinter Steinblöcke und hoch über Plattformen."}</p>
       <div class="rowb"><button class="btn go" id="nextBtn" type="button">Weiter</button></div>`);
@@ -345,7 +345,7 @@ function helpModal(back) {
     <li><b>Tastatur:</b> Pfeiltasten oder A/D, Leertaste oder W zum Springen, P für Pause.</li>
     <li><b>Grüne Tassen</b> sammeln. Alle 100 Tassen gibt es ein Extraleben.</li>
     <li><b>XXL-Schnitzel:</b> drei gut versteckte pro Level.</li>
-    <li>Mini-Bots besiegst du, indem du ihnen auf den Kopf springst. Seitlich berühren kostet ein Leben, Stacheln und Abgründe auch.</li>
+    <li>Die kleinen Brix besiegst du, indem du ihnen auf den Kopf springst. Seitlich berühren kostet ein Leben, Stacheln und Abgründe auch.</li>
     <li>Fahnen sind Kontrollpunkte. Valle wartet am Ziel.</li></ul>
     <div class="rowb"><button class="btn go" id="okHelp" type="button">Alles klar</button></div>`);
   $("okHelp").onclick = back;
