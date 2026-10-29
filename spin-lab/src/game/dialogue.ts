@@ -5,13 +5,44 @@ import type { Mood } from '../render/DrSpinBot';
 export type LineKey =
   | 'greet' | 'perfect' | 'hit' | 'net' | 'netcord' | 'long' | 'wide' | 'short' | 'own' | 'obstacle'
   | 'close' | 'slow' | 'ring' | 'combo' | 'curve' | 'tunnel' | 'nitro' | 'magnet' | 'bounce' | 'quantum'
-  | 'gravity' | 'pass' | 'fail' | 'finaleWin' | 'finaleFail' | 'idle' | 'pause' | 'firstShot' | 'record';
+  | 'gravity' | 'pass' | 'fail' | 'finaleWin' | 'finaleFail' | 'idle' | 'pause' | 'firstShot' | 'record'
+  | 'rolfGreet' | 'coachHit' | 'coachMiss' | 'selfHit' | 'selfMiss';
 
 const L: Record<LineKey, { mood: Mood; lines: string[] }> = {
   greet: { mood: 'smug', lines: [
     'Willkommen im Labor. Bitte nichts anfassen, außer den Ball.',
     'Ah, Besuch. Endlich jemand, der den Ball nicht nur theoretisch schlägt.',
     'Systeme bereit. Ich auch. Meistens.',
+    'Willkommen im Labor. Trainer Rolf hat gesagt, ich soll streng sein. Ich versuche es.',
+  ] },
+  rolfGreet: { mood: 'shocked', lines: [
+    'Trainer Rolf persönlich. Ich habe die Netzhöhe sicherheitshalber dreimal nachgemessen.',
+    'Willkommen, Trainer Rolf. Die Bälle sind nervös. Ich auch.',
+    'Rolf im Labor. Ich aktiviere das Protokoll: Bitte nicht korrigieren.',
+  ] },
+  coachHit: { mood: 'happy', lines: [
+    'Treffer. Trainer Rolf würde jetzt nicken. Einmal. Kurz. Das ist bei ihm ein Feuerwerk.',
+    'Das notiere ich für Trainer Rolf. Mit Ausrufezeichen.',
+    'Sauber. Ich schicke die Aufzeichnung an Rolf. Er wird sie dreimal in Zeitlupe ansehen.',
+    'So hat Rolf es erklärt. Glaube ich. Ich war nicht beim Training, ich bin ein Roboter.',
+  ] },
+  coachMiss: { mood: 'smug', lines: [
+    'Ich höre Trainer Rolf schon: Schläger zu, Arm durchziehen. Ich habe keine Arme, aber ich stimme zu.',
+    'Daneben. Das bleibt unter uns. Rolf muss das nicht erfahren.',
+    'Trainer Rolf hätte jetzt einen Hinweis. Ich habe nur Daten. Die sagen: anders machen.',
+    'Diesen Schlag hat Rolf so sicher nicht beigebracht.',
+  ] },
+  selfHit: { mood: 'happy', lines: [
+    'Treffer. Die Schüler dürfen das nie erfahren. Sonst wollen sie es nachmachen.',
+    'Lehrbuchschlag. Wahrscheinlich aus deinem eigenen Lehrbuch, Rolf.',
+    'Der Trainer zeigt, wie es geht. Ich speichere das als Referenz.',
+    'Rolf trifft. Die Physik nickt anerkennend.',
+  ] },
+  selfMiss: { mood: 'smug', lines: [
+    'Auch Trainer verfehlen. Ich habe das nicht gesehen. Offiziell.',
+    'Rolf, das war Absicht, oder? Eine Demonstration, wie man es nicht macht?',
+    'Daneben. Ich lösche die Aufnahme, bevor die Schüler sie sehen.',
+    'Ein Lehrmoment. Für die Schüler, natürlich.',
   ] },
   firstShot: { mood: 'talk', lines: [
     'Nach oben wischen zum Schlagen. Rechts unten bestimmst du, wo du den Ball triffst. Den Rest erledigt die Physik.',

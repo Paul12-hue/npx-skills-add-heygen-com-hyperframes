@@ -105,6 +105,15 @@ button:focus-visible, input:focus-visible { outline: 1px solid var(--cyan); outl
 .boot-line i { position: absolute; inset: 0; width: 30%; background: linear-gradient(90deg, transparent, var(--cyan), transparent); animation: scan 2.4s ease-in-out infinite; }
 @keyframes scan { 0% { transform: translateX(-120%); } 100% { transform: translateX(380%); } }
 .boot-btn { font-size: 13px; padding: 18px 26px; color: var(--ink); border: 1px solid rgba(63,224,255,0.25); animation: breathe 2.6s ease-in-out infinite; }
+.boot-q { font-size: 12px; color: rgba(233,238,242,0.75); letter-spacing: 0.2em; }
+.boot-choice { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; }
+.boot-btn { display: grid; gap: 4px; min-width: 170px; }
+.boot-btn span { font-size: 14px; letter-spacing: 0.12em; }
+.boot-btn small { font-size: 9px; color: rgba(160,200,220,0.5); }
+.boot-btn.coach { border-color: rgba(255,122,26,0.35); animation-delay: 1.3s; }
+.boot-btn.coach span { color: #ffb37a; }
+.fw-stamp { margin-top: 10px; font-size: 11px; color: var(--orange); border: 1px solid rgba(255,122,26,0.5); padding: 5px 10px; transform: rotate(-2deg); }
+.fw-stamp:empty { display: none; }
 .boot-hint { font-size: 10px; color: rgba(160,200,220,0.35); }
 @keyframes breathe { 0%,100% { border-color: rgba(63,224,255,0.15); color: rgba(233,238,242,0.6); } 50% { border-color: rgba(63,224,255,0.6); color: #fff; } }
 
@@ -421,7 +430,86 @@ blockquote::before { content: 'DR. SPIN — '; color: var(--cyan); }
   .gravity-bar { width: 220px; }
   .panel-screen { background: rgba(5,7,11,0.9); }
 }
+/* phones held upright: compact HUD, controls in the thumb zone */
+@media (orientation: portrait) and (max-width: 600px) {
+  .hud-tl { left: calc(12px + var(--safe-l)); top: calc(10px + var(--safe-t)); max-width: 54vw; }
+  .hud-name { font-size: 19px; margin: 2px 0 4px; }
+  .hud-round { font-size: 13px; gap: 8px; flex-wrap: wrap; }
+  .hud-brief { display: none; }
+  .hud-tr { right: calc(12px + var(--safe-r)); top: calc(10px + var(--safe-t)); gap: 6px; }
+  .icon-btn { width: 44px; height: 44px; }
+  .hud-tc { top: calc(60px + var(--safe-t)); right: calc(12px + var(--safe-r)); }
+  .score-num { font-size: 30px; }
+  .gravity-bar { width: 44vw; }
+  .gb-label { font-size: 11px; }
+  .field-badge { font-size: 9px; padding: 3px 6px; }
+  .dialog { top: auto; bottom: calc(150px + var(--safe-b)); left: calc(12px + var(--safe-l)); right: auto; max-width: calc(100vw - 150px); padding: 6px 10px 6px 6px; gap: 8px; }
+  .dialog canvas { width: 36px; height: 36px; }
+  .dialog p { font-size: 11px; line-height: 1.4; }
+  .hud-br { right: calc(10px + var(--safe-r)); bottom: calc(12px + var(--safe-b)); gap: 6px; }
+  .readouts { gap: 10px; font-size: 9px; }
+  .readouts b { font-size: 17px; }
+  .power-meter { width: 118px; }
+  .spinpad { width: 118px; height: 118px; margin-top: 14px; }
+  .sp-ball { width: 96px; height: 96px; }
+  .sp-t { top: 20px; } .sp-b { bottom: 20px; }
+  .sp-label { font-size: 9px; top: -13px; }
+  #spinDot { width: 22px; height: 22px; margin: -11px 0 0 -11px; }
+  .substances { left: calc(10px + var(--safe-l)); bottom: calc(12px + var(--safe-b)); max-width: calc(100vw - 150px); gap: 4px; display: none; flex-wrap: wrap; }
+  .substances.on { display: flex; }
+  .sub-btn { width: calc((100vw - 170px) / 3); min-width: 60px; min-height: 52px; padding: 6px 6px 5px; }
+  .sub-btn small { display: none; }
+  .sub-btn b { font-size: 13px; }
+  .sub-btn.on { transform: translateY(-2px); }
+  .analysis { top: calc(118px + var(--safe-t)); bottom: auto; left: calc(12px + var(--safe-l)); width: 168px; padding: 10px 12px; transform: translate(-16px, 0); }
+  .analysis.on { transform: none; }
+  .an-verdict { font-size: 20px; margin-bottom: 4px; }
+  .analysis dl { font-size: 9.5px; gap: 3px 8px; }
+  .analysis dl dt:nth-of-type(n+5), .analysis dl dd:nth-of-type(n+5) { display: none; }
+  .an-points { font-size: 18px; margin-top: 6px; padding-top: 5px; }
+  .swipe-hint { bottom: 48%; font-size: 11px; text-align: center; width: 80vw; }
+  .toast { top: 36%; width: 92vw; }
+  .toast-main { font-size: 42px; }
+  .toast.bad .toast-main { font-size: 32px; }
+  .toast-sub { font-size: 11px; }
+  .round-card { width: 92vw; top: 34%; }
+  .rc-title { font-size: 30px; white-space: normal; }
+  .rc-brief { font-size: 11px; }
+  .pause-card h2 { font-size: 42px; }
+  .summary-card { padding: 20px 18px 18px; gap: 10px; }
+  .sum-data { grid-template-columns: 1fr; gap: 6px; font-size: 11px; }
+  .rank-letter { font-size: 70px; }
+  .big { font-size: 54px; }
+  .sum-actions .primary-btn { width: 100%; font-size: 16px; }
+  .fw-title { font-size: 46px; }
+  .set-row > span { font-size: 16px; }
+  .set-row { flex-wrap: wrap; min-height: 56px; }
+  .seg button { padding: 0 9px; font-size: 11px; }
+  .cards { grid-template-columns: 1fr 1fr; gap: 8px; }
+  .card { min-height: 140px; padding: 14px 12px 12px; }
+  .card .c-name { font-size: 21px; }
+  .card .c-tag { font-size: 10px; }
+  .sheet-head h2 { font-size: 34px; }
+  .menu-nav span { font-size: 26px; }
+  .menu-nav button { min-height: 54px; padding-top: 8px; padding-bottom: 8px; }
+  .mini-logo { font-size: 36px; }
+  .dialog.menu-side { bottom: auto; top: calc(14px + var(--safe-t)); right: calc(12px + var(--safe-r)); left: calc(12px + var(--safe-l)); max-width: none; }
+}
 @media (max-height: 560px) and (orientation: landscape) {
+  .analysis { width: 170px; padding: 10px 12px; top: 54%; }
+  .an-verdict { font-size: 20px; margin-bottom: 4px; }
+  .analysis dl { font-size: 9.5px; gap: 3px 8px; }
+  .analysis dl dt:nth-of-type(n+5), .analysis dl dd:nth-of-type(n+5) { display: none; }
+  .an-points { font-size: 18px; }
+  .hud-brief { display: none; }
+  .hud-tl { top: calc(8px + var(--safe-t)); }
+  .readouts b { font-size: 17px; }
+  .summary-card { padding: 16px 20px; gap: 8px; }
+  .big { font-size: 48px; } .rank-letter { font-size: 64px; }
+  .summary-card h2 { font-size: 30px; }
+  .fw-title { font-size: 44px; }
+  .icon-btn { width: 44px; height: 44px; }
+
   .spinpad { width: 128px; height: 128px; } .sp-ball { width: 100px; height: 100px; }
   .power-meter { width: 128px; }
   .sub-btn { width: 96px; min-height: 60px; }

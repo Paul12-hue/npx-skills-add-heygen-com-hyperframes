@@ -19,7 +19,11 @@
     <div class="boot-inner">
       <div class="boot-code mono">SL-OS 4.2 · HOCHLEISTUNGSLABOR FÜR ROTATIONSPHYSIK</div>
       <div class="boot-line"><i></i></div>
-      <button id="bootBtn" class="boot-btn mono">TIPPEN, UM DAS LABOR ZU BETRETEN</button>
+      <div class="boot-q mono">WER BETRITT DAS LABOR?</div>
+      <div class="boot-choice">
+        <button id="bootBtn" class="boot-btn mono"><span id="bootMe">ICH</span><small>PROBAND</small></button>
+        <button id="bootCoach" class="boot-btn coach mono"><span>TRAINER ROLF</span><small>LABORAUFSICHT</small></button>
+      </div>
       <div class="boot-hint mono">Ton an für das volle Erlebnis</div>
     </div>
   </section>
@@ -28,7 +32,7 @@
   <section id="intro" class="screen">
     <button id="skipIntro" class="ghost-btn mono skip">ÜBERSPRINGEN ›</button>
     <div class="intro-title">
-      <div class="intro-kicker mono"><span>EXPERIMENTALREIHE 7</span><span>FREIGABE: ORANGE</span></div>
+      <div class="intro-kicker mono"><span>EXPERIMENTALREIHE 7</span><span id="introCoach">AUFSICHT: TRAINER ROLF</span></div>
       <h1 class="logo" aria-label="SPIN LAB"><span class="logo-word" data-w="SPIN">SPIN</span><span class="logo-word lab" data-w="LAB">LAB</span></h1>
       <div class="logo-sub">THE SCIENCE OF IMPOSSIBLE SPIN</div>
       <div class="status mono"><i class="dot"></i><span>PHYSICS ENGINE ONLINE</span></div>
@@ -123,7 +127,7 @@
       <div class="score-num" id="hudScore">0</div>
       <div class="mono tiny dim">PUNKTE <b id="hudMult" class="mult"></b></div>
       <div class="gravity-bar" id="gravityBar"><div class="gb-track" id="gbTrack"></div><i class="gb-head"></i><div class="gb-label mono" id="gbLabel">1 g</div></div>
-      <div class="field-badge mono" id="fieldBadge">RESONANZFELD · MAGNUS ×3,2</div>
+      <div class="field-badge mono" id="fieldBadge">R.O.L.F.-FELD AKTIV · MAGNUS ×3,2</div>
     </div>
     <div class="hud-tr">
       <button class="icon-btn" id="btnSound" aria-label="Ton"><svg viewBox="0 0 24 24"><path d="M4 9h4l5-4v14l-5-4H4z"/><path class="w" d="M16 8.5a5 5 0 0 1 0 7M18.5 6a8.5 8.5 0 0 1 0 12"/><path class="x" d="M16 9l5 6M21 9l-5 6"/></svg></button>
@@ -194,7 +198,7 @@
     <div class="fw-inner">
       <div class="mono tiny cyan">EXPERIMENT 05 · ERGEBNIS BESTÄTIGT</div>
       <h1 class="fw-title"><span>IMPOSSIBLE</span><span>WAS JUST A</span><span class="o">SUGGESTION.</span></h1>
-      <div class="fw-score"><span class="mono tiny dim">PUNKTZAHL</span><b id="fwScore">0</b><span class="mono tiny" id="fwTotal"></span></div>
+      <div class="fw-score"><span class="mono tiny dim">PUNKTZAHL</span><b id="fwScore">0</b><span class="mono tiny" id="fwTotal"></span><span class="fw-stamp mono" id="fwStamp"></span></div>
       <blockquote id="fwQuote"></blockquote>
       <div class="sum-actions">
         <button class="primary-btn" id="fwContinue"><span>ZUR AUSWERTUNG</span><b>›</b></button>

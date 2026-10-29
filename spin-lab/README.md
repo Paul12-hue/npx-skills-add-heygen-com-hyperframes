@@ -16,6 +16,20 @@ npm run solve          # QA: prüft per Brute-Force, dass jedes Level lösbar is
 
 `dist-single/index.html` enthält Code, Schriften und Styles in einer Datei. Die Datei lässt sich auf jeden statischen Webspace legen und auf dem iPad in Safari öffnen.
 
+## Handy
+
+Das Spiel hat ein eigenes Handy-Layout, im Hochformat und im Querformat: kompaktes HUD, Spin-Pad und Substanzen im Daumenbereich, angepasste Kamera. Auf Tablets im Hochformat erscheint ein Hinweis aufs Querformat.
+
+## Trainer Rolf
+
+Beim Start fragt das Labor: **„Wer betritt das Labor?“** Zur Wahl stehen *Ich* oder *Trainer Rolf*. Spielt Rolf, begrüßt ihn DR. SPIN persönlich und kommentiert seine Treffer und Fehler mit eigenen Sprüchen. Spielt jemand anderes, beruft sich DR. SPIN immer wieder auf Rolf. Weitere Bezüge zu Rolf:
+
+- Das Finale läuft im **R.O.L.F.-Feld** (Rotations-Optimiertes Labor-Feld).
+- Der höchste Rang heißt **ROLF-NIVEAU**.
+- Ein Finalsieg wird „zur Vorlage bei Trainer Rolf“ abgestempelt.
+
+Der Name steht als `COACH` in `src/config.ts`.
+
 ## Steuerung
 
 | Aktion | Touch / Maus |

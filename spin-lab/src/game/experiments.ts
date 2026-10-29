@@ -207,7 +207,7 @@ const finaleRounds: RoundDef[] = [{
   attempts: Infinity,
   stage: {
     title: 'MONOLITH-PROTOKOLL',
-    brief: 'Ziel direkt hinter dem Monolithen.',
+    brief: 'Ziel direkt hinter dem Monolithen. R.O.L.F.-Feld aktiv.',
     target: disc(fixed(0, -1.02), 0.14, 0.045),
     obstacles: [FINALE_WALL],
     magnusScale: 3.2,

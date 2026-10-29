@@ -123,7 +123,7 @@ export class Renderer {
     this.bloom.resolution.set(Math.max(64, w * bs), Math.max(64, h * bs));
     this.camera.aspect = w / h;
     // portrait: widen the field of view so the whole table stays visible
-    this.camera.fov = w / h < 1 ? 58 : w / h < 1.4 ? 48 : 42;
+    this.camera.fov = w / h < 0.62 ? 64 : w / h < 1 ? 58 : w / h < 1.4 ? 48 : 42;
     this.camera.updateProjectionMatrix();
   }
 

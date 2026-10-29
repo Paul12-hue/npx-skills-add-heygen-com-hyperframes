@@ -17,10 +17,12 @@ export class CameraRig {
 
   constructor(private cam: THREE.PerspectiveCamera) {}
 
-  setPortrait(p: boolean) { this.portrait = p; }
+  private phone = false;
+  setPortrait(p: boolean, phone = false) { this.portrait = p; this.phone = phone; }
 
   /** Gameplay view from behind the player's end of the table. */
   playShot(): Shot {
+    if (this.portrait && this.phone) return { pos: new THREE.Vector3(0, 2.75, 3.3), look: new THREE.Vector3(0, 0.3, -0.45) };
     return this.portrait
       ? { pos: new THREE.Vector3(0, 2.25, 3.55), look: new THREE.Vector3(0, 0.62, -0.55) }
       : { pos: new THREE.Vector3(0, 1.8, 2.82), look: new THREE.Vector3(0, 0.7, -0.68) };

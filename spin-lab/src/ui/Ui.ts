@@ -67,7 +67,12 @@ export class Speech {
     }
   }
 
-  setSide(right: boolean) { this.el.style.left = right ? 'auto' : ''; this.el.style.right = right ? 'calc(16px + var(--safe-r))' : ''; }
+  setSide(right: boolean) {
+    this.el.style.left = right ? 'auto' : '';
+    this.el.style.right = right ? 'calc(16px + var(--safe-r))' : '';
+    // on phones the menu speech bubble moves to the top, out of the way of the navigation
+    this.el.classList.toggle('menu-side', right);
+  }
 
   hide() { this.el.classList.remove('on'); this.face.talking = false; this.hideAt = 0; }
 

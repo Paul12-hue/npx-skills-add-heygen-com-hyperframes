@@ -14,6 +14,9 @@ export const NET = {
   halfSpan: 0.915,
 } as const;
 
+/** The coach this lab is dedicated to. DR. SPIN talks about him, and to him when he plays. */
+export const COACH = 'ROLF';
+
 export const BALL_RADIUS = 0.02;
 export const G = 9.81;
 

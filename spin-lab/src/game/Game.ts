@@ -1,7 +1,7 @@
 // Game controller: owns the scene objects and runs intro, menus, experiments and the finale.
 
 import * as THREE from 'three';
-import { LAUNCH, PALETTE, SUBSTANCES, TABLE, type SubstanceId } from '../config';
+import { COACH, LAUNCH, PALETTE, SUBSTANCES, TABLE, type SubstanceId } from '../config';
 import { sound } from '../audio/Sound';
 import { simulate, sampleAt, type SimResult } from '../physics/ballPhysics';
 import { launchVectors, MAX_SPIN, toRpm, type ShotInput } from '../physics/shot';
@@ -59,7 +59,7 @@ interface Stats {
 }
 
 const TRAINING: ExperimentDef = {
-  id: 'perfect', code: 'TR', name: 'FREIES TRAINING', tagline: 'Kein Druck. Nur Physik.',
+  id: 'perfect', code: 'TR', name: 'FREIES TRAINING', tagline: 'Nach Methode Rolf: wiederholen, bis es sitzt.',
   intro: 'Freies Training. Keine Punkte, keine Zeugen. Probier alle Substanzen aus.',
   passAt: 99,
   rounds: [{
@@ -77,7 +77,7 @@ const TRAINING: ExperimentDef = {
 const LAB_STATIONS: { title: string; text: string; shot: Shot; bot?: THREE.Vector3 }[] = [
   {
     title: 'DER TISCH',
-    text: '2,74 × 1,525 m, 76 cm hoch. Ein rotierender Ball zieht die Luft auf einer Seite mit — das ist der Magnus-Effekt. Topspin drückt den Ball nach unten und lässt ihn nach dem Aufprall nach vorne schießen. Unterschnitt trägt ihn und bremst ihn am Tisch.',
+    text: '2,74 × 1,525 m, 76 cm hoch, abgenommen von Trainer Rolf. Ein rotierender Ball zieht die Luft auf einer Seite mit — das ist der Magnus-Effekt. Topspin drückt den Ball nach unten und lässt ihn nach dem Aufprall nach vorne schießen. Unterschnitt trägt ihn und bremst ihn am Tisch.',
     shot: { pos: v(1.2, 1.1, 1.6), look: v(0, 0.8, -0.2) },
   },
   {
@@ -88,7 +88,7 @@ const LAB_STATIONS: { title: string; text: string; shot: Shot; bot?: THREE.Vecto
   },
   {
     title: 'GRAVITATIONSRING',
-    text: 'Unser Ringbeschleuniger erzeugt lokale Gravitationsfelder. Im Experiment 03 wechselt die Schwerkraft zwischen 1 g, 0,25 g, 2,6 g und sogar leicht negativ. Das Raster über dem Tisch zeigt dir, was gerade los ist.',
+    text: 'Unser Ringbeschleuniger erzeugt lokale Gravitationsfelder. Im Experiment 03 wechselt die Schwerkraft zwischen 1 g, 0,25 g, 2,6 g und sogar leicht negativ. Das Raster über dem Tisch zeigt dir, was gerade los ist. Für das Finale erzeugt der Ring das R.O.L.F.-Feld (Rotations-Optimiertes Labor-Feld): dreifacher Magnus-Effekt. Benannt nach dem einzigen Menschen, der angeblich auch ohne Feld so schneidet.',
     shot: { pos: v(0.4, 2.2, -2.6), look: v(0, 2.8, -7.2) },
     bot: v(1.2, 2.4, -3.6),
   },
@@ -100,7 +100,7 @@ const LAB_STATIONS: { title: string; text: string; shot: Shot; bot?: THREE.Vecto
   },
   {
     title: 'DR. SPIN',
-    text: 'Forschungsroboter, Baujahr unbekannt, Humor-Modul nicht deaktivierbar. Zuständig für Kommentare, Statistik und emotionale Unterstützung. Zitat: „Der Ball hat mehr Spin als mein gesamtes Betriebssystem.“',
+    text: 'Forschungsroboter, Baujahr unbekannt, Humor-Modul nicht deaktivierbar. Zuständig für Kommentare, Statistik und emotionale Unterstützung. Untersteht direkt Trainer Rolf, was er niemandem erzählt. Zitat: „Der Ball hat mehr Spin als mein gesamtes Betriebssystem.“',
     shot: { pos: v(-0.4, 1.6, 1.9), look: v(-1.0, 1.55, 0.9) },
     bot: v(-0.95, 1.55, 0.95),
   },
@@ -242,16 +242,26 @@ export class Game {
   }
 
   // ======================================================================== boot & intro
+  private get coachPlays() { return (store.settings.name || '').trim().toUpperCase() === COACH; }
+
   boot() {
     show('boot');
-    $('bootBtn').addEventListener('click', () => {
+    const stored = (store.settings.name || 'SPIELER').toUpperCase();
+    if (stored !== 'SPIELER' && stored !== COACH) $('bootMe').textContent = stored;
+    const enter = (coach: boolean) => {
+      if (coach) store.setSettings({ name: COACH });
+      else if (this.coachPlays) store.setSettings({ name: 'SPIELER' });
+      ($('setName') as HTMLInputElement).value = store.settings.name;
+      $('introCoach').textContent = coach ? 'PROBAND: TRAINER ROLF' : 'AUFSICHT: TRAINER ROLF';
       sound.unlock();
       try {
         const el = document.documentElement as HTMLElement & { webkitRequestFullscreen?: () => void };
         if (matchMedia('(pointer: coarse)').matches) (el.requestFullscreen?.() ?? el.webkitRequestFullscreen?.())?.catch?.(() => {});
       } catch { /* not supported (iPad Safari) — fine */ }
       this.startIntro();
-    }, { once: true });
+    };
+    $('bootBtn').addEventListener('click', () => enter(false), { once: true });
+    $('bootCoach').addEventListener('click', () => enter(true), { once: true });
   }
 
   private applyDarkness(k: number) {
@@ -365,7 +375,7 @@ export class Game {
     this.lab.emitter.visible = true;
     this.bot.group.visible = true;
     this.enterMenu();
-    this.say('greet', 2);
+    this.say(this.coachPlays ? 'rolfGreet' : 'greet', 2);
   }
 
   // ======================================================================== menu
@@ -569,7 +579,7 @@ export class Game {
     };
     EXPERIMENTS.forEach((e, i) => mk(`EXPERIMENT ${e.code}`, e.name, e.tagline, store.best(e.id) ? fmt(store.best(e.id)) : '—',
       store.isCompleted(e.id), e.id === 'finale' ? 'finale' : '', () => this.startExperiment(e.id, false), i));
-    mk('LABOR', 'FREIES TRAINING', 'Alle Substanzen, unbegrenzte Versuche.', '∞', false, '', () => this.startTraining(), EXPERIMENTS.length);
+    mk('LABOR', 'FREIES TRAINING', 'Nach Methode Rolf: wiederholen, bis es sitzt.', '∞', false, '', () => this.startTraining(), EXPERIMENTS.length);
   }
 
   private renderScores() {
@@ -654,7 +664,7 @@ export class Game {
     only(['hud'], ALL_SCREENS);
     this.speech.setSide(false);
     this.cam.script = null;
-    this.cam.setPortrait(innerWidth < innerHeight);
+    this.cam.setPortrait(innerWidth < innerHeight, Math.min(innerWidth, innerHeight) < 600);
     this.cam.go(this.cam.playShot(), 1.8);
     this.bot.setHome(innerWidth < innerHeight ? v(-0.75, 1.55, -0.2) : v(-1.25, 1.4, -0.45));
     this.bot.moveTo(null);
@@ -665,6 +675,7 @@ export class Game {
     $('btnSound').classList.toggle('muted', !store.settings.sound);
     $('pSound').textContent = `TON: ${store.settings.sound ? 'AN' : 'AUS'}`;
     this.fx.traj.hidePast();
+    $('analysis').classList.remove('on');
     this.updateRotateHint();
     this.say(null, 2, exp.intro, 'talk');
     this.startRound();
@@ -999,6 +1010,7 @@ export class Game {
       const curve = Math.abs(s.input.spinX) > 0.6;
       if (st.combo >= 3 && st.combo % 3 === 0) this.say('combo', 2);
       else if (curve && Math.random() < 0.6) this.say('curve', 2);
+      else if (Math.random() < 0.3) this.say(this.coachPlays ? 'selfHit' : 'coachHit', 2);
       else this.say(o.perfect ? 'perfect' : 'hit', o.perfect ? 2 : 1);
     } else {
       st.combo = 0;
@@ -1014,7 +1026,7 @@ export class Game {
       if (exp.id === 'finale') this.finaleFail();
       else {
         const key: LineKey = o.reason === 'miss' ? (o.distance < this.stage.target.radius * 2 ? 'close' : 'wide') : (o.reason as LineKey);
-        this.say(key);
+        this.say(Math.random() < 0.3 ? (this.coachPlays ? 'selfMiss' : 'coachMiss') : key);
       }
     }
   }
@@ -1198,13 +1210,14 @@ export class Game {
       return { pos, look: v(hp.x * (1 - k), TOP + 0.05 * (1 - k), hp.z * (1 - k * 0.6)) };
     };
     this.advance(3.0, () => {
-      this.dimTarget = 0.25;
+      this.dimTarget = 0.45;
       letterbox(false);
       this.mode = 'finaleWin';
       $('fwScore').textContent = fmt(this.stats.score);
       const prior = Object.entries(this.campaignScores).reduce((a, [id, sc]) => a + (id === 'finale' ? 0 : sc ?? 0), 0);
       $('fwTotal').textContent = this.campaign ? `KAMPAGNE GESAMT: ${fmt(prior + this.stats.score)}` : `IM ${this.finaleFails + 1}. VERSUCH`;
       $('fwQuote').textContent = pickLine('finaleWin').text;
+      $('fwStamp').textContent = this.coachPlays ? 'ALS TRAINER-REFERENZ GESPEICHERT' : 'ZUR VORLAGE BEI TRAINER ROLF';
       only(['finaleWin'], ALL_SCREENS);
       this.speech.hide();
       this.bot.react();
@@ -1227,12 +1240,12 @@ export class Game {
     const exp = this.exp!;
     if (exp.id === 'finale') {
       const n = this.finaleFails + 1;
-      return n <= 2 ? { letter: 'S', name: 'NOBELPREISVERDÄCHTIG' } : n <= 5 ? { letter: 'A', name: 'LABORLEITUNG' } : n <= 10 ? { letter: 'B', name: 'OBERASSISTENZ' } : { letter: 'C', name: 'BEHARRLICHKEITSFORSCHUNG' };
+      return n <= 2 ? { letter: 'S', name: 'ROLF-NIVEAU' } : n <= 5 ? { letter: 'A', name: 'LABORLEITUNG' } : n <= 10 ? { letter: 'B', name: 'OBERASSISTENZ' } : { letter: 'C', name: 'BEHARRLICHKEITSFORSCHUNG' };
     }
     const rate = st.roundsWon / exp.rounds.length;
     const acc = st.hits ? st.accSum / st.hits : 0;
-    if (rate >= 1 && acc > 0.55) return { letter: 'S', name: 'NOBELPREISVERDÄCHTIG' };
-    if (rate >= 0.8) return { letter: 'A', name: 'LABORLEITUNG' };
+    if (rate >= 1 && acc > 0.55) return { letter: 'S', name: 'ROLF-NIVEAU' };
+    if (rate >= 0.8) return { letter: 'A', name: 'NOBELPREISVERDÄCHTIG' };
     if (rate >= 0.6) return { letter: 'B', name: 'OBERASSISTENZ' };
     if (rate >= 0.4) return { letter: 'C', name: 'DOKTORAND' };
     return { letter: 'D', name: 'PRAKTIKUM' };
@@ -1418,13 +1431,15 @@ export class Game {
 
   private updateRotateHint() {
     const touch = matchMedia('(pointer: coarse)').matches;
-    $('rotateHint').classList.toggle('on', touch && innerWidth < innerHeight && this.mode === 'play' && !this.rotateDismissed);
+    // phones get a dedicated portrait layout; only tablets are nudged towards landscape
+    const tablet = Math.min(innerWidth, innerHeight) >= 600;
+    $('rotateHint').classList.toggle('on', touch && tablet && innerWidth < innerHeight && this.mode === 'play' && !this.rotateDismissed);
   }
 
   private onResize() {
     this.r.resize();
     this.fx.setViewport(this.r.viewportHeight);
-    this.cam.setPortrait(innerWidth < innerHeight);
+    this.cam.setPortrait(innerWidth < innerHeight, Math.min(innerWidth, innerHeight) < 600);
     if (this.mode === 'play' && !this.cam.script) this.cam.go(this.cam.playShot(), 3);
     this.updateRotateHint();
     this.pad.set(this.pad.x, this.pad.y);
