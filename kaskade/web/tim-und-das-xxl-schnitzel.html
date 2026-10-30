@@ -14,7 +14,7 @@ html, body { height: 100%; }
 [hidden] { display: none !important; }
 body { margin: 0; background: var(--ink); color: var(--fg); font-family: var(--body); overflow: hidden; -webkit-user-select: none; user-select: none; -webkit-tap-highlight-color: transparent; touch-action: none; }
 button { font: inherit; color: inherit; border: 0; background: none; cursor: pointer; }
-#cv { position: fixed; inset: 0; width: 100%; height: 100%; display: block; }
+#cv { position: fixed; inset: 0; width: 100%; height: 100%; display: block; image-rendering: pixelated; }
 .btn { font-weight: 900; font-size: 18px; min-height: 54px; padding: 0 26px; border-radius: 16px; background: rgba(255,255,255,.12); border: 2px solid rgba(255,255,255,.2); }
 .btn.hot { background: linear-gradient(var(--pink), #c4125e); border: 0; box-shadow: 0 6px 0 #7a0a3a, 0 10px 24px rgba(255,61,139,.4); }
 .btn.go { background: linear-gradient(#6aff4a, #1fb800); color: #062200; border: 0; box-shadow: 0 6px 0 #0c5a00; }
@@ -117,6 +117,7 @@ button { font: inherit; color: inherit; border: 0; background: none; cursor: poi
       <button class="btn go" id="contBtn" type="button" hidden>Weiterspielen</button>
       <button class="btn go" id="levelsBtn" type="button" hidden>Levelauswahl</button>
       <button class="btn" id="outfitBtn" type="button">Outfits</button>
+      <button class="btn" id="pixBtn" type="button">Pixel: mittel</button>
       <button class="btn" id="musicTitleBtn" type="button">Musik: An</button>
       <button class="btn" id="helpBtn" type="button">Steuerung</button>
     </div>
@@ -217,11 +218,13 @@ function builder(w, theme, name) {
   L.check = (x, y = 11) => { L.checkpoints.push([x, y]); return L; };
   L.mover = (x, y, n, range, speed = 1.4) => { L.movers.push({ x: x * T, y: y * T, w: n * T, x0: x * T, range: range * T, speed }); return L; };
   L.startAt = (x, y) => { L.start = [x, y]; return L; };
+  L.set = (k, v) => { L[k] = v; return L; };
   L.finishAt = (x, y = 11) => { L.finish = [x, y]; return L; };
   return L;
 }
 function makeLevels() {
   const L1 = builder(150, "day", "Level 1 · Altstadt")
+    .set("school", 9)
     .ground(0, 24).mugs(6, 10, 5).enemy(18)
     .ground(28, 50).brick(30, 10, 3).mugs(30, 9, 3).arc(25, 10, 4)
     .brick(36, 10, 1).brick(38, 9, 1).brick(40, 8, 1).schn(40, 6)
@@ -649,6 +652,7 @@ function playLevel(n) {
     if (L.boss) sfx("boss");
     last = performance.now(); acc = 0;
     musicStop(); musicStart();
+    pixPulse(10, 45); dust = [];
     requestAnimationFrame(loop);
   });
 }
@@ -659,13 +663,124 @@ function loop(now) {
   if (!G || G.done) return;
   const dt = Math.min(100, now - last); last = now;
   if (!G.paused) { acc += dt; while (acc >= 1000 / 60) { step(); acc -= 1000 / 60; if (!G || G.done) return; } }
-  draw();
+  drawPixelated();
   requestAnimationFrame(loop);
+}
+
+
+// ================= Pixel look: low-res world, sharp text =================
+// Two pixel layers: the background in coarse pixels, figures and items in much finer pixels.
+const PIX_SIZES = { fein: [3, 1.5], mittel: [4, 2], grob: [6, 2.5] };
+let pixMode = "mittel", pixUnit = 1, figUnit = 1, pxUnit = 1, pix = { from: 1, t: 0, d: 1 }, dust = [];
+try { pixMode = localStorage.getItem("tim-pixel-size") || "mittel"; if (!PIX_SIZES[pixMode]) pixMode = "mittel"; } catch (e) {}
+const texts = [];
+const blurDesc = Object.getOwnPropertyDescriptor(CanvasRenderingContext2D.prototype, "shadowBlur");
+function pixLayer(unit) {
+  const c = document.createElement("canvas"), x = c.getContext("2d", { willReadFrequently: true });
+  // Text drawn into a pixel layer is remembered and drawn later at full resolution.
+  x.fillText = function (t, tx, ty) { texts.push({ t, x: tx, y: ty, u: unit(), m: this.getTransform(), font: this.font, fill: this.fillStyle, al: this.textAlign, bl: this.textBaseline, a: this.globalAlpha }); };
+  // Glows are measured in canvas pixels, so shrink them with the canvas.
+  Object.defineProperty(x, "shadowBlur", { get() { return blurDesc.get.call(this) * unit(); }, set(v) { blurDesc.set.call(this, x === figCtx ? 0 : v / unit()); } });
+  x.imageSmoothingEnabled = false;
+  return x;
+}
+const lowCtx = pixLayer(() => pixUnit), figCtx = pixLayer(() => figUnit);
+// Hard pixels instead of soft edges: fewer colour steps, no half-transparent rims, and a dark
+// one-pixel outline around every figure so outfits stay readable.
+const OUTLINE = [26, 18, 40];
+function crispen(x, outline) {
+  const w = x.canvas.width, h = x.canvas.height, img = x.getImageData(0, 0, w, h), d = img.data, q = v => Math.min(255, Math.round(v / 17) * 17);
+  for (let i = 0; i < d.length; i += 4) {
+    if (outline) { if (d[i + 3] < 120) { d[i + 3] = 0; continue; } d[i + 3] = 255; }
+    d[i] = q(d[i]); d[i + 1] = q(d[i + 1]); d[i + 2] = q(d[i + 2]);
+  }
+  if (outline) {
+    const solid = new Uint8Array(w * h);
+    for (let j = 0; j < w * h; j++) solid[j] = d[j * 4 + 3] ? 1 : 0;
+    for (let y = 0; y < h; y++) for (let xx = 0; xx < w; xx++) {
+      const j = y * w + xx; if (solid[j]) continue;
+      if ((xx > 0 && solid[j - 1]) || (xx < w - 1 && solid[j + 1]) || (y > 0 && solid[j - w]) || (y < h - 1 && solid[j + w])) { d[j * 4] = OUTLINE[0]; d[j * 4 + 1] = OUTLINE[1]; d[j * 4 + 2] = OUTLINE[2]; d[j * 4 + 3] = 255; }
+    }
+  }
+  x.putImageData(img, 0, 0);
+}
+function fitLayer(x, u) { const w = Math.ceil(cv.width / u), h = Math.ceil(cv.height / u); if (x.canvas.width !== w || x.canvas.height !== h) { x.canvas.width = w; x.canvas.height = h; } else { x.setTransform(1, 0, 0, 1, 0, 0); x.clearRect(0, 0, w, h); } }
+// Called inside draw() once the tiles are done: everything after that lands on the fine figure layer.
+let lowM = null;
+function toFigureLayer() {
+  const m = lowM = ctx.getTransform(), r = pixUnit / figUnit;
+  figCtx.setTransform(m.a * r, m.b * r, m.c * r, m.d * r, m.e * r, m.f * r);
+  ctx = figCtx;
+}
+function pixPulse(mult, frames) { pix = { from: mult, t: 0, d: frames }; }
+function drawPixelated() {
+  // Pixel sizes in device pixels; a pulse starts coarse and settles back (animated pixels).
+  const [bg, fig] = PIX_SIZES[pixMode];
+  let m = 1; if (pix.t < pix.d) { const q = pix.t / pix.d; m = 1 + (pix.from - 1) * Math.pow(1 - q, 2); pix.t++; }
+  pixUnit = Math.max(1, Math.round(bg * dpr * m)); figUnit = Math.max(1, Math.round(fig * dpr * m));
+  fitLayer(lowCtx, pixUnit); fitLayer(figCtx, figUnit);
+  texts.length = 0;
+  const main = ctx; ctx = lowCtx;
+  try { draw(); } finally { ctx = main; }
+  crispen(lowCtx, false); crispen(figCtx, true);
+  ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.imageSmoothingEnabled = false;
+  ctx.drawImage(lowCtx.canvas, 0, 0, lowCtx.canvas.width * pixUnit, lowCtx.canvas.height * pixUnit);
+  ctx.drawImage(figCtx.canvas, 0, 0, figCtx.canvas.width * figUnit, figCtx.canvas.height * figUnit);
+  for (const x of texts) {
+    const m2 = x.m, u = x.u; ctx.setTransform(m2.a * u, m2.b * u, m2.c * u, m2.d * u, m2.e * u, m2.f * u);
+    ctx.font = x.font; ctx.fillStyle = x.fill; ctx.textAlign = x.al; ctx.textBaseline = x.bl; ctx.globalAlpha = x.a;
+    CanvasRenderingContext2D.prototype.fillText.call(ctx, x.t, x.x, x.y);
+  }
+  ctx.globalAlpha = 1; ctx.setTransform(1, 0, 0, 1, 0, 0);
+}
+// Small pixel animations on top of the world: swaying grass, twinkling sparkles, running dust, birds.
+function drawPixelFx() {
+  // Grass, sparkles, dust and birds belong to the background layer (no outlines).
+  if (ctx === figCtx) { ctx = lowCtx; ctx.setTransform(lowM); }
+  const u = pxUnit, L = G.L, t = G.time, snap = v => Math.round(v / u) * u;
+  const x0 = Math.max(0, Math.floor(G.cam / T) - 1), x1 = Math.min(L.w - 1, Math.ceil((G.cam + vw) / T) + 1);
+  // grass blades on every grass top, each tile with its own rhythm
+  const th = THEMES[L.theme], indoor = L.theme === "boss";
+  if (!indoor) for (let y = 1; y < ROWS; y++) for (let x = x0; x <= x1; x++) {
+    if (L.g[y][x] !== "#" || tileAt(x, y - 1) === "#") continue;
+    for (let b = 0; b < 4; b++) {
+      const bx = x * T + 5 + b * 11 + ((x * 7 + b * 5) % 4), h = 2 + ((x + b * 3) % 3), sway = Math.round(Math.sin(t / 14 + x * .9 + b * 1.7) * 1.2);
+      ctx.fillStyle = b % 2 ? th.top : "rgba(255,255,255,.45)";
+      for (let i = 0; i < h; i++) ctx.fillRect(snap(bx + (i >= h - 1 ? sway * u : 0)), snap(y * T - (i + 1) * u), u, u);
+    }
+  }
+  // twinkle crosses around mugs and schnitzel
+  for (const e of G.ents) {
+    if (!e.alive || (e.t !== "mug" && e.t !== "schn" && e.t !== "outfit") || e.px < G.cam - 60 || e.px > G.cam + vw + 60) continue;
+    const ph = (t + e.bob * 20) % 70; if (ph > 24) continue;
+    const r = ph < 12 ? Math.ceil(ph / 4) : Math.ceil((24 - ph) / 4), a = (e.bob * 37) % 6.28;
+    const cx = snap(e.px + 24 + Math.cos(a) * 24), cy = snap(e.py + 18 + Math.sin(a) * 18);
+    ctx.fillStyle = e.t === "mug" ? "#d8ffc8" : "#fff2b0";
+    ctx.fillRect(cx, cy, u, u);
+    for (let i = 1; i <= r; i++) { ctx.fillRect(cx + i * u, cy, u, u); ctx.fillRect(cx - i * u, cy, u, u); ctx.fillRect(cx, cy + i * u, u, u); ctx.fillRect(cx, cy - i * u, u, u); }
+  }
+  // dust puffs behind the running player
+  const p = G.p;
+  if (p.ground && Math.abs(p.vx) > 2 && t % 5 === 0) dust.push({ x: p.x + p.w / 2 - Math.sign(p.vx) * 12, y: p.y + p.h - 2, vx: -Math.sign(p.vx) * .6, life: 22 });
+  if (p.ground && !p.wasGround) for (let i = 0; i < 6; i++) dust.push({ x: p.x + p.w / 2, y: p.y + p.h - 2, vx: (i - 2.5) * .7, life: 18 });
+  p.wasGround = p.ground;
+  dust = dust.filter(d => d.life > 0);
+  for (const d of dust) { d.x += d.vx; d.y -= .25; d.life--; ctx.globalAlpha = d.life / 22; ctx.fillStyle = "#f2ead8"; const s = (d.life > 11 ? 2 : 1) * u; ctx.fillRect(snap(d.x), snap(d.y), s, s); }
+  ctx.globalAlpha = 1;
+  // birds flapping across the sky (two-frame pixel wings)
+  ctx.fillStyle = L.theme === "night" ? "#d8d0f0" : "#2a3550";
+  if (!indoor) for (let i = 0; i < 3; i++) {
+    const bx = G.cam + ((i * 520 + t * (0.9 + i * .2)) % (vw + 200)) - 100, by = 90 + i * 46 + Math.sin(t / 30 + i) * 10, up = Math.floor(t / 9 + i) % 2;
+    const X = snap(bx), Y = snap(by);
+    ctx.fillRect(X, Y, u * 2, u);
+    ctx.fillRect(X - 2 * u, Y + (up ? -u : u), 2 * u, u); ctx.fillRect(X + 2 * u, Y + (up ? -u : u), 2 * u, u);
+    ctx.fillRect(X - 3 * u, Y + (up ? -2 * u : u), u, u); ctx.fillRect(X + 4 * u, Y + (up ? -2 * u : u), u, u);
+  }
 }
 
 function hurt() {
   const p = G.p; if (p.inv > 0 || G.done) return;
-  G.lives--; sfx("hurt"); G.shake = 14; burst(p.x + p.w / 2, p.y + p.h / 2, "#ff3d5a", 18);
+  G.lives--; sfx("hurt"); G.shake = 14; pixPulse(4, 40); burst(p.x + p.w / 2, p.y + p.h / 2, "#ff3d5a", 18);
   banner("NATÖRLICH STERBE ICH ALS STREAMER ZUERST");
   updateHud();
   if (G.lives <= 0) return gameOver();
@@ -692,7 +807,7 @@ function gameOver() {
   $("quitBtn").onclick = () => { G = null; res("quit"); };
 }
 function finishLevel() {
-  if (G.done) return; G.done = true; musicStop(); sfx("win");
+  if (G.done) return; G.done = true; musicStop(); sfx("win"); pixPulse(3, 60);
   const r = { mugs: G.mugs, schn: G.schn }, res = G.resolve, lives = G.lives;
   banner(G.boss ? "Gewonnen!" : "Alta GiG!");
   setTimeout(() => { G = { keepLives: true, lives }; res(r); }, 1500);
@@ -1237,17 +1352,19 @@ function draw() {
   if (!G || !G.L) return;
   const L = G.L, th = THEMES[L.theme], p = G.p;
   ctx.setTransform(1, 0, 0, 1, 0, 0);
-  const sg = ctx.createLinearGradient(0, 0, 0, cv.height); sg.addColorStop(0, th.sky[0]); sg.addColorStop(1, th.sky[1]);
-  ctx.fillStyle = sg; ctx.fillRect(0, 0, cv.width, cv.height);
-  const sx = G.shake ? (Math.random() - .5) * G.shake : 0, sy = G.shake ? (Math.random() - .5) * G.shake : 0;
+  const CW = ctx.canvas.width, CH = ctx.canvas.height, k = CH / cv.height;
+  const sg = ctx.createLinearGradient(0, 0, 0, CH); sg.addColorStop(0, th.sky[0]); sg.addColorStop(1, th.sky[1]);
+  ctx.fillStyle = sg; ctx.fillRect(0, 0, CW, CH);
+  const sx = G.shake ? (Math.random() - .5) * G.shake * k : 0, sy = G.shake ? (Math.random() - .5) * G.shake * k : 0;
   // The boss arena always fits on screen: scale down if needed and keep the floor at the bottom.
-  let sc = scale, oy = 0;
-  if (G.boss) { sc = Math.min(scale, cv.width / (L.w * T)); oy = cv.height / sc - ROWS * T; }
-  vw = cv.width / sc;
+  let sc = scale * k, oy = 0;
+  if (G.boss) { sc = Math.min(sc, CW / (L.w * T)); oy = CH / sc - ROWS * T; }
+  vw = CW / sc; pxUnit = 1 / sc;
   ctx.setTransform(sc, 0, 0, sc, sx, sy + oy * sc);
   drawBackdrop(th);
   ctx.translate(-Math.round(G.cam), 0);
   // tiles
+  const spikes = [];
   const x0 = Math.max(0, Math.floor(G.cam / T) - 1), x1 = Math.min(L.w - 1, Math.ceil((G.cam + vw) / T) + 1);
   for (let y = 0; y < ROWS; y++) for (let x = x0; x <= x1; x++) {
     const ch = L.g[y][x]; if (ch === ".") continue;
@@ -1263,15 +1380,20 @@ function draw() {
       ctx.fillStyle = "rgba(255,255,255,.25)"; ctx.fillRect(px + 3, py + 3, T - 6, 4);
     } else if (ch === "=") {
       ctx.fillStyle = "#e8e0f0"; roundRect(px + 2, py, T - 4, 14, 6); ctx.fill(); ctx.fillStyle = "#8a7aa8"; ctx.fillRect(px + 6, py + 14, 4, 8); ctx.fillRect(px + T - 10, py + 14, 4, 8);
-    } else if (ch === "^") {
-      ctx.fillStyle = "#d8dce8"; ctx.strokeStyle = "#4a4e60"; ctx.lineWidth = 2;
-      for (let k = 0; k < 3; k++) { ctx.beginPath(); ctx.moveTo(px + k * 16, py + T); ctx.lineTo(px + k * 16 + 8, py + 18); ctx.lineTo(px + k * 16 + 16, py + T); ctx.closePath(); ctx.fill(); ctx.stroke(); }
-    }
+    } else if (ch === "^") spikes.push([px, py]);
   }
   // movers
   for (const m of G.movers) { ctx.fillStyle = "#33e1ff"; roundRect(m.x, m.y, m.w, 16, 8); ctx.fill(); ctx.fillStyle = "rgba(255,255,255,.6)"; ctx.fillRect(m.x + 8, m.y + 3, m.w - 16, 3); ctx.fillStyle = "rgba(51,225,255,.3)"; ctx.fillRect(m.x + 10, m.y + 16, m.w - 20, 8); }
   // checkpoints
   for (const [cx, cy] of L.checkpoints) { const on = G.reached.has(cx + ":" + cy); ctx.fillStyle = "#ddd"; ctx.fillRect(cx * T + 20, cy * T - 50, 5, 98); ctx.fillStyle = on ? "#39ff14" : "#888"; ctx.beginPath(); ctx.moveTo(cx * T + 25, cy * T - 50); ctx.lineTo(cx * T + 62, cy * T - 38 + Math.sin(G.time / 8) * 3); ctx.lineTo(cx * T + 25, cy * T - 26); ctx.fill(); }
+  toFigureLayer();
+  // Spikes sit on the fine layer with an outline, so they stay easy to see.
+  for (const [px, py] of spikes) {
+    ctx.fillStyle = "#d8dce8"; ctx.strokeStyle = "#4a4e60"; ctx.lineWidth = 2;
+    for (let k = 0; k < 3; k++) { ctx.beginPath(); ctx.moveTo(px + k * 16, py + T); ctx.lineTo(px + k * 16 + 8, py + 18); ctx.lineTo(px + k * 16 + 16, py + T); ctx.closePath(); ctx.fill(); ctx.stroke(); }
+    // a glint wanders over the tips
+    const k = Math.floor(G.time / 12 + px / T) % 6; if (k < 3) { ctx.fillStyle = "#ffffff"; ctx.fillRect(px + k * 16 + 6, py + 21, 4, 5); }
+  }
   // finish: Valle
   if (L.finish) drawValle(L.finish[0] * T, L.finish[1] * T + T);
   // entities
@@ -1287,18 +1409,20 @@ function draw() {
   for (const sh of G.shots) drawShot(sh);
   // player
   if (!(p.inv > 0 && Math.floor(p.inv / 5) % 2)) drawTim(p);
+  drawPixelFx();
   for (const q of G.particles) { ctx.globalAlpha = Math.max(0, q.life / 50); ctx.fillStyle = q.color; ctx.fillRect(q.x - 3, q.y - 3, 6, 6); }
   ctx.globalAlpha = 1;
 }
 function roundRect(x, y, w, h, r) { ctx.beginPath(); ctx.moveTo(x + r, y); ctx.arcTo(x + w, y, x + w, y + h, r); ctx.arcTo(x + w, y + h, x, y + h, r); ctx.arcTo(x, y + h, x, y, r); ctx.arcTo(x, y, x + w, y, r); ctx.closePath(); }
 function drawBackdrop(th) {
   const c = G.cam;
+  if (G.L.theme === "boss") return drawStreamRoom();
   // sun/moon
   ctx.fillStyle = G.L.theme === "night" ? "rgba(255,255,230,.9)" : "rgba(255,250,200,.85)";
   ctx.beginPath(); ctx.arc(vw * .78, 110, 52, 0, Math.PI * 2); ctx.fill();
   // clouds
   ctx.fillStyle = "rgba(255,255,255,.55)";
-  for (let i = 0; i < 6; i++) { const x = ((i * 420 - c * .15) % (vw + 400) + vw + 400) % (vw + 400) - 200, y = 60 + (i * 53) % 120; ctx.beginPath(); ctx.ellipse(x, y, 70, 22, 0, 0, Math.PI * 2); ctx.ellipse(x + 40, y - 12, 46, 20, 0, 0, Math.PI * 2); ctx.fill(); }
+  for (let i = 0; i < 6; i++) { const x = ((i * 420 - c * .15 - G.time * .25) % (vw + 400) + vw + 400) % (vw + 400) - 200, y = 60 + (i * 53) % 120; ctx.beginPath(); ctx.ellipse(x, y, 70, 22, 0, 0, Math.PI * 2); ctx.ellipse(x + 40, y - 12, 46, 20, 0, 0, Math.PI * 2); ctx.fill(); }
   // far skyline
   for (let i = 0; i < 40; i++) {
     const w = 70 + (i * 37) % 60, h = 160 + (i * 71) % 220, x = i * 120 - (c * .3) % 120 - 120;
@@ -1311,11 +1435,12 @@ function drawBackdrop(th) {
   ctx.beginPath(); ctx.moveTo(0, vh);
   for (let x = 0; x <= vw + 40; x += 40) ctx.lineTo(x, vh - 2.4 * T - Math.sin((x + c * .55) / 160) * 40 - Math.sin((x + c * .55) / 70) * 14);
   ctx.lineTo(vw, vh); ctx.fill();
-  if (G.L.theme === "boss") drawSchool();
+  // Level 1: the school stands in the background and drifts by slower than the street.
+  if (G.L.school) drawSchool(G.L.school * T - c * .5, 16 * T);
 }
-function drawSchool() {
-  // Long yellow school building behind the arena (screen space, aligned with the fixed boss camera).
-  const x0 = -G.cam + 1.6 * T, w = (G.L.w - 3.2) * T, base = 12 * T, h = 5.2 * T, top = base - h;
+function drawSchool(x0, w) {
+  // Long yellow school building (screen space).
+  const base = 12 * T, h = 5.2 * T, top = base - h;
   ctx.fillStyle = "#e8c440"; ctx.fillRect(x0, top, w, h);
   ctx.fillStyle = "#c9a52a"; ctx.fillRect(x0, top + h * .5, w, 5);
   ctx.fillStyle = "#4a4f5c"; ctx.fillRect(x0 - 12, top - 16, w + 24, 18);
@@ -1334,6 +1459,74 @@ function drawSchool() {
   ctx.strokeStyle = "#ffffff"; ctx.lineWidth = 2; ctx.stroke();
   ctx.fillStyle = "#ffffff"; ctx.font = "800 20px Nunito, sans-serif"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
   ctx.fillText("ANTON WEILAMIER SCHULE", x0 + w / 2, sy + 17); ctx.textBaseline = "alphabetic";
+}
+// Boss arena: a dark streaming room with monitors, LED strip, ring light and mic (screen space, fixed boss camera).
+function drawStreamRoom() {
+  const t = G.time, ax = -G.cam, aw = G.L.w * T, cx = ax + aw / 2, floor = 12 * T;
+  const wall = ctx.createLinearGradient(0, 0, 0, vh); wall.addColorStop(0, "#1c1530"); wall.addColorStop(1, "#0d0a17");
+  ctx.fillStyle = wall; ctx.fillRect(0, -vh, vw, 3 * vh);
+  // acoustic foam panels
+  for (let y = 1.2 * T; y < 8.6 * T; y += 1.2 * T) for (let x = ax + 1.4 * T; x < ax + aw - 2.4 * T; x += 1.2 * T) {
+    const odd = (Math.round(x / (1.2 * T)) + Math.round(y / (1.2 * T))) % 2;
+    ctx.fillStyle = odd ? "#2a2044" : "#231a3a"; ctx.fillRect(x, y, 1.1 * T, 1.1 * T);
+    ctx.fillStyle = "rgba(0,0,0,.25)"; for (let k = 0; k < 4; k++) ctx.fillRect(x + 6 + k * 12, y + 4, 4, 1.1 * T - 8);
+  }
+  // LED strip under the ceiling, colour running along it
+  for (let x = ax + T; x < ax + aw - T; x += 12) { ctx.fillStyle = `hsl(${(x / 4 + t * 3) % 360},95%,60%)`; ctx.fillRect(x, .55 * T, 10, 7); }
+  ctx.fillStyle = "rgba(255,61,139,.10)"; ctx.fillRect(ax + T, .55 * T + 7, aw - 2 * T, 40);
+  // ON AIR sign
+  const on = Math.floor(t / 40) % 7 !== 0;
+  ctx.fillStyle = "#14101f"; roundRect(ax + 1.6 * T, 1.5 * T, 2.6 * T, .9 * T, 8); ctx.fill();
+  ctx.strokeStyle = on ? "#ff3d5a" : "#5a2030"; ctx.lineWidth = 3; ctx.stroke();
+  ctx.fillStyle = on ? "#ff3d5a" : "#5a2030"; ctx.font = "26px Bangers, Impact, sans-serif"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+  ctx.fillText("ON AIR", ax + 2.9 * T, 1.95 * T); ctx.textBaseline = "alphabetic";
+  // ring light (left) and mic arm (right)
+  const rx = ax + 3 * T, ry = 6.2 * T;
+  ctx.fillStyle = "#3a3450"; ctx.fillRect(rx - 3, ry, 6, floor - ry); ctx.fillRect(rx - 30, floor - 6, 60, 6);
+  ctx.strokeStyle = "#fff7e0"; ctx.lineWidth = 9; ctx.beginPath(); ctx.arc(rx, ry - 30, 34, 0, Math.PI * 2); ctx.stroke();
+  ctx.strokeStyle = "rgba(255,247,224,.18)"; ctx.lineWidth = 26; ctx.stroke();
+  // desk
+  const dw = 11 * T, dx = cx - dw / 2, dy = 9.4 * T;
+  ctx.fillStyle = "#2c2638"; ctx.fillRect(dx, dy, dw, 14); ctx.fillStyle = "#3d3550"; ctx.fillRect(dx, dy, dw, 4);
+  ctx.fillStyle = "#1e1a28"; ctx.fillRect(dx + 14, dy + 14, 12, floor - dy - 14); ctx.fillRect(dx + dw - 26, dy + 14, 12, floor - dy - 14);
+  ctx.fillStyle = "#ff3d8b"; ctx.fillRect(dx, dy + 14, dw, 3);
+  // keyboard with running RGB
+  for (let k = 0; k < 14; k++) { ctx.fillStyle = `hsl(${(k * 25 + t * 6) % 360},90%,60%)`; ctx.fillRect(cx - 70 + k * 10, dy - 6, 8, 6); }
+  // mic arm
+  const mx = cx + 3.9 * T;
+  ctx.strokeStyle = "#4a4460"; ctx.lineWidth = 6; ctx.beginPath(); ctx.moveTo(mx + 30, dy); ctx.lineTo(mx + 40, dy - 70); ctx.lineTo(mx, dy - 100); ctx.stroke();
+  ctx.fillStyle = "#16131f"; roundRect(mx - 12, dy - 130, 24, 40, 10); ctx.fill(); ctx.fillStyle = "#4a4460"; ctx.fillRect(mx - 12, dy - 112, 24, 3);
+  // three monitors
+  const screen = (x, y, w, h) => { ctx.fillStyle = "#0b0912"; roundRect(x - 6, y - 6, w + 12, h + 12, 6); ctx.fill(); ctx.fillStyle = "#3a3450"; ctx.fillRect(x + w / 2 - 6, y + h + 6, 12, dy - y - h - 6); ctx.fillRect(x + w / 2 - 24, dy - 4, 48, 4); };
+  const mw = 4.4 * T, mh = 2.6 * T, my = dy - mh - 1.1 * T;
+  const lx = cx - mw / 2 - 3.2 * T - 10, sw = 3.2 * T, sh = 2.2 * T, sy = my + .3 * T;
+  screen(lx, sy, sw, sh); screen(cx - mw / 2, my, mw, mh); screen(cx + mw / 2 + 10, sy, sw, sh);
+  // left: chat scrolling up
+  ctx.fillStyle = "#16122a"; ctx.fillRect(lx, sy, sw, sh);
+  ctx.save(); ctx.beginPath(); ctx.rect(lx, sy, sw, sh); ctx.clip();
+  const cols = ["#33e1ff", "#ff3d8b", "#39ff14", "#ffc531", "#b98cff"];
+  for (let i = 0; i < 12; i++) { const yy = sy + sh - ((t * .6 + i * 14) % (sh + 14)); const n = (i * 7 + Math.floor((t * .6 + i * 14) / (sh + 14)) * 3) % 5; ctx.fillStyle = cols[n]; ctx.fillRect(lx + 8, yy, 18, 6); ctx.fillStyle = "#cfc8e8"; ctx.fillRect(lx + 30, yy, 30 + (i * 37 + n * 11) % (sw - 50), 6); }
+  ctx.restore();
+  // middle: the stream itself (game view, webcam box, LIVE badge, viewers)
+  const g = ctx.createLinearGradient(0, my, 0, my + mh); g.addColorStop(0, "#5ac8ff"); g.addColorStop(1, "#2a6a9a");
+  ctx.fillStyle = g; ctx.fillRect(cx - mw / 2, my, mw, mh);
+  ctx.fillStyle = "#3a8a3a"; ctx.fillRect(cx - mw / 2, my + mh - 22, mw, 22);
+  for (let k = 0; k < 4; k++) { ctx.fillStyle = "#39ff14"; ctx.fillRect(cx - mw / 2 + 30 + ((k * 50 + t * 1.5) % (mw - 40)), my + mh - 50 + Math.sin(t / 10 + k) * 4, 10, 12); }
+  ctx.fillStyle = "#0b0912"; ctx.fillRect(cx + mw / 2 - 70, my + mh - 62, 64, 56);
+  ctx.fillStyle = "#5a4a7a"; ctx.fillRect(cx + mw / 2 - 68, my + mh - 60, 60, 52);
+  ctx.fillStyle = "#e3a27c"; ctx.beginPath(); ctx.arc(cx + mw / 2 - 38, my + mh - 34, 12, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = "#14101f"; ctx.fillRect(cx + mw / 2 - 52, my + mh - 18, 28, 10);
+  ctx.fillStyle = "#ff3d5a"; roundRect(cx - mw / 2 + 8, my + 8, 54, 20, 4); ctx.fill();
+  if (Math.floor(t / 30) % 2) { ctx.fillStyle = "#ffffff"; ctx.fillRect(cx - mw / 2 + 13, my + 15, 6, 6); }
+  ctx.fillStyle = "#ffffff"; ctx.font = "900 13px Nunito, sans-serif"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+  ctx.fillText("LIVE", cx - mw / 2 + 39, my + 18);
+  ctx.textAlign = "left"; ctx.fillStyle = "#ffffff"; ctx.font = "800 12px Nunito, sans-serif";
+  ctx.fillText(`${(1900 + Math.floor(t / 20) % 90).toLocaleString("de-DE")} Zuschauer`, cx - mw / 2 + 70, my + 18); ctx.textBaseline = "alphabetic";
+  // right: audio meter bouncing
+  ctx.fillStyle = "#16122a"; ctx.fillRect(cx + mw / 2 + 10, sy, sw, sh);
+  for (let k = 0; k < 12; k++) { const hgt = 10 + Math.abs(Math.sin(t / 7 + k * .9) * Math.cos(t / 13 + k)) * (sh - 30); ctx.fillStyle = k % 3 ? "#33e1ff" : "#ff3d8b"; ctx.fillRect(cx + mw / 2 + 22 + k * ((sw - 24) / 12), sy + sh - 8 - hgt, (sw - 24) / 12 - 4, hgt); }
+  // glow of the monitors on the wall
+  ctx.fillStyle = "rgba(90,200,255,.06)"; ctx.beginPath(); ctx.ellipse(cx, my + mh / 2, mw, mh * 1.4, 0, 0, Math.PI * 2); ctx.fill();
 }
 function drawMug(cx, cy, s) {
   ctx.save(); ctx.translate(cx, cy); ctx.scale(s, s);
@@ -1689,11 +1882,13 @@ function toTitle() {
   $("titleChars").innerHTML = PORTRAIT.tim() + PORTRAIT.faroo() + PORTRAIT.valle();
   $("contBtn").hidden = !(save.step > 0 && save.step < STORY.length);
   $("levelsBtn").hidden = !(save.completed || save.step >= STORY.length);
+  $("pixBtn").textContent = `Pixel: ${pixMode}`;
   $("musicTitleBtn").textContent = `Musik: ${musicOn() ? "An" : "Aus"}`; musicStop();
   document.querySelectorAll("#diff button").forEach(b => b.classList.toggle("sel", b.dataset.d === difficulty));
 }
 $("diff").addEventListener("click", e => { const b = e.target.closest("button"); if (!b) return; difficulty = b.dataset.d; store.write(); sfx("tap"); toTitle(); });
 $("newBtn").onclick = () => { save = { step: 0, totalMugs: 0, schnitzel: {} }; store.write(); runStory(); };
+$("pixBtn").onclick = () => { const ks = Object.keys(PIX_SIZES); pixMode = ks[(ks.indexOf(pixMode) + 1) % ks.length]; try { localStorage.setItem("tim-pixel-size", pixMode); } catch (err) {} sfx("tap"); toTitle(); };
 $("contBtn").onclick = () => runStory();
 const LEVEL_MENU = [
   { n: 0, title: "Level 1 · Altstadt", sub: "Tassen, Schnitzel, erste Brix-Bänke" },
