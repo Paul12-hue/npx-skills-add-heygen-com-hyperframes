@@ -1644,6 +1644,55 @@ function drawUpa(p) {
   drawUpaBody(s, run ? Math.sin(p.anim * 2.4) * .55 : (p.ground ? 0 : -1.2));
   ctx.restore();
 }
+// Jerk (Battle Pass tier 4): thin boy, slightly dark skin (between Brian and lighter), short dark curly hair,
+// light-blue tight jeans, black shoes, blue rain jacket. Throws small dark bombs.
+const JERK_SKIN = "#b88358";
+function drawJerkBody(step, armSwing) {
+  // tight light-blue jeans, black shoes
+  ctx.fillStyle = "#9cc4e8"; ctx.fillRect(-6 + step * .6, -16, 5, 16); ctx.fillRect(1.5 - step * .6, -16, 5, 16);
+  ctx.fillStyle = "#7aa6d0"; ctx.fillRect(-6 + step * .6, -9, 5, 1); ctx.fillRect(1.5 - step * .6, -9, 5, 1);
+  ctx.fillStyle = "#121216"; ctx.fillRect(-7.5 + step * .6, -3.5, 8, 4); ctx.fillRect(.5 - step * .6, -3.5, 8, 4);
+  // back arm: rain-jacket sleeve + hand
+  ctx.save(); ctx.translate(-5, -31); ctx.rotate(-armSwing * .8);
+  ctx.fillStyle = "#1f5ab8"; roundRect(-2.6, 0, 5.2, 14, 2.6); ctx.fill(); circ(0, 15, 2.6, JERK_SKIN); ctx.restore();
+  // slim blue rain jacket: shiny, hood folded at the back, zip, drawstrings
+  ctx.fillStyle = "#2a6ad4"; roundRect(-10, -34, 20, 21, 5); ctx.fill();
+  ctx.fillStyle = "#1f5ab8"; roundRect(-12, -36, 9, 7, 3.5); ctx.fill(); // hood at the back
+  ctx.fillStyle = "rgba(255,255,255,.35)"; ctx.fillRect(-8, -31, 2, 12); ctx.fillRect(6, -30, 1.5, 7); // shine
+  ctx.fillStyle = "#c8d4e8"; ctx.fillRect(-.6, -33, 1.3, 19);
+  ctx.strokeStyle = "#e8eef8"; ctx.lineWidth = .9; ctx.beginPath(); ctx.moveTo(-2.5, -33); ctx.lineTo(-3, -28); ctx.moveTo(2.5, -33); ctx.lineTo(3, -28); ctx.stroke();
+  ctx.fillStyle = "#1f5ab8"; ctx.fillRect(-10, -15, 20, 2);
+  // front arm
+  ctx.save(); ctx.translate(5, -31); ctx.rotate(armSwing);
+  ctx.fillStyle = "#2a6ad4"; roundRect(-2.6, 0, 5.4, 14, 2.6); ctx.fill(); ctx.fillStyle = "#1f5ab8"; ctx.fillRect(-2.6, 11.5, 5.4, 2);
+  circ(.1, 15.5, 2.8, JERK_SKIN); ctx.restore();
+  // neck + slim head
+  ctx.fillStyle = "#a07048"; ctx.fillRect(-2.5, -37, 5, 4);
+  ctx.fillStyle = JERK_SKIN; ctx.beginPath(); ctx.ellipse(0, -46, 11, 13, 0, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = "#a07048"; ctx.beginPath(); ctx.ellipse(-9.5, -45, 2.4, 3.4, 0, 0, Math.PI * 2); ctx.fill(); // ear
+  // short dark curly hair: tight small curls close to the head
+  ctx.fillStyle = "#0e0e12";
+  for (const [x, y, r] of [[-9.5, -52, 2.6], [-6.5, -55.5, 2.7], [-2.5, -57.5, 2.8], [1.5, -58, 2.7], [5.5, -56.5, 2.5], [8.5, -53.5, 2.1], [-10.5, -48, 2.2], [-4, -54, 2.4], [1, -54.5, 2.3]]) { ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fill(); }
+  ctx.strokeStyle = "#2a2a34"; ctx.lineWidth = .8; for (const [x, y] of [[-6.5, -55.5], [-2.5, -57.5], [1.5, -58], [5.5, -56.5], [-9.5, -52]]) { ctx.beginPath(); ctx.arc(x, y, 1.2, .5, 4.5); ctx.stroke(); }
+  // face looking ahead
+  circ(5, -46, 1.9, "#1a1a1a"); circ(5.6, -46.6, .6, "#ffffff");
+  ctx.fillStyle = "#0e0e12"; ctx.fillRect(3, -50.5, 5, 1.3);
+  ctx.strokeStyle = "#5a2a1a"; ctx.lineWidth = 1.6; ctx.beginPath(); ctx.arc(5, -40.5, 3, .25, Math.PI - .5); ctx.stroke();
+}
+function drawJerk(p) {
+  const run = p.ground && Math.abs(p.vx) > .5, s = run ? Math.sin(p.anim * 2.4) * 7 : 0;
+  ctx.save(); ctx.translate(p.x + p.w / 2, p.y + p.h); ctx.scale(p.face, 1);
+  drawJerkBody(s, run ? Math.sin(p.anim * 2.4) * .6 : (p.ground ? 0 : -1.2));
+  ctx.restore();
+}
+function drawMiniBomb(t) {
+  // small dark bomb with a burning fuse
+  ctx.fillStyle = "#24242c"; ctx.beginPath(); ctx.arc(0, 1, 7.5, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = "#4a4a56"; ctx.beginPath(); ctx.arc(-2.5, -1.5, 2.4, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = "#3a3a44"; ctx.fillRect(-2, -8, 4, 3);
+  ctx.strokeStyle = "#c8a060"; ctx.lineWidth = 1.2; ctx.beginPath(); ctx.moveTo(0, -8); ctx.quadraticCurveTo(3, -11, 2, -13); ctx.stroke();
+  const f = Math.floor(t * 3) % 2; ctx.fillStyle = f ? "#ffd21e" : "#ff7a1a"; ctx.beginPath(); ctx.arc(2, -13.5, f ? 2.2 : 1.6, 0, Math.PI * 2); ctx.fill();
+}
 // ===== New skins: in-game sprites (canvas) and story portrait overlays (SVG) =====
 function rr(x, y, w, h, r) { ctx.beginPath(); ctx.moveTo(x + r, y); ctx.arcTo(x + w, y, x + w, y + h, r); ctx.arcTo(x + w, y + h, x, y + h, r); ctx.arcTo(x, y + h, x, y, r); ctx.arcTo(x, y, x + w, y, r); ctx.closePath(); }
 function circ(x, y, r, c) { ctx.fillStyle = c; ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fill(); }
@@ -1893,6 +1942,8 @@ function drawShot(sh) {
     ctx.fillStyle = "#e07a1a"; ctx.beginPath(); ctx.ellipse(0, -5.5, 10, 3, 0, Math.PI, 0); ctx.fill(); // curry on top
     ctx.fillStyle = "#b8561a"; ctx.fillRect(-4, -7.5, 2.5, 2); ctx.fillRect(2, -7, 2.5, 2);
     ctx.fillStyle = "#3a9a3a"; ctx.fillRect(-1, -8, 2, 1.5); ctx.fillRect(5, -6.5, 1.5, 1.5);
+  } else if (sh.kind === "jerk") {    // small dark bomb
+    ctx.rotate(-sh.rot + Math.sin(sh.rot) * .4); drawMiniBomb(sh.rot);
   } else if (sh.kind === "valka") {   // croissant
     drawCroissant();
   } else if (sh.kind === "dennis") {  // energy can
@@ -2500,9 +2551,9 @@ async function playSingle(n) {
 // Every PASS_STEP mugs (over all runs, never reset) unlock the next tier. Each tier unlocks a playable character.
 // The characters are still to be chosen: tiers without one show "kommt bald".
 const PASS_STEP = 200;
-const PASS_TIERS = ["brian", "valka", "upa", null, null]; // character ids per tier; null = still to be decided
+const PASS_TIERS = ["brian", "valka", "upa", "jerk", null]; // character ids per tier; null = still to be decided
 // Playable characters: draw(p) paints the player sprite (like drawTim). Tim is always there.
-const PLAYABLE = { tim: { name: "Tim", skinKey: "tim", shot: "tim" }, brian: { name: "Brian", draw: drawBrian, shot: "brian" }, valka: { name: "Valka", draw: drawValka, shot: "valka" }, upa: { name: "Upamanju", draw: drawUpa, shot: "upa" } };
+const PLAYABLE = { tim: { name: "Tim", skinKey: "tim", shot: "tim" }, brian: { name: "Brian", draw: drawBrian, shot: "brian" }, valka: { name: "Valka", draw: drawValka, shot: "valka" }, upa: { name: "Upamanju", draw: drawUpa, shot: "upa" }, jerk: { name: "Jerk", draw: drawJerk, shot: "jerk" } };
 function passMugs() { if (typeof save.passMugs !== "number") save.passMugs = save.totalMugs || 0; return save.passMugs; }
 function passTier() { return Math.min(PASS_TIERS.length, Math.floor(passMugs() / PASS_STEP)); }
 function playerChar() { const c = save.char; return c && PLAYABLE[c] && charUnlocked(c) ? c : "tim"; }
