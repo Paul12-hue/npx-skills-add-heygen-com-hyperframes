@@ -14,7 +14,7 @@ html, body { height: 100%; }
 [hidden] { display: none !important; }
 body { margin: 0; background: var(--ink); color: var(--fg); font-family: var(--body); overflow: hidden; -webkit-user-select: none; user-select: none; -webkit-tap-highlight-color: transparent; touch-action: none; }
 button { font: inherit; color: inherit; border: 0; background: none; cursor: pointer; }
-#cv { position: fixed; inset: 0; width: 100%; height: 100%; display: block; }
+#cv { position: fixed; inset: 0; width: 100%; height: 100%; display: block; image-rendering: pixelated; }
 .btn { font-weight: 900; font-size: 18px; min-height: 54px; padding: 0 26px; border-radius: 16px; background: rgba(255,255,255,.12); border: 2px solid rgba(255,255,255,.2); }
 .btn.hot { background: linear-gradient(var(--pink), #c4125e); border: 0; box-shadow: 0 6px 0 #7a0a3a, 0 10px 24px rgba(255,61,139,.4); }
 .btn.go { background: linear-gradient(#6aff4a, #1fb800); color: #062200; border: 0; box-shadow: 0 6px 0 #0c5a00; }
@@ -672,24 +672,45 @@ function loop(now) {
 
 // ================= Pixel test: low-res world, sharp text =================
 // Two pixel layers: the background in coarse pixels, figures and items in much finer pixels.
-const PIX_SIZES = { fein: [2, 1], mittel: [3, 1.5], grob: [4, 2] };
+const PIX_SIZES = { fein: [3, 1.5], mittel: [4, 2], grob: [6, 2.5] };
 let pixMode = "mittel", pixUnit = 1, figUnit = 1, pxUnit = 1, pix = { from: 1, t: 0, d: 1 }, dust = [];
 try { pixMode = localStorage.getItem("tim-pixel-size") || "mittel"; if (!PIX_SIZES[pixMode]) pixMode = "mittel"; } catch (e) {}
 const texts = [];
 const blurDesc = Object.getOwnPropertyDescriptor(CanvasRenderingContext2D.prototype, "shadowBlur");
 function pixLayer(unit) {
-  const c = document.createElement("canvas"), x = c.getContext("2d");
+  const c = document.createElement("canvas"), x = c.getContext("2d", { willReadFrequently: true });
   // Text drawn into a pixel layer is remembered and drawn later at full resolution.
   x.fillText = function (t, tx, ty) { texts.push({ t, x: tx, y: ty, u: unit(), m: this.getTransform(), font: this.font, fill: this.fillStyle, al: this.textAlign, bl: this.textBaseline, a: this.globalAlpha }); };
   // Glows are measured in canvas pixels, so shrink them with the canvas.
-  Object.defineProperty(x, "shadowBlur", { get() { return blurDesc.get.call(this) * unit(); }, set(v) { blurDesc.set.call(this, v / unit()); } });
+  Object.defineProperty(x, "shadowBlur", { get() { return blurDesc.get.call(this) * unit(); }, set(v) { blurDesc.set.call(this, x === figCtx ? 0 : v / unit()); } });
+  x.imageSmoothingEnabled = false;
   return x;
 }
 const lowCtx = pixLayer(() => pixUnit), figCtx = pixLayer(() => figUnit);
+// Hard pixels instead of soft edges: fewer colour steps, no half-transparent rims, and a dark
+// one-pixel outline around every figure so outfits stay readable.
+const OUTLINE = [26, 18, 40];
+function crispen(x, outline) {
+  const w = x.canvas.width, h = x.canvas.height, img = x.getImageData(0, 0, w, h), d = img.data, q = v => Math.min(255, Math.round(v / 17) * 17);
+  for (let i = 0; i < d.length; i += 4) {
+    if (outline) { if (d[i + 3] < 120) { d[i + 3] = 0; continue; } d[i + 3] = 255; }
+    d[i] = q(d[i]); d[i + 1] = q(d[i + 1]); d[i + 2] = q(d[i + 2]);
+  }
+  if (outline) {
+    const solid = new Uint8Array(w * h);
+    for (let j = 0; j < w * h; j++) solid[j] = d[j * 4 + 3] ? 1 : 0;
+    for (let y = 0; y < h; y++) for (let xx = 0; xx < w; xx++) {
+      const j = y * w + xx; if (solid[j]) continue;
+      if ((xx > 0 && solid[j - 1]) || (xx < w - 1 && solid[j + 1]) || (y > 0 && solid[j - w]) || (y < h - 1 && solid[j + w])) { d[j * 4] = OUTLINE[0]; d[j * 4 + 1] = OUTLINE[1]; d[j * 4 + 2] = OUTLINE[2]; d[j * 4 + 3] = 255; }
+    }
+  }
+  x.putImageData(img, 0, 0);
+}
 function fitLayer(x, u) { const w = Math.ceil(cv.width / u), h = Math.ceil(cv.height / u); if (x.canvas.width !== w || x.canvas.height !== h) { x.canvas.width = w; x.canvas.height = h; } else { x.setTransform(1, 0, 0, 1, 0, 0); x.clearRect(0, 0, w, h); } }
 // Called inside draw() once the tiles are done: everything after that lands on the fine figure layer.
+let lowM = null;
 function toFigureLayer() {
-  const m = ctx.getTransform(), r = pixUnit / figUnit;
+  const m = lowM = ctx.getTransform(), r = pixUnit / figUnit;
   figCtx.setTransform(m.a * r, m.b * r, m.c * r, m.d * r, m.e * r, m.f * r);
   ctx = figCtx;
 }
@@ -703,6 +724,7 @@ function drawPixelated() {
   texts.length = 0;
   const main = ctx; ctx = lowCtx;
   try { draw(); } finally { ctx = main; }
+  crispen(lowCtx, false); crispen(figCtx, true);
   ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.imageSmoothingEnabled = false;
   ctx.drawImage(lowCtx.canvas, 0, 0, lowCtx.canvas.width * pixUnit, lowCtx.canvas.height * pixUnit);
   ctx.drawImage(figCtx.canvas, 0, 0, figCtx.canvas.width * figUnit, figCtx.canvas.height * figUnit);
@@ -715,6 +737,8 @@ function drawPixelated() {
 }
 // Small pixel animations on top of the world: swaying grass, twinkling sparkles, running dust, birds.
 function drawPixelFx() {
+  // Grass, sparkles, dust and birds belong to the background layer (no outlines).
+  if (ctx === figCtx) { ctx = lowCtx; ctx.setTransform(lowM); }
   const u = pxUnit, L = G.L, t = G.time, snap = v => Math.round(v / u) * u;
   const x0 = Math.max(0, Math.floor(G.cam / T) - 1), x1 = Math.min(L.w - 1, Math.ceil((G.cam + vw) / T) + 1);
   // grass blades on every grass top, each tile with its own rhythm
