@@ -1124,7 +1124,7 @@ function faroStep() {
 // Lena Laux: shouts "NICO", which flattens all enemies. Rolf: big table-tennis table sends out a shock wave.
 // Weaknesses: Brendon and Dennis jump lower and are slower, Lena gets tired for 5 s every 15 s, Rolf is slower
 // (and turning into Rolf costs a life).
-const ULT = { brendon: { cd: 600 }, dennis: { cd: 720 }, lena: { cd: 720 }, rolf: { cd: 720 } };
+const ULT = { brendon: { cd: 600 }, dennis: { cd: 600 }, lena: { cd: 600 }, rolf: { cd: 600 } };
 function lenaTired() { return G.form === "opa" && G.ttChar === "lena" && (G.time - (G.formT || 0)) % 1200 >= 900; }
 function formStats() {
   if (G.form !== "opa") return { speed: 1, jump: 1 };
