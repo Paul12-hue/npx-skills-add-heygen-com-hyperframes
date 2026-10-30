@@ -2628,17 +2628,18 @@ function battlePass() {
   $("passBack").onclick = toTitle;
 }
 // Asked before every start: which character, and which of its unlocked skins.
-function pickPlayer(go, back = toTitle) {
+function pickPlayer(go, back = toTitle, listOpen = false) {
   const ids = Object.keys(PLAYABLE), cur = playerChar(), key = PLAYABLE[cur].skinKey, skins = key ? SKIN_DEFS[key] : [];
   modal(`<h2>Wer spielt?</h2>
-    <div class="rowb">${ids.map(id => { const ok = charUnlocked(id), i = PASS_TIERS.indexOf(id); return `<button class="btn${cur === id ? " sel" : ""}" data-ch="${id}" type="button" ${ok ? "" : "disabled"}>${PLAYABLE[id].name}${ok ? "" : ` · ${save.completed ? `Battle Pass Stufe ${i + 1}` : "nach der Story"}`}</button>`; }).join("")}</div>
-    ${ids.length === 1 ? `<p>Weitere Charaktere schaltest du im Battle Pass frei und spielst sie nach der Story.</p>` : ""}
+    <button class="btn sel" id="chOpen" type="button" aria-expanded="${listOpen}" style="min-width:220px;align-self:center">${PLAYABLE[cur].name} ${listOpen ? "▴" : "▾"}</button>
+    ${listOpen ? `<div class="stack" style="width:100%;max-width:420px;margin:0 auto">${ids.map(id => { const ok = charUnlocked(id), i = PASS_TIERS.indexOf(id); return `<button class="btn${cur === id ? " sel" : ""}" data-ch="${id}" type="button" style="width:100%" ${ok ? "" : "disabled"}>${PLAYABLE[id].name}${ok ? "" : ` · ${save.completed ? `Battle Pass Stufe ${i + 1}` : "nach der Story"}`}</button>`; }).join("")}</div>` : ""}
     ${!skins.length && PLAYABLE[cur].draw ? `<canvas id="charPrev" width="110" height="120" style="display:block;margin:0 auto"></canvas>` : ""}
     ${skins.length ? `<p>Skin</p><div class="skinopts" style="justify-content:center">${skins.map(([id, label]) => { const ok = hasSkin(key, id), sel = skinOf(key) === id; return `<button class="skinopt${sel ? " on" : ""}${ok ? "" : " locked"}" data-sk="${id}" type="button" ${ok ? "" : "disabled"}><canvas width="110" height="120" data-sk="${id}"></canvas><span>${label}</span><small>${ok ? (sel ? "Angezogen" : "Anziehen") : OUTFIT_WHERE[key + ":" + id]}</small></button>`; }).join("")}</div>` : ""}
     <div class="rowb"><button class="btn hot" id="goBtn" type="button">Los geht's</button><button class="btn" id="pickBack" type="button">Zurück</button></div>`);
   document.querySelectorAll("canvas[data-sk]").forEach(c => pixelRender(c, () => previewSkin(c, key, c.dataset.sk)));
   const cp = $("charPrev");
   if (cp) pixelRender(cp, x => { const o = ctx, og = G; ctx = x; G = { time: 0, form: "tim" }; try { x.translate(55, 114); x.scale(1.4, 1.4); PLAYABLE[cur].draw({ x: -15, y: -44, w: 30, h: 44, vx: 0, ground: true, face: 1, anim: 0 }); } finally { ctx = o; G = og; } });
+  $("chOpen").onclick = () => { sfx("tap"); pickPlayer(go, back, !listOpen); };
   document.querySelectorAll("[data-ch]").forEach(b => b.onclick = () => { save.char = b.dataset.ch; store.write(); sfx("tap"); pickPlayer(go, back); });
   document.querySelectorAll("button[data-sk]:not(.locked)").forEach(b => b.onclick = () => {
     save.skins = save.skins || { unlocked: {}, sel: {} }; save.skins.sel = save.skins.sel || {};
