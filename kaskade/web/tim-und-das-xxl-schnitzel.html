@@ -191,18 +191,20 @@ const PORTRAIT = {
     <ellipse class="mouth" cx="120" cy="170" rx="11" ry="7" fill="#5a1f1f"/>
     <ellipse cx="88" cy="148" rx="11" ry="6" fill="#ff7b7b" opacity=".3"/><ellipse cx="152" cy="148" rx="11" ry="6" fill="#ff7b7b" opacity=".3"/></svg>`,
 };
-const PEOPLE = { tim: "Tim Oliver Schmidt", valle: "Valle Weber", faroo: "Faroo", bot: "Opa Brixx", chris: "Chris, die Ratte" };
-// Chris's story portrait is drawn with the same canvas code as in the game, so both look alike.
-let chrisPortrait = null;
-PORTRAIT.chris = () => {
-  if (!chrisPortrait) {
+const PEOPLE = { tim: "Tim Oliver Schmidt", valle: "Valle Weber", faroo: "Faroo", bot: "Opa Brixx", chris: "Chris, die Ratte", hoberg: "Hoberg" };
+// Story portraits of the new bosses are drawn with the same canvas code as in the game, so both look alike.
+const canvasPortraits = {};
+function canvasPortrait(key, paint) {
+  if (!canvasPortraits[key]) {
     const c = document.createElement("canvas"); c.width = 120; c.height = 150;
     const old = ctx; ctx = c.getContext("2d");
-    try { ctx.translate(60, 196); ctx.scale(-2.3, 2.3); drawChrisBody(-.3, 0); } finally { ctx = old; }
-    chrisPortrait = c.toDataURL();
+    try { paint(); } finally { ctx = old; }
+    canvasPortraits[key] = c.toDataURL();
   }
-  return `<svg viewBox="0 0 240 300" xmlns="http://www.w3.org/2000/svg"><image href="${chrisPortrait}" width="240" height="300" style="image-rendering:pixelated"/></svg>`;
-};
+  return `<svg viewBox="0 0 240 300" xmlns="http://www.w3.org/2000/svg"><image href="${canvasPortraits[key]}" width="240" height="300" style="image-rendering:pixelated"/></svg>`;
+}
+PORTRAIT.chris = () => canvasPortrait("chris", () => { ctx.translate(60, 196); ctx.scale(-2.3, 2.3); drawChrisBody(-.3, 0); });
+PORTRAIT.hoberg = () => canvasPortrait("hoberg", () => { ctx.translate(60, 219); ctx.scale(-2.3, 2.3); drawHobergBody(-.2, 0, 1); });
 const MUG_SVG = `<svg viewBox="0 0 40 40"><path d="M8 10 h20 v18 a6 6 0 0 1 -6 6 h-8 a6 6 0 0 1 -6 -6z" fill="#39ff14" stroke="#0c5a00" stroke-width="2.5"/><path d="M28 14 h3 a5 5 0 0 1 0 10 h-3" fill="none" stroke="#0c5a00" stroke-width="5"/><path d="M28 14 h3 a5 5 0 0 1 0 10 h-3" fill="none" stroke="#39ff14" stroke-width="2.5"/><rect x="11" y="13" width="4" height="14" rx="2" fill="#d8ffcc" opacity=".8"/></svg>`;
 const SCHN_SVG = `<svg viewBox="0 0 40 40"><path d="M4 22 C3 12 14 7 22 8 C32 9 38 14 36 22 C35 31 24 34 16 33 C8 32 4 28 4 22Z" fill="#e59a2a" stroke="#7a4300" stroke-width="2.5"/><circle cx="13" cy="18" r="1.6" fill="#ffd27a"/><circle cx="22" cy="14" r="1.6" fill="#ffd27a"/><circle cx="27" cy="23" r="1.6" fill="#ffd27a"/><circle cx="16" cy="26" r="1.6" fill="#ffd27a"/><path d="M28 6 l8 2 l-4 7z" fill="#fff35a" stroke="#a08a00" stroke-width="1.5"/></svg>`;
 const HEART_SVG = `<svg viewBox="0 0 40 40"><path d="M20 34 C6 24 4 16 8 11 C12 6 18 8 20 13 C22 8 28 6 32 11 C36 16 34 24 20 34Z" fill="#ff3d5a" stroke="#7a0010" stroke-width="2.5"/></svg>`;
@@ -310,7 +312,9 @@ function makeLevels() {
     .finishAt(186);
   const L10 = builder(22, "lab", "Endboss · Physiklabor").ground(0, 21).wall(0, 0, 13).wall(21, 0, 13).startAt(3, 10);
   L10.boss = "chris";
-  return [L1, L2, L3, L4, L5, L6, L7, L8, L9, L10];
+  const L11 = builder(22, "hno", "Boss · HNO-Praxis").ground(0, 21).wall(0, 0, 13).wall(21, 0, 13).startAt(3, 10);
+  L11.boss = "hoberg";
+  return [L1, L2, L3, L4, L5, L6, L7, L8, L9, L10, L11];
 }
 
 // ================= Story =================
@@ -356,6 +360,14 @@ const STORY = [
     S("tim", "Ja! Ja! Hol ihn raus!", true),
   ]},
   { kind: "level", n: 8 },
+  // Hoberg never speaks: he stays in the picture while Tim and Valle talk.
+  { kind: "scene", chapter: "Kapitel 7 · 18:48 Uhr", L: "tim", R: "hoberg", keepR: true, lines: [
+    S("valle", "Halt, Tim! Vor der HNO-Praxis steht Hoberg. Opa Brixx hat ihn als Wache hingestellt."),
+    S("tim", "Hoberg? Hallo? Lässt du mich bitte vorbei?"),
+    S("valle", "Er sagt nichts. Gar nichts. Aber hörst du das? Sein Hörgerät pfeift schon …"),
+    S("valle", "Tiefe Pfeif-Ringe überspringen, bei hohen unten bleiben. Und wenn er sein Hörgerät wirft, ist er verwirrt: dann drauf auf den Kopf!"),
+  ]},
+  { kind: "level", n: 10 },
   { kind: "scene", chapter: "Finale · 18:50 Uhr", L: "tim", R: "bot", lines: [
     S("bot", "BADABOOM! HIER REGELT NUR EINER! Der Tisch um 19 Uhr gehört mir!", true),
     S("tim", "Nicht mit mir. Ja! Ja! Hol ihn raus!", true),
@@ -511,9 +523,11 @@ function playScene(sc) {
     let i = 0;
     const draw = () => {
       const ln = sc.lines[i];
-      const isLeft = ln.who === sc.L;
+      // keepR: the right figure stays (and stays silent); every speaker appears on the left.
+      const leftWho = sc.keepR && ln.who !== sc.R ? ln.who : sc.L;
+      const isLeft = ln.who === leftWho;
       const rightWho = !isLeft && ln.who !== sc.R ? ln.who : sc.R;
-      $("actL").innerHTML = PORTRAIT[sc.L](isLeft && ln.emote, isLeft && ln.angry);
+      $("actL").innerHTML = PORTRAIT[leftWho](isLeft && ln.emote, isLeft && ln.angry);
       $("actR").innerHTML = PORTRAIT[rightWho](!isLeft && ln.emote, (!isLeft && ln.angry) || (rightWho === "faroo" && sc.evil));
       $("actL").className = "actor l" + (isLeft ? " talk" : " dim");
       $("actR").className = "actor r" + (!isLeft ? " talk" : " dim") + ($("actR").querySelector("svg.wide") ? " wide" : "");
@@ -548,9 +562,9 @@ function levelDone(n, res) {
     const lv = LEVELS[n];
     save.totalMugs += res.mugs; save.schnitzel[n] = Math.max(save.schnitzel[n] || 0, res.schn); store.write();
     const boss = !!lv.boss;
-    modal(`<h2>${lv.boss === "chris" ? "Chris besiegt!" : lv.boss === "faroo" ? "Faroo besiegt!" : boss ? "Brixx besiegt!" : "Geschafft!"}</h2><p>${lv.name}</p>
+    modal(`<h2>${lv.boss === "hoberg" ? "Hoberg besiegt!" : lv.boss === "chris" ? "Chris besiegt!" : lv.boss === "faroo" ? "Faroo besiegt!" : boss ? "Brixx besiegt!" : "Geschafft!"}</h2><p>${lv.name}</p>
       <div class="tally"><div>${MUG_SVG} ${res.mugs}${boss ? "" : " / " + lv.mugTotal}</div>${boss ? "" : `<div>${SCHN_SVG} ${res.schn} / 3</div>`}</div>
-      <p>${res.schn === 3 ? "Alle XXL-Schnitzel gefunden! Valle ist stolz." : lv.boss === "chris" ? "Der Reservierungszettel ist gerettet. Ab ins Redo XXL!" : lv.boss === "faroo" ? "Jetzt aber schnell zum Tisch!" : boss ? "Brixx liegt am Boden … aber da stampft etwas Riesiges heran." : "Es fehlen noch Schnitzel. Schau hinter Steinblöcke und hoch über Plattformen."}</p>
+      <p>${res.schn === 3 ? "Alle XXL-Schnitzel gefunden! Valle ist stolz." : lv.boss === "hoberg" ? "Der Weg zur Anton-Weilmaier-Schule ist frei." : lv.boss === "chris" ? "Der Reservierungszettel ist gerettet. Ab ins Redo XXL!" : lv.boss === "faroo" ? "Jetzt aber schnell zum Tisch!" : boss ? "Brixx liegt am Boden … aber da stampft etwas Riesiges heran." : "Es fehlen noch Schnitzel. Schau hinter Steinblöcke und hoch über Plattformen."}</p>
       <div class="rowb"><button class="btn go" id="nextBtn" type="button">Weiter</button></div>`);
     sfx("win");
     $("nextBtn").onclick = () => resolve();
@@ -661,13 +675,13 @@ function playLevel(n) {
       checkpoint: [L.start[0] * T, L.start[1] * T - 4], reached: new Set(),
       particles: [], cam: 0, paused: false, done: false, shake: 0,
       shots: [], form: L.endless ? "faroo" : "tim", playerW: L.endless ? FAROO_START_W : 30, best: 0,
-      boss: L.boss === "faroo" ? makeFaroo(L) : L.boss === "chris" ? makeChris() : L.boss === "brixx" ? { kind: "brixx", x: 10 * T, y: 2 * T, w: 120, h: 110, hp: difficulty === "hard" ? 45 : 30, maxHp: difficulty === "hard" ? 45 : 30, state: "fly", t: 0, vx: 2.4, inv: 0, bombs: [] } : null,
+      boss: L.boss === "faroo" ? makeFaroo(L) : L.boss === "chris" ? makeChris() : L.boss === "hoberg" ? makeHoberg() : L.boss === "brixx" ? { kind: "brixx", x: 10 * T, y: 2 * T, w: 120, h: 110, hp: difficulty === "hard" ? 45 : 30, maxHp: difficulty === "hard" ? 45 : 30, state: "fly", t: 0, vx: 2.4, inv: 0, bombs: [] } : null,
     };
     spawnPlayer();
     if (L.endless) { G.lives = difficulty === "hard" ? 3 : 5; growEndless(L, 80); }
     screen(null); updateHud();
     $("bossbar").hidden = !G.boss;
-    $("bossName").textContent = L.boss === "chris" ? "CHRIS, DIE RATTE" : L.boss === "faroo" ? "RIESEN-FAROO" : "OPA BRIXX";
+    $("bossName").textContent = L.boss === "hoberg" ? "HOBERG" : L.boss === "chris" ? "CHRIS, DIE RATTE" : L.boss === "faroo" ? "RIESEN-FAROO" : "OPA BRIXX";
     banner(L.boss === "chris" ? "ENDBOSS!" : L.boss === "faroo" ? "PLOT-TWIST!" : L.boss ? "BOSS!" : L.name.split("·")[1].trim());
     if (L.boss) sfx("boss");
     last = performance.now(); acc = 0;
@@ -698,7 +712,7 @@ const blurDesc = Object.getOwnPropertyDescriptor(CanvasRenderingContext2D.protot
 function pixLayer(unit) {
   const c = document.createElement("canvas"), x = c.getContext("2d", { willReadFrequently: true });
   // Text drawn into a pixel layer is remembered and drawn later at full resolution.
-  x.fillText = function (t, tx, ty) { texts.push({ t, x: tx, y: ty, u: unit(), m: this.getTransform(), font: this.font, fill: this.fillStyle, al: this.textAlign, bl: this.textBaseline, a: this.globalAlpha }); };
+  x.fillText = function (t, tx, ty) { texts.push({ t, x: tx, y: ty, u: unit(), layer: x, m: this.getTransform(), font: this.font, fill: this.fillStyle, al: this.textAlign, bl: this.textBaseline, a: this.globalAlpha }); };
   // Glows are measured in canvas pixels, so shrink them with the canvas.
   Object.defineProperty(x, "shadowBlur", { get() { return blurDesc.get.call(this) * unit(); }, set(v) { blurDesc.set.call(this, x === figCtx ? 0 : v / unit()); } });
   x.imageSmoothingEnabled = false;
@@ -744,14 +758,20 @@ function drawPixelated() {
   try { draw(); } finally { ctx = main; }
   crispen(lowCtx, false); crispen(figCtx, true);
   ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.imageSmoothingEnabled = false;
+  // background, its signs, then figures and their texts on top
+  const sharpText = layer => {
+    for (const x of texts) {
+      if (x.layer !== layer) continue;
+      const m2 = x.m, u = x.u; ctx.setTransform(m2.a * u, m2.b * u, m2.c * u, m2.d * u, m2.e * u, m2.f * u);
+      ctx.font = x.font; ctx.fillStyle = x.fill; ctx.textAlign = x.al; ctx.textBaseline = x.bl; ctx.globalAlpha = x.a;
+      CanvasRenderingContext2D.prototype.fillText.call(ctx, x.t, x.x, x.y);
+    }
+    ctx.globalAlpha = 1; ctx.setTransform(1, 0, 0, 1, 0, 0);
+  };
   ctx.drawImage(lowCtx.canvas, 0, 0, lowCtx.canvas.width * pixUnit, lowCtx.canvas.height * pixUnit);
+  sharpText(lowCtx);
   ctx.drawImage(figCtx.canvas, 0, 0, figCtx.canvas.width * figUnit, figCtx.canvas.height * figUnit);
-  for (const x of texts) {
-    const m2 = x.m, u = x.u; ctx.setTransform(m2.a * u, m2.b * u, m2.c * u, m2.d * u, m2.e * u, m2.f * u);
-    ctx.font = x.font; ctx.fillStyle = x.fill; ctx.textAlign = x.al; ctx.textBaseline = x.bl; ctx.globalAlpha = x.a;
-    CanvasRenderingContext2D.prototype.fillText.call(ctx, x.t, x.x, x.y);
-  }
-  ctx.globalAlpha = 1; ctx.setTransform(1, 0, 0, 1, 0, 0);
+  sharpText(figCtx);
 }
 // Small pixel animations on top of the world: swaying grass, twinkling sparkles, running dust, birds.
 function drawPixelFx() {
@@ -760,7 +780,7 @@ function drawPixelFx() {
   const u = pxUnit, L = G.L, t = G.time, snap = v => Math.round(v / u) * u;
   const x0 = Math.max(0, Math.floor(G.cam / T) - 1), x1 = Math.min(L.w - 1, Math.ceil((G.cam + vw) / T) + 1);
   // grass blades on every grass top, each tile with its own rhythm
-  const th = THEMES[L.theme], indoor = L.theme === "boss" || L.theme === "lab";
+  const th = THEMES[L.theme], indoor = L.theme === "boss" || L.theme === "lab" || L.theme === "hno";
   if (!indoor) for (let y = 1; y < ROWS; y++) for (let x = x0; x <= x1; x++) {
     if (L.g[y][x] !== "#" || tileAt(x, y - 1) === "#") continue;
     for (let b = 0; b < 4; b++) {
@@ -944,7 +964,7 @@ function step() {
     const m = Math.floor(p.x / T);
     if (m > G.best) { G.best = m; if (G.time % 10 === 0) updateHud(); }
   }
-  if (G.boss) (G.boss.kind === "faroo" ? faroStep() : G.boss.kind === "chris" ? chrisStep() : bossStep());
+  if (G.boss) (G.boss.kind === "faroo" ? faroStep() : G.boss.kind === "chris" ? chrisStep() : G.boss.kind === "hoberg" ? hobergStep() : bossStep());
   // Ping-pong balls: always in the boss fight, otherwise only as Tischtennis-Opa.
   if (p.shotCd > 0) p.shotCd--;
   if (input.fire && p.shotCd === 0 && (G.boss || G.form === "opa")) {
@@ -1316,6 +1336,140 @@ function drawChris(b) {
   if (b.phase === 1 && b.hp > 0) { ctx.fillStyle = "#ffc531"; ctx.font = "900 15px Nunito, sans-serif"; ctx.textAlign = "center"; ctx.fillText("✦ ✦", cx, b.y - 14 + Math.sin(G.time / 5) * 3); }
 }
 
+// Hoberg (boss): tall boy, blue tracksuit top, black trousers, white-red shoes, dark-blond side parting, hearing aid.
+function drawHobergBody(arm, mouth, aidOn, noAid) {
+  // shoes: white with red
+  ctx.fillStyle = "#f4f4f4"; ctx.fillRect(-11, -4, 10, 5); ctx.fillRect(1, -4, 10, 5);
+  ctx.fillStyle = "#e0262c"; ctx.fillRect(-11, -2, 10, 2); ctx.fillRect(1, -2, 10, 2); ctx.fillRect(-4, -4, 3, 2); ctx.fillRect(8, -4, 3, 2);
+  // black trousers
+  ctx.fillStyle = "#16161c"; ctx.fillRect(-8, -32, 7, 28); ctx.fillRect(1, -32, 7, 28);
+  // blue tracksuit top with white stripes and zip
+  ctx.fillStyle = "#2a5bd7"; roundRect(-12, -62, 24, 32, 6); ctx.fill();
+  ctx.fillStyle = "#1e46a8"; ctx.fillRect(-12, -33, 24, 3);
+  ctx.fillStyle = "#ffffff"; ctx.fillRect(-.6, -60, 1.4, 27); ctx.fillRect(-4, -62, 8, 2);
+  // back arm
+  ctx.fillStyle = "#1e46a8"; roundRect(-15, -60, 6, 24, 3); ctx.fill(); ctx.fillStyle = "#ffffff"; ctx.fillRect(-13, -59, 1.4, 22); circ(-12, -35, 3, "#f2c6a8");
+  // front arm (raised when the hearing aid attacks)
+  ctx.save(); ctx.translate(9, -58); ctx.rotate(arm);
+  ctx.fillStyle = "#2a5bd7"; roundRect(-3, 0, 7, 24, 3); ctx.fill(); ctx.fillStyle = "#ffffff"; ctx.fillRect(1.5, 1, 1.4, 22); circ(.5, 25, 3.2, "#f2c6a8");
+  ctx.restore();
+  // neck + head
+  ctx.fillStyle = "#e4b392"; ctx.fillRect(-3.5, -66, 7, 5);
+  ctx.fillStyle = "#f2c6a8"; ctx.beginPath(); ctx.ellipse(0, -76, 10, 11.5, 0, 0, Math.PI * 2); ctx.fill();
+  // ear with the hearing aid behind it (big and clear: it is his trademark)
+  ctx.fillStyle = "#e4b392"; ctx.beginPath(); ctx.ellipse(-8.5, -75, 2.6, 3.6, 0, 0, Math.PI * 2); ctx.fill();
+  if (!noAid) {
+    ctx.fillStyle = "#b8c6d6"; roundRect(-14, -82, 5, 11, 2.5); ctx.fill();
+    ctx.fillStyle = "#8a9cb2"; ctx.fillRect(-14, -76, 5, 1.2);
+    ctx.strokeStyle = "#dfe8f2"; ctx.lineWidth = 1.2; ctx.beginPath(); ctx.moveTo(-11.5, -82); ctx.quadraticCurveTo(-9, -85, -8, -77); ctx.stroke();
+    circ(-11.5, -79.5, 1.1, aidOn ? "#39ff14" : "#1a7a10");
+  }
+  // dark-blond hair with a side parting, fringe swept to the front
+  ctx.fillStyle = "#9a7a3e"; ctx.beginPath(); ctx.ellipse(-.5, -83, 11, 6.5, 0, Math.PI, 0); ctx.fill();
+  ctx.beginPath(); ctx.moveTo(-4, -88.5); ctx.quadraticCurveTo(8, -90, 12, -80); ctx.lineTo(9, -81); ctx.quadraticCurveTo(4, -86, -4, -85); ctx.fill();
+  ctx.fillRect(-11, -84, 3, 6);
+  ctx.fillStyle = "#c9a964"; ctx.fillRect(-5, -89, 1.2, 4); // parting line
+  ctx.fillStyle = "#7a5e2c"; ctx.fillRect(2, -86, 6, 1);
+  // face looking to the right
+  circ(5, -76, 1.8, "#1a1a1a"); circ(-1, -76, 1.8, "#1a1a1a");
+  ctx.fillStyle = "#7a5e2c"; ctx.fillRect(2.5, -80, 5, 1.4); ctx.fillRect(-3, -80, 4, 1.4);
+  if (mouth) { ctx.fillStyle = "#5a1a1a"; ctx.beginPath(); ctx.ellipse(3, -69.5, 3, 2.2, 0, 0, Math.PI * 2); ctx.fill(); }
+  else { ctx.strokeStyle = "#7a2b2b"; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.moveTo(0, -70); ctx.quadraticCurveTo(3, -68.5, 6, -70.5); ctx.stroke(); }
+}
+// Attack 1: feedback whistle, sound rings from the hearing aid. Attack 2: the hearing aid flies like a boomerang.
+function drawSoundRing(x, y, r, a) { if (r < 8) return; ctx.globalAlpha = a; ctx.strokeStyle = "#33e1ff"; ctx.lineWidth = 4; ctx.beginPath(); ctx.arc(x, y, r, -.8, .8); ctx.stroke(); ctx.strokeStyle = "#ffffff"; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(x, y, r - 6, -.7, .7); ctx.stroke(); ctx.globalAlpha = 1; }
+function drawAidBoomerang(x, y, rot) { ctx.save(); ctx.translate(x, y); ctx.rotate(rot); ctx.fillStyle = "#b8c6d6"; roundRect(-6, -14, 12, 28, 6); ctx.fill(); ctx.fillStyle = "#8a9cb2"; ctx.fillRect(-6, 0, 12, 3); circ(0, -8, 2.4, "#39ff14"); ctx.restore(); }
+// HNO practice behind the Hoberg arena (screen space, fixed boss camera).
+function drawPraxis() {
+  const t = G.time, ax = -G.cam, aw = G.L.w * T, cx = ax + aw / 2, floor = 12 * T;
+  ctx.fillStyle = "#e8f2f6"; ctx.fillRect(0, -vh, vw, 3 * vh);
+  ctx.fillStyle = "#cfe3ec"; ctx.fillRect(ax, 7 * T, aw, floor - 7 * T);
+  ctx.fillStyle = "#9cc4d4"; ctx.fillRect(ax, 7 * T - 6, aw, 6);
+  // sign
+  ctx.fillStyle = "#ffffff"; roundRect(cx - 3 * T, .9 * T, 6 * T, 1.1 * T, 10); ctx.fill(); ctx.strokeStyle = "#2a8a9a"; ctx.lineWidth = 3; ctx.stroke();
+  ctx.fillStyle = "#e0262c"; ctx.fillRect(cx - 2.6 * T, 1.3 * T, 26, 8); ctx.fillRect(cx - 2.6 * T + 9, 1.3 * T - 9, 8, 26);
+  ctx.fillStyle = "#1a4a5a"; ctx.font = "900 26px Nunito, sans-serif"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+  ctx.fillText("HNO-PRAXIS", cx + .3 * T, 1.45 * T); ctx.textBaseline = "alphabetic";
+  // eye chart
+  const ex = ax + 1.6 * T, ey = 2.6 * T;
+  ctx.fillStyle = "#ffffff"; ctx.fillRect(ex, ey, 1.8 * T, 2.6 * T); ctx.strokeStyle = "#9cc4d4"; ctx.lineWidth = 2; ctx.strokeRect(ex, ey, 1.8 * T, 2.6 * T);
+  ctx.fillStyle = "#1a1a1a"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+  [["E", 30], ["F P", 18], ["T O Z", 12], ["L P E D", 9]].forEach(([s, f], i) => { ctx.font = `900 ${f}px Nunito, sans-serif`; ctx.fillText(s, ex + .9 * T, ey + 24 + i * 26); });
+  ctx.textBaseline = "alphabetic";
+  // ear poster with a hearing curve
+  const px = ax + aw - 4 * T, py = 2.6 * T;
+  ctx.fillStyle = "#ffffff"; ctx.fillRect(px, py, 2.4 * T, 2.6 * T); ctx.strokeStyle = "#9cc4d4"; ctx.strokeRect(px, py, 2.4 * T, 2.6 * T);
+  ctx.fillStyle = "#f2c6a8"; ctx.beginPath(); ctx.ellipse(px + 1.2 * T, py + 1 * T, 22, 30, 0, 0, Math.PI * 2); ctx.fill();
+  ctx.strokeStyle = "#c98d6c"; ctx.lineWidth = 3; ctx.beginPath(); ctx.arc(px + 1.2 * T + 2, py + 1 * T, 14, -1.2, 2.2); ctx.stroke();
+  ctx.fillStyle = "#1a4a5a"; ctx.font = "900 12px Nunito, sans-serif"; ctx.textAlign = "center"; ctx.fillText("HÖRTEST", px + 1.2 * T, py + 2.2 * T);
+  ctx.strokeStyle = "#e0262c"; ctx.lineWidth = 2; ctx.beginPath(); for (let k = 0; k <= 80; k += 8) ctx.lineTo(px + 18 + k, py + 2.35 * T + Math.sin(k / 14 + t / 20) * 5); ctx.stroke();
+  // reception desk, waiting chairs, plant, couch
+  ctx.fillStyle = "#ffffff"; ctx.fillRect(cx - 2.6 * T, 9.4 * T, 5.2 * T, floor - 9.4 * T); ctx.fillStyle = "#2a8a9a"; ctx.fillRect(cx - 2.6 * T, 9.4 * T, 5.2 * T, 8);
+  ctx.fillStyle = "#1a4a5a"; ctx.font = "900 14px Nunito, sans-serif"; ctx.textAlign = "center"; ctx.fillText("ANMELDUNG", cx, 10.3 * T);
+  ctx.fillStyle = "#3a3a4a"; ctx.fillRect(cx + 1.4 * T, 8.5 * T, 40, 28); ctx.fillStyle = "#7fd0f0"; ctx.fillRect(cx + 1.4 * T + 3, 8.5 * T + 3, 34, 22);
+  for (let k = 0; k < 3; k++) { const x = ax + 1.6 * T + k * 44; ctx.fillStyle = "#2a8a9a"; ctx.fillRect(x, 10.6 * T, 36, 8); ctx.fillRect(x, 9.8 * T, 6, 0.8 * T + 8); ctx.fillStyle = "#5a5a6a"; ctx.fillRect(x + 4, 10.6 * T + 8, 4, floor - 10.6 * T - 8); ctx.fillRect(x + 28, 10.6 * T + 8, 4, floor - 10.6 * T - 8); }
+  ctx.fillStyle = "#c8a070"; ctx.fillRect(ax + aw - 2.4 * T, 10.8 * T, 30, floor - 10.8 * T);
+  ctx.fillStyle = "#3a9a3a"; for (let k = 0; k < 5; k++) { ctx.beginPath(); ctx.ellipse(ax + aw - 2.4 * T + 15 + Math.sin(k * 1.3) * 12, 10.3 * T - k * 8 + Math.sin(t / 30 + k) * 2, 12, 6, k, 0, Math.PI * 2); ctx.fill(); }
+  ctx.fillStyle = "#e8e8f0"; ctx.fillRect(cx + 3.6 * T, 10.4 * T, 2.6 * T, 16); ctx.fillStyle = "#cfd8e0"; ctx.fillRect(cx + 3.6 * T, 10.4 * T, 2.6 * T, 4);
+  ctx.fillStyle = "#8a9cb2"; ctx.fillRect(cx + 3.8 * T, 10.4 * T + 16, 6, floor - 10.4 * T - 16); ctx.fillRect(cx + 6 * T - 6, 10.4 * T + 16, 6, floor - 10.4 * T - 16);
+}
+// ---- Boss Hoberg (never speaks): whistle rings from his hearing aid, and the hearing aid as a boomerang ----
+function makeHoberg() {
+  const hp = difficulty === "hard" ? 36 : 26;
+  return { kind: "hoberg", x: 15 * T, y: 12 * T - 198, w: 56, h: 198, hp, maxHp: hp, t: 0, vx: -1.3, inv: 0, hit: 0, state: "walk", rings: [], aid: null, queue: [], face: -1, bombs: [] };
+}
+function hobergStep() {
+  const b = G.boss, p = G.p, hard = difficulty === "hard"; if (b.hp <= 0) return;
+  b.t++; if (b.inv > 0) b.inv--; if (b.hit > 0) b.hit--;
+  const left = T + 6, right = (G.L.w - 1) * T - b.w - 6, floor = 12 * T, ex = b.x + b.w / 2 - b.face * 22, ey = b.y + 20;
+  if (b.state !== "confused") b.face = p.x + p.w / 2 < b.x + b.w / 2 ? -1 : 1;
+  if (b.state === "walk") {
+    b.x += b.vx; if (b.x < left + 5 * T || b.x > right) b.vx *= -1;
+    if (b.t > (hard ? 70 : 95)) { b.t = 0; b.state = Math.random() < .55 ? "fiep" : "throw"; }
+  } else if (b.state === "fiep") {
+    // the hearing aid blinks fast, then sends 3 rings: low ones to jump over, high ones to stay under
+    if (b.t === 40 || b.t === 70 || b.t === 100) {
+      const low = Math.random() < .55;
+      b.rings.push({ x: ex, y: low ? floor - 22 : floor - 112, dir: b.face, r: 10 }); sfx("ping");
+    }
+    if (b.t > 120) { b.state = "walk"; b.t = 0; }
+  } else if (b.state === "throw") {
+    if (b.t === 30) { const reach = Math.max(4 * T, Math.min(Math.abs(p.x + p.w / 2 - ex) + 2 * T, 14 * T)); b.aid = { x0: ex, y0: ey, x: ex, y: ey, dir: b.face, reach, t: 0, dur: hard ? 100 : 120, rot: 0 }; b.state = "confused"; b.t = 0; sfx("throw"); }
+  } else if (b.state === "confused") {
+    // without the hearing aid he hears nothing and turns around, puzzled: now he can be jumped on
+    if (b.t % 40 === 0) b.face *= -1;
+    if (!b.aid) { b.state = "walk"; b.t = 0; }
+  }
+  // hearing-aid boomerang: out and back in an arc
+  const a = b.aid;
+  if (a) {
+    a.t++; const k = a.t / a.dur;
+    a.x = a.x0 + a.dir * a.reach * Math.sin(k * Math.PI); a.y = a.y0 + Math.sin(k * Math.PI) * (floor - 60 - a.y0) * .9 - Math.sin(k * Math.PI * 2) * 40; a.rot += .35;
+    if (rects(p, { x: a.x - 12, y: a.y - 16, w: 24, h: 32 })) hurt();
+    if (a.t >= a.dur) b.aid = null;
+  }
+  for (const r of b.rings) { r.x += r.dir * (hard ? 6.5 : 5.2); r.r = Math.min(26, r.r + .8); if (r.x < T || r.x > (G.L.w - 1) * T) r.dead = true; else if (rects(p, { x: r.x - 12, y: r.y - r.r, w: 24, h: r.r * 2 })) { r.dead = true; hurt(); } }
+  b.rings = b.rings.filter(r => !r.dead);
+  const box = { x: b.x + 6, y: b.y, w: b.w - 12, h: b.h };
+  if (rects(p, box)) {
+    const top = p.y + p.h - p.vy <= box.y + 22;
+    if (top && p.vy > 0 && b.inv === 0 && b.state === "confused") {
+      b.inv = 50; p.vy = -14; sfx("stomp"); G.shake = 10; burst(p.x + p.w / 2, box.y, "#ffc531", 26); damageBoss(5);
+    } else if (b.inv === 0 && b.state !== "confused") { hurt(); p.vx = p.x < b.x + b.w / 2 ? -8 : 8; }
+  }
+}
+function drawHoberg(b) {
+  if (b.hp <= 0 && Math.floor(G.time / 4) % 2) return;
+  for (const r of b.rings) { ctx.save(); ctx.translate(r.x, r.y); ctx.scale(r.dir, 1); for (let k = 0; k < 3; k++) drawSoundRing(-k * 8, 0, r.r - k * 5, 1 - k * .3); ctx.restore(); }
+  if (b.aid) drawAidBoomerang(b.aid.x, b.aid.y, b.aid.rot);
+  if (b.hit > 0 || (b.inv > 0 && Math.floor(b.inv / 4) % 2)) ctx.globalAlpha = .55;
+  const cx = b.x + b.w / 2, fiep = b.state === "fiep";
+  ctx.save(); ctx.translate(cx, b.y + b.h); ctx.scale(b.face * 2.2, 2.2);
+  drawHobergBody(fiep ? -2.6 : b.state === "throw" ? -2.2 - b.t * .03 : -.35 + Math.sin(G.time / 14) * .2, false, fiep ? Math.floor(G.time / 4) % 2 : 1, !!b.aid);
+  ctx.restore(); ctx.globalAlpha = 1;
+  if (b.state === "confused") { ctx.fillStyle = "#ffc531"; ctx.font = "900 34px Nunito, sans-serif"; ctx.textAlign = "center"; ctx.fillText("?", cx + Math.sin(G.time / 8) * 10, b.y - 14); }
+}
+
 // ===== New skins: in-game sprites (canvas) and story portrait overlays (SVG) =====
 function rr(x, y, w, h, r) { ctx.beginPath(); ctx.moveTo(x + r, y); ctx.arcTo(x + w, y, x + w, y + h, r); ctx.arcTo(x + w, y + h, x, y + h, r); ctx.arcTo(x, y + h, x, y, r); ctx.arcTo(x, y, x + w, y, r); ctx.closePath(); }
 function circ(x, y, r, c) { ctx.fillStyle = c; ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fill(); }
@@ -1576,6 +1730,7 @@ const THEMES = {
   day: { sky: ["#5ec8ff", "#bfe9ff"], far: "#8ab6e0", mid: "#5aa86a", ground: ["#7a4a2a", "#4a2a14"], top: "#5fd35a" },
   night: { sky: ["#120a3a", "#3a1a6a"], far: "#2a1a5a", mid: "#1a2a4a", ground: ["#3a2a5a", "#1a1030"], top: "#ff3d8b" },
   sunset: { sky: ["#ff7a3d", "#ffd08a"], far: "#c45a6a", mid: "#7a3a5a", ground: ["#8a4a3a", "#4a2018"], top: "#ffc531" },
+  hno: { sky: ["#e8f2f6", "#e8f2f6"], far: "#cfe3ec", mid: "#cfe3ec", ground: ["#b8c8d4", "#7a8a9a"], top: "#ffffff" },
   lab: { sky: ["#cfd8cf", "#cfd8cf"], far: "#9ab0a0", mid: "#b0c0b0", ground: ["#6a6a78", "#34343e"], top: "#e8e8f0" },
   boss: { sky: ["#3a0a2a", "#ff5a3d"], far: "#5a1a3a", mid: "#3a0a2a", ground: ["#5a3a2a", "#2a1810"], top: "#39ff14" },
 };
@@ -1636,7 +1791,7 @@ function draw() {
     else if (e.t === "outfit") drawOutfitPickup(e.px + 24, e.py + 24 + bob, e.who);
     else drawBot(e.px, e.py + 14, e.vx, e.t === "fast");
   }
-  if (G.boss) (G.boss.kind === "faroo" ? drawFaroo(G.boss) : G.boss.kind === "chris" ? drawChris(G.boss) : drawBoss(G.boss));
+  if (G.boss) (G.boss.kind === "faroo" ? drawFaroo(G.boss) : G.boss.kind === "chris" ? drawChris(G.boss) : G.boss.kind === "hoberg" ? drawHoberg(G.boss) : drawBoss(G.boss));
   for (const sh of G.shots) drawShot(sh);
   // player
   if (!(p.inv > 0 && Math.floor(p.inv / 5) % 2)) drawTim(p);
@@ -1649,6 +1804,7 @@ function drawBackdrop(th) {
   const c = G.cam;
   if (G.L.theme === "boss") return drawStreamRoom();
   if (G.L.theme === "lab") return drawLab();
+  if (G.L.theme === "hno") return drawPraxis();
   // sun/moon
   ctx.fillStyle = G.L.theme === "night" ? "rgba(255,255,230,.9)" : "rgba(255,250,200,.85)";
   ctx.beginPath(); ctx.arc(vw * .78, 110, 52, 0, Math.PI * 2); ctx.fill();
@@ -2131,6 +2287,7 @@ const LEVEL_MENU = [
   { n: 8, title: "Level 6 · Turnhalle", sub: "Sehr schwer · 2 versteckte Outfits" },
   { n: 3, title: "Boss · Opa Brixx", sub: "BADABOOM auf der XXL-Bank" },
   { n: 4, title: "Boss · Riesen-Faroo", sub: "Der Plot-Twist-Kampf" },
+  { n: 10, title: "Boss · Hoberg", sub: "Pfeif-Ringe und Hörgerät-Bumerang in der HNO-Praxis" },
   { n: 9, title: "Endboss · Chris, die Ratte", sub: "Papierzettel, dann die Riesenratte" },
   { n: 5, title: "Endlos · Faroo läuft", sub: "Spiel als Faroo, jedes 3. Schnitzel macht ihn schmaler" },
 ];
