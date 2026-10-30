@@ -374,7 +374,7 @@ const STORY = [
   { kind: "level", n: 4 },
   { kind: "scene", chapter: "Endboss · 18:59 Uhr", L: "tim", R: "chris", lines: [
     S("valle", "Moment … der Reservierungszettel ist weg! Die Spur führt ins Physiklabor der Anton-Weilmaier-Schule."),
-    S("chris", "So, morgen.", true),
+    S("chris", "MOOOORGEN", true),
     S("tim", "Morgen? Unser Tisch ist um 19 Uhr! Gib den Zettel her!"),
     S("valle", "Das ist Chris, die Ratte! Weich seinen Papierzetteln aus und schieß mit PING. Und wenn er landet: drauf auf den Kopf!"),
   ]},
@@ -1236,7 +1236,7 @@ function makeChris() {
 function chrisMorph(b) {
   b.phase = 2; b.state = "morph"; b.t = 0; b.inv = 9999; b.papers = [];
   b.hp = b.maxHp = difficulty === "hard" ? 42 : 30; updateHud();
-  banner("So, morgen."); setTimeout(() => G && !G.done && banner("VERWANDLUNG!"), 1300);
+  banner("MOOOORGEN"); setTimeout(() => G && !G.done && banner("VERWANDLUNG!"), 1300);
   pixPulse(6, 80); G.shake = 20; sfx("boss"); burst(b.x + b.w / 2, b.y + b.h / 2, "#ffffff", 50);
   $("bossName").textContent = "RIESENRATTE CHRIS";
 }
