@@ -34,6 +34,8 @@ button { font: inherit; color: inherit; border: 0; background: none; cursor: poi
 .pad { position: fixed; bottom: 0; left: 0; right: 0; display: flex; justify-content: space-between; align-items: flex-end; padding: 0 max(18px, env(safe-area-inset-right, 0px)) max(18px, env(safe-area-inset-bottom, 0px)) max(18px, env(safe-area-inset-left, 0px)); pointer-events: none; z-index: 6; }
 .pad .grp { display: flex; gap: 20px; }
 .pad .k { pointer-events: auto; width: 124px; height: 124px; border-radius: 50%; background: rgba(255,255,255,.14); border: 3px solid rgba(255,255,255,.35); display: grid; place-items: center; font-size: 52px; font-weight: 900; color: #fff; text-shadow: 0 2px 0 #000; touch-action: none; }
+.pad .k.ult { background: rgba(255,197,49,.3); border-color: var(--gold); font-family: var(--display); font-size: 30px; letter-spacing: .04em; align-self: flex-end; }
+.pad .k.ult.wait { opacity: .55; font-size: 34px; }
 .pad .k.fire { background: rgba(255,255,255,.22); border-color: rgba(255,255,255,.75); font-family: var(--display); font-size: 34px; letter-spacing: .04em; align-self: flex-end; }
 .pad .k.on { background: rgba(57,255,20,.35); border-color: var(--green); }
 .pad .k.jump { width: 156px; height: 156px; background: rgba(255,61,139,.28); border-color: rgba(255,61,139,.7); font-family: var(--display); font-size: 40px; letter-spacing: .04em; }
@@ -118,7 +120,7 @@ img.px { display: block; width: 100%; height: auto; image-rendering: pixelated; 
 <div class="bossbar" id="bossbar" hidden><div id="bossName">OPA BRIXX</div><div class="bar"><i id="bossHp"></i></div></div>
 <div class="pad" id="pad" hidden>
   <div class="grp"><button class="k" data-k="left" type="button" aria-label="Links">◀</button><button class="k" data-k="right" type="button" aria-label="Rechts">▶</button></div>
-  <div class="grp"><button class="k fire" data-k="fire" type="button" aria-label="Tischtennisball schießen" hidden>PING</button><button class="k jump" data-k="jump" type="button" aria-label="Springen">HOPP</button></div>
+  <div class="grp"><button class="k ult" data-k="ult" type="button" aria-label="Spezialfähigkeit" hidden>ULT</button><button class="k fire" data-k="fire" type="button" aria-label="Tischtennisball schießen" hidden>PING</button><button class="k jump" data-k="jump" type="button" aria-label="Springen">HOPP</button></div>
 </div>
 
 <section class="screen" id="title">
@@ -620,7 +622,7 @@ function helpModal(back) {
 const cv = $("cv"); let ctx = cv.getContext("2d");
 let LEVELS = makeLevels();
 let G = null; // running level
-const input = { left: false, right: false, jump: false, jumpPressed: false, fire: false };
+const input = { left: false, right: false, jump: false, jumpPressed: false, fire: false, ult: false, ultPressed: false };
 let dpr = 1, scale = 1, vw = 0, vh = 0;
 function resize() {
   dpr = Math.min(window.devicePixelRatio || 1, 2);
@@ -717,6 +719,7 @@ function loop(now) {
   const dt = Math.min(100, now - last); last = now;
   if (!G.paused) { acc += dt; while (acc >= 1000 / 60) { step(); acc -= 1000 / 60; if (!G || G.done) return; } }
   drawPixelated();
+  if (G.form === "opa" && G.time % 6 === 0) { const b = document.querySelector(".pad .k.ult"), w = G.ultCd > 0; b.textContent = w ? Math.ceil(G.ultCd / 60) : "ULT"; b.classList.toggle("wait", w); }
   if (G.race && G.time % 3 === 0 && !G.done) $("hLevel").textContent = `⏱ ${raceTime(G.time)}`;
   requestAnimationFrame(loop);
 }
@@ -888,7 +891,9 @@ function step() {
   for (const m of G.movers) { const nx = m.x + m.speed * m.dir; if (nx > m.x0 + m.range || nx < m.x0) m.dir *= -1; m.dx = m.speed * m.dir; m.x += m.dx; }
   // horizontal input
   const accel = p.ground ? .9 : .55;
-  const maxV = G.form === "faroo" ? 3.9 + (FAROO_START_W - p.w) / (FAROO_START_W - SLIM_W) * 1.5 : 5.2;
+  const fs = formStats();
+  const maxV = G.form === "faroo" ? 3.9 + (FAROO_START_W - p.w) / (FAROO_START_W - SLIM_W) * 1.5 : 5.2 * fs.speed;
+  ultStep(p);
   if (p.wallLock > 0) { p.wallLock--; }
   else if (input.left && !input.right) { p.vx = Math.max(-maxV, p.vx - accel); p.face = -1; }
   else if (input.right && !input.left) { p.vx = Math.min(maxV, p.vx + accel); p.face = 1; }
@@ -902,14 +907,14 @@ function step() {
   p.buffer = pressed ? 8 : Math.max(0, p.buffer - 1);
   p.wall = p.ground ? 0 : touchWall(p, -1) ? -1 : touchWall(p, 1) ? 1 : 0;
   if (p.wall) { p.lastWall = p.wall; p.wallCoyote = 6; } else p.wallCoyote = Math.max(0, p.wallCoyote - 1);
-  if (p.buffer > 0 && p.coyote > 0) { p.vy = -13.2; p.ground = false; p.coyote = 0; p.buffer = 0; sfx("jump"); }
+  if (p.buffer > 0 && p.coyote > 0) { p.vy = -13.2 * fs.jump; p.ground = false; p.coyote = 0; p.buffer = 0; sfx("jump"); }
   else if (pressed && p.wallCoyote > 0 && p.wallJumpsLeft > 0 && p.lastWall !== p.lastJumpWall) {
     const away = -p.lastWall;
-    p.vy = -12.4; p.vx = away * 7.2; p.face = away; p.wallLock = 9; p.wallCoyote = 0; p.buffer = 0; p.airJumps = 1;
+    p.vy = -12.4 * fs.jump; p.vx = away * 7.2; p.face = away; p.wallLock = 9; p.wallCoyote = 0; p.buffer = 0; p.airJumps = 1;
     p.wallJumpsLeft--; p.lastJumpWall = p.lastWall;
     sfx("wjump"); burst(p.x + (p.lastWall > 0 ? p.w : 0), p.y + p.h / 2, "#ffffff", 8);
   } else if (pressed && p.airJumps > 0) {
-    p.airJumps--; p.vy = -11.6; p.buffer = 0;
+    p.airJumps--; p.vy = -11.6 * fs.jump; p.buffer = 0;
     sfx("djump"); burst(p.x + p.w / 2, p.y + p.h, "#33e1ff", 12);
   }
   if (!input.jump && p.vy < -5 && p.wallLock === 0) p.vy = -5;
@@ -960,6 +965,8 @@ function step() {
           if (G.schn === 2 && G.form !== "opa") {
             G.form = "opa"; G.ttChar = TT_CHARS[Math.floor(Math.random() * TT_CHARS.length)];
             G.p.inv = Math.max(G.p.inv, 60); burst(p.x + p.w / 2, p.y + p.h / 2, "#ffffff", 40); sfx("boss");
+            G.formT = G.time; G.ultCd = ULT[G.ttChar].cd; G.roll = 0; G.ultFx = null;
+            if (G.ttChar === "rolf" && G.lives > 1) { G.lives--; setTimeout(() => G && !G.done && banner("Rolf: −1 Leben"), 2600); }
             const nm = TT_NAMES[G.ttChar]; setTimeout(() => G && !G.done && banner(`VERWANDLUNG: ${nm}!`), 900);
             if (G.ttChar === "brendon") setTimeout(() => G && !G.done && banner("STEEL AN EGG"), 2600);
           } }
@@ -977,6 +984,7 @@ function step() {
     if (solid(wallT) || !(solid(floorT) || floorT === "=")) e.vx *= -1;
     const box = { x: e.px, y: e.py + 14, w: ew, h: eh };
     if (rects(p, box)) {
+      if (G.roll > 0) { e.alive = false; sfx("stomp"); burst(box.x + ew / 2, box.y + eh / 2, "#1ec8f0", 16); continue; }
       if (p.vy > 1 && prevBottom <= box.y + 14) { e.alive = false; p.vy = input.jump ? -12 : -8; sfx("stomp"); burst(box.x + ew / 2, box.y + eh / 2, "#b066ff", 14); }
       else return hurt();
     }
@@ -1111,6 +1119,74 @@ function faroStep() {
   }
 }
 // Randomizer: 2 schnitzel turn Tim into one of these table-tennis players for the rest of the level.
+// ================= Transformation abilities (ULT) and weaknesses =================
+// Brendon: high jump + shock wave when landing. Dennis: energy drink, then rolls through enemies like a ball.
+// Lena Laux: shouts "NICO", which flattens all enemies. Rolf: big table-tennis table sends out a shock wave.
+// Weaknesses: Brendon and Dennis jump lower and are slower, Lena gets tired for 5 s every 15 s, Rolf is slower
+// (and turning into Rolf costs a life).
+const ULT = { brendon: { cd: 600 }, dennis: { cd: 720 }, lena: { cd: 720 }, rolf: { cd: 720 } };
+function lenaTired() { return G.form === "opa" && G.ttChar === "lena" && (G.time - (G.formT || 0)) % 1200 >= 900; }
+function formStats() {
+  if (G.form !== "opa") return { speed: 1, jump: 1 };
+  if (G.roll > 0) return { speed: 1.65, jump: 1 };
+  const c = G.ttChar || "rolf";
+  if (c === "brendon" || c === "dennis") return { speed: .8, jump: .92 };
+  if (c === "rolf") return { speed: .85, jump: 1 };
+  return { speed: lenaTired() ? .55 : 1, jump: 1 };
+}
+function flattenEnemies(x, y) {
+  let n = 0;
+  for (const e of G.ents) if (e.alive && (e.t === "bot" || e.t === "fast") && e.px > G.cam - 60 && e.px < G.cam + vw + 60) { e.alive = false; n++; burst(e.px + 18, e.py + 30, "#a0682e", 14); }
+  G.shake = 16; G.ultFx = { kind: "wave", x, y, t: 0 };
+  return n;
+}
+function ultStep(p) {
+  if (G.form !== "opa") return;
+  if (G.ultCd > 0) G.ultCd--;
+  if (G.roll > 0) { G.roll--; p.inv = Math.max(p.inv, 2); }
+  if (G.ultFx) { G.ultFx.t++; if (G.ultFx.t > 70) G.ultFx = null; }
+  if (G.slam && p.ground && G.time - G.slam > 6) { G.slam = 0; sfx("boom"); flattenEnemies(p.x + p.w / 2, p.y + p.h); }
+  const pressed = input.ultPressed; input.ultPressed = false;
+  if (!pressed || G.ultCd > 0) return;
+  const c = G.ttChar || "rolf"; G.ultCd = ULT[c].cd;
+  if (c === "brendon") { p.vy = -17; p.ground = false; G.slam = G.time; sfx("djump"); }
+  else if (c === "dennis") { G.roll = 300; G.ultFx = { kind: "can", x: p.x + p.w / 2, y: p.y, t: 0 }; sfx("schn"); banner("ENERGY!"); }
+  else if (c === "lena") { banner("NICO"); sfx("boss"); flattenEnemies(p.x + p.w / 2, p.y + 20); G.ultFx.kind = "shout"; }
+  else { sfx("boom"); flattenEnemies(p.x + p.w / 2 + p.face * 40, p.y + p.h - 10); G.ultFx.kind = "table"; G.ultFx.face = p.face; }
+}
+function drawUltFx(p) {
+  if (G.form === "opa" && lenaTired()) {
+    // tired Lena: sweat drops
+    for (let k = 0; k < 2; k++) { const y = p.y - 6 + ((G.time * .8 + k * 14) % 24); circ(p.x + p.w / 2 + (k ? 14 : -12), y, 2.4, "#8fdcff"); }
+  }
+  const f = G.ultFx; if (!f) return;
+  const r = f.t * 9, a = Math.max(0, 1 - f.t / 70);
+  if (f.kind === "can") { // Dennis drinks the energy can
+    if (f.t < 40) { ctx.save(); ctx.translate(p.x + p.w / 2 + p.face * 10, p.y + 6); ctx.rotate(-p.face * .8); ctx.fillStyle = "#1ec8f0"; roundRect(-5, -9, 10, 18, 2); ctx.fill(); ctx.fillStyle = "#c0c4d0"; ctx.fillRect(-5, -9, 10, 3); ctx.restore(); }
+    return;
+  }
+  if (f.kind === "table" && f.t < 45) { // Rolf's big table-tennis table
+    const tx = f.x + f.face * 50, ty = p.y + p.h, w = 150;
+    ctx.fillStyle = "#1f6a3a"; ctx.fillRect(tx - w / 2, ty - 44, w, 12); ctx.fillStyle = "#16502c"; ctx.fillRect(tx - w / 2, ty - 32, w, 3);
+    ctx.fillStyle = "#ffffff"; ctx.fillRect(tx - w / 2, ty - 44, w, 2); ctx.fillRect(tx - w / 2, ty - 44, 2, 12); ctx.fillRect(tx + w / 2 - 2, ty - 44, 2, 12); ctx.fillRect(tx - 1, ty - 44, 2, 12);
+    ctx.fillStyle = "#e8e8f0"; ctx.fillRect(tx - 3, ty - 62, 6, 18); ctx.fillStyle = "rgba(255,255,255,.6)"; for (let k = 0; k < 4; k++) ctx.fillRect(tx - 2, ty - 60 + k * 4, 4, 1); // net
+    ctx.fillStyle = "#333"; ctx.fillRect(tx - w / 2 + 8, ty - 29, 6, 29); ctx.fillRect(tx + w / 2 - 14, ty - 29, 6, 29);
+  }
+  // shock wave rings
+  ctx.globalAlpha = a; ctx.strokeStyle = f.kind === "shout" ? "#ff3d8b" : "#ffffff"; ctx.lineWidth = 6;
+  for (let k = 0; k < 3; k++) { const rr2 = r - k * 30; if (rr2 > 0) { ctx.beginPath(); ctx.arc(f.x, f.y, rr2, 0, Math.PI * 2); ctx.stroke(); } }
+  ctx.globalAlpha = 1;
+}
+function drawRollBall(p) {
+  // Dennis rolling like a ball, with speed lines
+  const cx = p.x + p.w / 2, cy = p.y + p.h - 16, a = G.time * .5 * p.face;
+  ctx.strokeStyle = "rgba(255,255,255,.6)"; ctx.lineWidth = 2; for (let k = 0; k < 3; k++) { ctx.beginPath(); ctx.moveTo(cx - p.face * (20 + k * 6), cy - 8 + k * 8); ctx.lineTo(cx - p.face * (34 + k * 6), cy - 8 + k * 8); ctx.stroke(); }
+  ctx.save(); ctx.translate(cx, cy); ctx.rotate(a);
+  ctx.fillStyle = "#16161c"; ctx.beginPath(); ctx.arc(0, 0, 16, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = "#1ec8f0"; ctx.beginPath(); ctx.arc(0, 0, 16, -.5, .5); ctx.lineTo(0, 0); ctx.fill(); ctx.beginPath(); ctx.arc(0, 0, 16, 2.6, 3.6); ctx.lineTo(0, 0); ctx.fill();
+  ctx.fillStyle = "#f2c6a8"; ctx.beginPath(); ctx.arc(6, -6, 4, 0, Math.PI * 2); ctx.fill();
+  ctx.restore();
+}
 const TT_CHARS = ["rolf", "lena", "dennis", "brendon"];
 const TT_NAMES = { rolf: "ROLF", lena: "LENA LAUX", dennis: "DENNIS", brendon: "BRENDON" };
 function damageBoss(n) {
@@ -1928,6 +2004,12 @@ SPRITES.brendon = () => {
   ctx.fillStyle = "#8d9097"; ctx.fillRect(-10, -16, 9, 13); ctx.fillRect(2, -16, 9, 13);
   ctx.fillStyle = "#7a7d84"; ctx.fillRect(-10, -6, 9, 2); ctx.fillRect(2, -6, 9, 2);
   for (const x of [-12, 1]) { ctx.fillStyle = "#f4f4f4"; ctx.fillRect(x, -4, 12, 5); ctx.fillStyle = "#2e9e44"; ctx.fillRect(x + 3, -4, 6, 3); ctx.fillStyle = "#111"; ctx.fillRect(x, 0, 12, 1.5); }
+  // open grey school backpack on his back: flap hanging open, books sticking out
+  ctx.fillStyle = "#8a8e98"; roundRect(-25, -38, 13, 24, 3); ctx.fill();
+  ctx.fillStyle = "#6e727c"; ctx.fillRect(-25, -26, 13, 2); roundRect(-23, -22, 9, 6, 2); ctx.fill();
+  ctx.fillStyle = "#3a8ad8"; ctx.fillRect(-23, -42, 3, 6); ctx.fillStyle = "#e0262c"; ctx.fillRect(-19.5, -43, 3, 7); ctx.fillStyle = "#f4f4f4"; ctx.fillRect(-16, -41, 2.5, 5);
+  ctx.fillStyle = "#6e727c"; ctx.beginPath(); ctx.moveTo(-25, -38); ctx.lineTo(-12, -38); ctx.lineTo(-14, -46); ctx.lineTo(-27, -45); ctx.closePath(); ctx.fill(); // open flap
+  ctx.fillStyle = "#c8a030"; ctx.fillRect(-21, -45, 4, 2);
   // beige tee, slightly chubby belly
   ctx.fillStyle = "#d9c4a0"; ctx.beginPath(); ctx.ellipse(0, -25, 15, 13, 0, 0, Math.PI * 2); ctx.fill();
   // open thin black down jacket (quilted)
@@ -1935,6 +2017,7 @@ SPRITES.brendon = () => {
   ctx.beginPath(); ctx.moveTo(-16, -36); ctx.lineTo(-6, -36); ctx.lineTo(-7, -13); ctx.lineTo(-16, -14); ctx.closePath(); ctx.fill();
   ctx.beginPath(); ctx.moveTo(16, -36); ctx.lineTo(6, -36); ctx.lineTo(7, -13); ctx.lineTo(16, -14); ctx.closePath(); ctx.fill();
   ctx.strokeStyle = "#34343c"; ctx.lineWidth = 1; for (let y = -31; y < -14; y += 5) { ctx.beginPath(); ctx.moveTo(-16, y); ctx.lineTo(-7, y); ctx.moveTo(7, y); ctx.lineTo(16, y); ctx.stroke(); }
+  ctx.fillStyle = "#5e626c"; ctx.fillRect(-12, -36, 3, 22); // backpack strap
   arm("#18181d", "#d9a27c", .15);
   // head with brown curly sticking-out hair
   face({ skin: "#d9a27c", hw: 14, hair: () => {
@@ -2105,6 +2188,7 @@ function draw() {
   for (const sh of G.shots) drawShot(sh);
   // player
   if (!(p.inv > 0 && Math.floor(p.inv / 5) % 2)) drawTim(p);
+  drawUltFx(p);
   drawPixelFx();
   for (const q of G.particles) { ctx.globalAlpha = Math.max(0, q.life / 50); ctx.fillStyle = q.color; ctx.fillRect(q.x - 3, q.y - 3, 6, 6); }
   ctx.globalAlpha = 1;
@@ -2271,6 +2355,7 @@ function drawBot(x, y, vx, fast) {
   ctx.restore();
 }
 function drawOpa(p) {
+  if (G.roll > 0) return drawRollBall(p);
   if (G.ttChar && G.ttChar !== "rolf") return drawSpritePlayer(p, SPRITES[G.ttChar]);
   const grey = skinOf("rolf") === "grey", kit = grey ? "#9aa0a8" : "#16161c", stripe = grey ? "#7d838c" : "#7a1420", shorts = grey ? "#3a3d44" : "#141418";
   // Rolf (50-60): black shorts, black jersey with a broad dark-red chest stripe, glasses, thinning grey hair, paddle.
@@ -2525,22 +2610,23 @@ function updateHud() {
   if (G.L.endless) $("hSchn").innerHTML = `${SCHN_SVG}<span>${G.schn}</span>`;
   if (G.boss) $("bossHp").style.width = (G.boss.hp / G.boss.maxHp * 100) + "%";
   document.querySelector(".pad .k.fire").hidden = !(G.boss || G.form === "opa");
+  document.querySelector(".pad .k.ult").hidden = G.form !== "opa";
 }
 
 // ================= Input =================
-const keyMap = { ArrowLeft: "left", KeyA: "left", ArrowRight: "right", KeyD: "right", Space: "jump", ArrowUp: "jump", KeyW: "jump", KeyF: "fire", KeyJ: "fire", Enter: "fire" };
-addEventListener("keydown", e => { if (G && G.L && !G.done && !G.paused && document.activeElement && document.activeElement.tagName === "BUTTON") document.activeElement.blur(); const k = keyMap[e.code]; if (k) { e.preventDefault(); if (k === "jump" && !input.jump) input.jumpPressed = true; input[k] = true; } if (e.code === "KeyP" && G && G.L) togglePause(); });
+const keyMap = { ArrowLeft: "left", KeyA: "left", ArrowRight: "right", KeyD: "right", Space: "jump", ArrowUp: "jump", KeyW: "jump", KeyF: "fire", KeyJ: "fire", Enter: "fire", KeyE: "ult", KeyU: "ult" };
+addEventListener("keydown", e => { if (G && G.L && !G.done && !G.paused && document.activeElement && document.activeElement.tagName === "BUTTON") document.activeElement.blur(); const k = keyMap[e.code]; if (k) { e.preventDefault(); if (k === "jump" && !input.jump) input.jumpPressed = true; if (k === "ult" && !input.ult) input.ultPressed = true; input[k] = true; } if (e.code === "KeyP" && G && G.L) togglePause(); });
 addEventListener("keyup", e => { const k = keyMap[e.code]; if (k) { e.preventDefault(); input[k] = false; } });
 function clearInput() {
   padPointers.clear();
-  input.left = input.right = input.jump = input.fire = input.jumpPressed = false;
+  input.left = input.right = input.jump = input.fire = input.jumpPressed = input.ult = input.ultPressed = false;
   document.querySelectorAll(".pad .k.on").forEach(b => b.classList.remove("on"));
 }
 addEventListener("blur", clearInput);
 const padPointers = new Map();
 function refreshPad() {
   const held = new Set(padPointers.values());
-  for (const k of ["left", "right", "jump", "fire"]) { const was = input[k]; input[k] = held.has(k); if (k === "jump" && input.jump && !was) input.jumpPressed = true; }
+  for (const k of ["left", "right", "jump", "fire", "ult"]) { const was = input[k]; input[k] = held.has(k); if (k === "jump" && input.jump && !was) input.jumpPressed = true; if (k === "ult" && input.ult && !was) input.ultPressed = true; }
   document.querySelectorAll(".pad .k").forEach(b => b.classList.toggle("on", held.has(b.dataset.k)));
 }
 const padEl = $("pad");
@@ -2555,7 +2641,7 @@ for (const ev of ["touchend", "touchcancel"]) document.addEventListener(ev, e =>
 padEl.addEventListener("pointermove", e => {
   if (!padPointers.has(e.pointerId)) return;
   const el = document.elementFromPoint(e.clientX, e.clientY), b = el && el.closest && el.closest(".k");
-  if (b && !["jump", "fire"].includes(b.dataset.k) && !["jump", "fire"].includes(padPointers.get(e.pointerId))) { padPointers.set(e.pointerId, b.dataset.k); refreshPad(); }
+  if (b && !["jump", "fire", "ult"].includes(b.dataset.k) && !["jump", "fire", "ult"].includes(padPointers.get(e.pointerId))) { padPointers.set(e.pointerId, b.dataset.k); refreshPad(); }
 });
 for (const ev of ["pointerup", "pointercancel"]) addEventListener(ev, e => { if (padPointers.delete(e.pointerId)) refreshPad(); });
 document.addEventListener("contextmenu", e => e.preventDefault());
