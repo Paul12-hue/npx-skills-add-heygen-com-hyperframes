@@ -55,6 +55,15 @@ button { font: inherit; color: inherit; border: 0; background: none; cursor: poi
 .actor.wide { width: min(58vw, 600px); }
 .actor.dim { filter: brightness(.5) saturate(.6); transform: scale(.94); }
 .actor.talk svg .mouth { animation: talk .17s infinite alternate; transform-origin: center; transform-box: fill-box; }
+/* Pixel figures in scenes, title and menus: same sprites, skins and pixel grid as in the game. */
+img.px { display: block; width: 100%; height: auto; image-rendering: pixelated; transform-origin: bottom center; }
+.actor img.px { filter: drop-shadow(0 12px 20px rgba(0,0,0,.6)); }
+.chars img.px { width: min(22vw, 200px); filter: drop-shadow(0 12px 20px rgba(0,0,0,.6)); }
+.actor.talk img.px { animation: hop .32s infinite alternate ease-in-out; }
+.actor img.px.emote { animation: emote .22s infinite alternate ease-in-out; }
+.actor img.px.angry { filter: drop-shadow(0 0 14px rgba(255,61,61,.9)) saturate(1.25); }
+@keyframes hop { to { transform: translateY(-6px); } }
+@keyframes emote { to { transform: translateY(-16px) scale(1.05); } }
 @keyframes talk { to { transform: scaleY(.35); } }
 .textbox { position: relative; z-index: 12; width: min(1000px, 100%); box-sizing: border-box; background: linear-gradient(#2a1c5a, #160e33); border: 3px solid var(--gold); border-radius: 24px; padding: 18px 26px 24px; min-height: 124px; box-shadow: 0 10px 0 #000, 0 0 40px rgba(255,197,49,.25); }
 .speaker { font-family: var(--display); font-size: 30px; letter-spacing: .05em; color: var(--gold); }
@@ -86,7 +95,7 @@ button { font: inherit; color: inherit; border: 0; background: none; cursor: poi
 .banner { position: fixed; left: 50%; top: 38%; transform: translate(-50%, -50%); font-family: var(--display); font-size: clamp(40px, 7vw, 84px); letter-spacing: .04em; color: var(--green); text-shadow: 0 5px 0 #0c5a00, 0 9px 0 #000; z-index: 8; pointer-events: none; text-align: center; width: max-content; max-width: 92vw; line-height: 1; animation: bannerIn 1.6s ease-out forwards; }
 @keyframes bannerIn { 0% { transform: translate(-50%, -50%) scale(.3); opacity: 0; } 18% { transform: translate(-50%, -50%) scale(1.12); opacity: 1; } 75% { opacity: 1; } 100% { transform: translate(-50%, -62%); opacity: 0; } }
 @media (max-aspect-ratio: 1/1) { .actor { width: 44vw; bottom: 200px; } .pad .k { width: 108px; height: 108px; } .pad .k.jump { width: 136px; height: 136px; } }
-@media (prefers-reduced-motion: reduce) { .banner, .tap, .actor.talk svg .mouth { animation: none !important; } }
+@media (prefers-reduced-motion: reduce) { .banner, .tap, .actor.talk svg .mouth, .actor img.px { animation: none !important; } }
 </style>
 
 <canvas id="cv"></canvas>
@@ -192,19 +201,6 @@ const PORTRAIT = {
     <ellipse cx="88" cy="148" rx="11" ry="6" fill="#ff7b7b" opacity=".3"/><ellipse cx="152" cy="148" rx="11" ry="6" fill="#ff7b7b" opacity=".3"/></svg>`,
 };
 const PEOPLE = { tim: "Tim Oliver Schmidt", valle: "Valle Weber", faroo: "Faroo", bot: "Opa Brixx", chris: "Chris, die Ratte", hoberg: "Hoberg" };
-// Story portraits of the new bosses are drawn with the same canvas code as in the game, so both look alike.
-const canvasPortraits = {};
-function canvasPortrait(key, paint) {
-  if (!canvasPortraits[key]) {
-    const c = document.createElement("canvas"); c.width = 120; c.height = 150;
-    const old = ctx; ctx = c.getContext("2d");
-    try { paint(); } finally { ctx = old; }
-    canvasPortraits[key] = c.toDataURL();
-  }
-  return `<svg viewBox="0 0 240 300" xmlns="http://www.w3.org/2000/svg"><image href="${canvasPortraits[key]}" width="240" height="300" style="image-rendering:pixelated"/></svg>`;
-}
-PORTRAIT.chris = () => canvasPortrait("chris", () => { ctx.translate(60, 196); ctx.scale(-2.3, 2.3); drawChrisBody(-.3, 0); });
-PORTRAIT.hoberg = () => canvasPortrait("hoberg", () => { ctx.translate(60, 219); ctx.scale(-2.3, 2.3); drawHobergBody(-.2, 0, 1); });
 const MUG_SVG = `<svg viewBox="0 0 40 40"><path d="M8 10 h20 v18 a6 6 0 0 1 -6 6 h-8 a6 6 0 0 1 -6 -6z" fill="#39ff14" stroke="#0c5a00" stroke-width="2.5"/><path d="M28 14 h3 a5 5 0 0 1 0 10 h-3" fill="none" stroke="#0c5a00" stroke-width="5"/><path d="M28 14 h3 a5 5 0 0 1 0 10 h-3" fill="none" stroke="#39ff14" stroke-width="2.5"/><rect x="11" y="13" width="4" height="14" rx="2" fill="#d8ffcc" opacity=".8"/></svg>`;
 const SCHN_SVG = `<svg viewBox="0 0 40 40"><path d="M4 22 C3 12 14 7 22 8 C32 9 38 14 36 22 C35 31 24 34 16 33 C8 32 4 28 4 22Z" fill="#e59a2a" stroke="#7a4300" stroke-width="2.5"/><circle cx="13" cy="18" r="1.6" fill="#ffd27a"/><circle cx="22" cy="14" r="1.6" fill="#ffd27a"/><circle cx="27" cy="23" r="1.6" fill="#ffd27a"/><circle cx="16" cy="26" r="1.6" fill="#ffd27a"/><path d="M28 6 l8 2 l-4 7z" fill="#fff35a" stroke="#a08a00" stroke-width="1.5"/></svg>`;
 const HEART_SVG = `<svg viewBox="0 0 40 40"><path d="M20 34 C6 24 4 16 8 11 C12 6 18 8 20 13 C22 8 28 6 32 11 C36 16 34 24 20 34Z" fill="#ff3d5a" stroke="#7a0010" stroke-width="2.5"/></svg>`;
@@ -527,8 +523,8 @@ function playScene(sc) {
       const leftWho = sc.keepR && ln.who !== sc.R ? ln.who : sc.L;
       const isLeft = ln.who === leftWho;
       const rightWho = !isLeft && ln.who !== sc.R ? ln.who : sc.R;
-      $("actL").innerHTML = PORTRAIT[leftWho](isLeft && ln.emote, isLeft && ln.angry);
-      $("actR").innerHTML = PORTRAIT[rightWho](!isLeft && ln.emote, (!isLeft && ln.angry) || (rightWho === "faroo" && sc.evil));
+      $("actL").innerHTML = figureImg(leftWho, false, isLeft && ln.emote, isLeft && ln.angry);
+      $("actR").innerHTML = figureImg(rightWho, true, !isLeft && ln.emote, (!isLeft && ln.angry) || (rightWho === "faroo" && sc.evil));
       $("actL").className = "actor l" + (isLeft ? " talk" : " dim");
       $("actR").className = "actor r" + (!isLeft ? " talk" : " dim") + ($("actR").querySelector("svg.wide") ? " wide" : "");
       $("speaker").textContent = PEOPLE[ln.who];
@@ -573,7 +569,7 @@ function levelDone(n, res) {
 function ending() {
   save.completed = true; store.write();
   const all = [0, 1, 2].reduce((t, n) => t + (save.schnitzel[n] || 0), 0);
-  modal(`<h2>19:00, alle am Tisch!</h2><div class="chars">${PORTRAIT.tim()}${PORTRAIT.faroo()}${PORTRAIT.valle()}</div>
+  modal(`<h2>19:00, alle am Tisch!</h2><div class="chars">${figureImg("tim", false)}${figureImg("faroo", false)}${figureImg("valle", true)}</div>
     <div class="tally"><div>${MUG_SVG} ${save.totalMugs}</div><div>${SCHN_SVG} ${all} / 9</div></div>
     <p>${all === 9 ? "Perfekt! Alle neun XXL-Schnitzel." : "Für das perfekte Ende fehlen noch XXL-Schnitzel."} Schwierigkeit: ${difficulty === "hard" ? "Schwer" : "Normal"}.</p>
     <div class="rowb"><button class="btn hot" id="againBtn" type="button">Nochmal spielen</button></div>`);
@@ -2291,7 +2287,7 @@ document.addEventListener("visibilitychange", () => { if (document.hidden) clear
 function toTitle() {
   G = null; screen("title");
   ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.clearRect(0, 0, cv.width, cv.height);
-  $("titleChars").innerHTML = PORTRAIT.tim() + PORTRAIT.faroo() + PORTRAIT.valle();
+  $("titleChars").innerHTML = figureImg("tim", false) + figureImg("faroo", false) + figureImg("valle", true);
   $("contBtn").hidden = !(save.step > 0 && save.step < STORY.length);
   $("levelsBtn").hidden = !(save.completed || save.step >= STORY.length);
   $("pixBtn").textContent = `Pixel: ${pixMode}`;
@@ -2329,6 +2325,45 @@ async function playSingle(n) {
 }
 $("levelsBtn").onclick = levelSelect;
 $("helpBtn").onclick = () => helpModal(toTitle);
+// ===== Pixel figures outside the game (scenes, title, outfit menu) =====
+// Paint a sprite at full size, then shrink it to the pixel grid with the same hard edges and outline as in
+// the game. Text inside the sprite is kept and drawn sharp on top, never mirrored.
+function pixelRender(canvas, paint, f = 2) {
+  const x = canvas.getContext("2d"), texts = [];
+  x.fillText = function (t, tx, ty) { texts.push({ t, tx, ty, m: this.getTransform(), font: this.font, fill: this.fillStyle, al: this.textAlign, bl: this.textBaseline }); };
+  try { paint(x); } finally { delete x.fillText; }
+  const w = Math.round(canvas.width / f), h = Math.round(canvas.height / f), s = document.createElement("canvas"); s.width = w; s.height = h;
+  const sx = s.getContext("2d", { willReadFrequently: true }); sx.drawImage(canvas, 0, 0, w, h); crispen(sx, true);
+  x.setTransform(1, 0, 0, 1, 0, 0); x.clearRect(0, 0, canvas.width, canvas.height); x.imageSmoothingEnabled = false; x.drawImage(s, 0, 0, canvas.width, canvas.height);
+  for (const r of texts) {
+    x.setTransform(r.m); x.font = r.font; x.fillStyle = r.fill; x.textAlign = r.al; x.textBaseline = r.bl;
+    x.translate(r.tx, r.ty); if (r.m.a < 0) x.scale(-1, 1); x.fillText(r.t, 0, 0);
+  }
+  x.setTransform(1, 0, 0, 1, 0, 0);
+}
+// A figure with the currently chosen skin, as an <img>. flip makes it face left (for the right side of a scene).
+const figureCache = {};
+// Text on jerseys uses the comic font: once it has loaded, draw the figures again.
+if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => { for (const k in figureCache) delete figureCache[k]; if (!$("title").hidden) toTitle(); });
+function figureImg(who, flip, emote, angry) {
+  const skinKey = { tim: "tim", valle: "valle", faroo: "faroo", bot: "brixx" }[who];
+  const key = who + ":" + (skinKey ? skinOf(skinKey) : "") + ":" + (flip ? 1 : 0);
+  if (!figureCache[key]) {
+    const c = document.createElement("canvas"); c.width = 320; c.height = 400;
+    pixelRender(c, x => {
+      if (flip) { x.translate(c.width, 0); x.scale(-1, 1); }
+      if (who === "tim" || who === "valle" || who === "faroo") return previewSkin(c, who, skinOf(who), who === "tim" ? 4 : who === "valle" ? 3.3 : 3.6);
+      const oldCtx = ctx, oldG = G; ctx = x; G = { time: 180, form: "tim", p: { x: 9999, w: 30 }, L: { w: 22 } };
+      try {
+        if (who === "bot") { x.translate(160, 70); x.scale(2.2, 2.2); x.translate(-60, 0); drawBoss({ kind: "brixx", x: 0, y: 0, w: 120, h: 110, hp: 1, inv: 0, hit: 0, state: "fly", bombs: [] }); }
+        else if (who === "chris") { x.translate(160, 396); x.scale(4.4, 4.4); drawChrisBody(-.4, 0); }
+        else if (who === "hoberg") { x.translate(160, 396); x.scale(3.9, 3.9); drawHobergBody(-.3, 0, 1); }
+      } finally { ctx = oldCtx; G = oldG; }
+    });
+    figureCache[key] = c.toDataURL();
+  }
+  return `<img class="px${emote ? " emote" : ""}${angry ? " angry" : ""}" src="${figureCache[key]}" alt="">`;
+}
 function outfitPopup(who, id) {
   if (!G) return;
   G.paused = true; musicStop(); clearInput();
@@ -2337,7 +2372,7 @@ function outfitPopup(who, id) {
   modal(`<h2>Neues Outfit!</h2><canvas id="popCv" width="260" height="250" class="popcv"></canvas>
     <p class="popname">${names[who]} · ${label}</p><div class="popline">„${OUTFIT_LINES[who]}“</div>
     <div class="rowb"><button class="btn go" id="popWear" type="button">Direkt anziehen</button><button class="btn" id="popOk" type="button">Weiter spielen</button></div>`);
-  previewSkin($("popCv"), who, id, 2);
+  pixelRender($("popCv"), () => previewSkin($("popCv"), who, id, 2));
   const resume = () => { screen(null); if (G && !G.done) { G.paused = false; last = performance.now(); acc = 0; musicStart(); } };
   $("popOk").onclick = resume;
   $("popWear").onclick = () => { save.skins.sel = save.skins.sel || {}; save.skins.sel[who] = id; store.write(); sfx("tap"); resume(); };
@@ -2360,7 +2395,7 @@ function previewSkin(canvas, who, id, zoom = 1) {
 function outfitMenu() {
   const who = [["tim", "Tim"], ["valle", "Valle"], ["faroo", "Faroo"], ["rolf", "Rolf"], ["brixx", "Opa Brixx"]];
   modal(`<h2>Outfits</h2><p>In jedem Level ist mindestens ein Outfit in einer schweren Extra-Passage versteckt.</p><div class="skins">${who.map(([w, n]) => `<div class="skinrow"><b>${n}</b><div class="skinopts">${SKIN_DEFS[w].map(([id, label]) => { const ok = hasSkin(w, id), sel = skinOf(w) === id; return `<button class="skinopt${sel ? " on" : ""}${ok ? "" : " locked"}" data-w="${w}" data-id="${id}" type="button" ${ok ? "" : "disabled"}><canvas width="110" height="120" data-w="${w}" data-id="${id}"></canvas><span>${label}</span><small>${ok ? (sel ? "Angezogen" : "Anziehen") : OUTFIT_WHERE[w + ":" + id]}</small></button>`; }).join("")}</div></div>`).join("")}</div><div class="rowb"><button class="btn go" id="skinBack" type="button">Fertig</button></div>`);
-  document.querySelectorAll(".skinopt canvas").forEach(c => previewSkin(c, c.dataset.w, c.dataset.id));
+  document.querySelectorAll(".skinopt canvas").forEach(c => pixelRender(c, () => previewSkin(c, c.dataset.w, c.dataset.id)));
   document.querySelectorAll(".skinopt:not(.locked)").forEach(b => b.onclick = () => {
     save.skins = save.skins || { unlocked: {}, sel: {} }; save.skins.sel = save.skins.sel || {};
     save.skins.sel[b.dataset.w] = b.dataset.id; store.write(); sfx("tap"); outfitMenu();
