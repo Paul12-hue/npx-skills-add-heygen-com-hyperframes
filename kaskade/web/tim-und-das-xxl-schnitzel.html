@@ -191,7 +191,18 @@ const PORTRAIT = {
     <ellipse class="mouth" cx="120" cy="170" rx="11" ry="7" fill="#5a1f1f"/>
     <ellipse cx="88" cy="148" rx="11" ry="6" fill="#ff7b7b" opacity=".3"/><ellipse cx="152" cy="148" rx="11" ry="6" fill="#ff7b7b" opacity=".3"/></svg>`,
 };
-const PEOPLE = { tim: "Tim Oliver Schmidt", valle: "Valle Weber", faroo: "Faroo", bot: "Opa Brixx" };
+const PEOPLE = { tim: "Tim Oliver Schmidt", valle: "Valle Weber", faroo: "Faroo", bot: "Opa Brixx", chris: "Chris, die Ratte" };
+// Chris's story portrait is drawn with the same canvas code as in the game, so both look alike.
+let chrisPortrait = null;
+PORTRAIT.chris = () => {
+  if (!chrisPortrait) {
+    const c = document.createElement("canvas"); c.width = 120; c.height = 150;
+    const old = ctx; ctx = c.getContext("2d");
+    try { ctx.translate(60, 196); ctx.scale(-2.3, 2.3); drawChrisBody(-.3, 0); } finally { ctx = old; }
+    chrisPortrait = c.toDataURL();
+  }
+  return `<svg viewBox="0 0 240 300" xmlns="http://www.w3.org/2000/svg"><image href="${chrisPortrait}" width="240" height="300" style="image-rendering:pixelated"/></svg>`;
+};
 const MUG_SVG = `<svg viewBox="0 0 40 40"><path d="M8 10 h20 v18 a6 6 0 0 1 -6 6 h-8 a6 6 0 0 1 -6 -6z" fill="#39ff14" stroke="#0c5a00" stroke-width="2.5"/><path d="M28 14 h3 a5 5 0 0 1 0 10 h-3" fill="none" stroke="#0c5a00" stroke-width="5"/><path d="M28 14 h3 a5 5 0 0 1 0 10 h-3" fill="none" stroke="#39ff14" stroke-width="2.5"/><rect x="11" y="13" width="4" height="14" rx="2" fill="#d8ffcc" opacity=".8"/></svg>`;
 const SCHN_SVG = `<svg viewBox="0 0 40 40"><path d="M4 22 C3 12 14 7 22 8 C32 9 38 14 36 22 C35 31 24 34 16 33 C8 32 4 28 4 22Z" fill="#e59a2a" stroke="#7a4300" stroke-width="2.5"/><circle cx="13" cy="18" r="1.6" fill="#ffd27a"/><circle cx="22" cy="14" r="1.6" fill="#ffd27a"/><circle cx="27" cy="23" r="1.6" fill="#ffd27a"/><circle cx="16" cy="26" r="1.6" fill="#ffd27a"/><path d="M28 6 l8 2 l-4 7z" fill="#fff35a" stroke="#a08a00" stroke-width="1.5"/></svg>`;
 const HEART_SVG = `<svg viewBox="0 0 40 40"><path d="M20 34 C6 24 4 16 8 11 C12 6 18 8 20 13 C22 8 28 6 32 11 C36 16 34 24 20 34Z" fill="#ff3d5a" stroke="#7a0010" stroke-width="2.5"/></svg>`;
@@ -241,7 +252,7 @@ function makeLevels() {
     .brick(66, 10, 3).brick(67, 7, 1).mugs(66, 9, 3)
     .check(72).ground(72, 86).enemy(80, 11, "fast")
     .plat(90, 10, 2).plat(95, 9, 2).plat(100, 8, 2).mugs(90, 9, 2).mugs(95, 8, 2).mugs(100, 7, 2).schn(105, 5).plat(104, 7, 3)
-    .ground(108, 134).spikes(114, 116).spikes(122, 124).mugs(113, 9, 4).mugs(121, 9, 4).enemy(118).enemy(128, 11, "fast").shaft(125, "valle", "punk1")
+    .ground(108, 134).spikes(114, 116).spikes(122, 124).mugs(113, 9, 4).mugs(121, 9, 4).enemy(118).enemy(128, 11, "fast").shaft(125, "valle", "punk1").plat(126, 10, 2).plat(128, 8, 2)
     .check(136).ground(136, 140).ground(146, 169).mover(141, 11, 2, 3, 1.2).arc(141, 9, 5)
     .enemy(152).enemy(156, 11, "fast").brick(158, 9, 4).schn(160, 7).mugs(150, 10, 4)
     .finishAt(166);
@@ -297,7 +308,9 @@ function makeLevels() {
     .mover(142, 10, 2, 6, 2.2)
     .ground(152, 189).spikes(160, 163).spikes(170, 173).enemy(166, 11, "fast").enemy(178, 11, "fast").arc(159, 9, 6).arc(169, 9, 6).schn(180, 8)
     .finishAt(186);
-  return [L1, L2, L3, L4, L5, L6, L7, L8, L9];
+  const L10 = builder(22, "lab", "Endboss · Physiklabor").ground(0, 21).wall(0, 0, 13).wall(21, 0, 13).startAt(3, 10);
+  L10.boss = "chris";
+  return [L1, L2, L3, L4, L5, L6, L7, L8, L9, L10];
 }
 
 // ================= Story =================
@@ -359,6 +372,13 @@ const STORY = [
     S("valle", "Spring über seine Stampf-Wellen und die Fußbälle. Wenn er benommen ist: drauf auf den Kopf! Und PING, PING, PING!"),
   ]},
   { kind: "level", n: 4 },
+  { kind: "scene", chapter: "Endboss · 18:59 Uhr", L: "tim", R: "chris", lines: [
+    S("valle", "Moment … der Reservierungszettel ist weg! Die Spur führt ins Physiklabor der Anton-Weilmaier-Schule."),
+    S("chris", "So, morgen.", true),
+    S("tim", "Morgen? Unser Tisch ist um 19 Uhr! Gib den Zettel her!"),
+    S("valle", "Das ist Chris, die Ratte! Weich seinen Papierzetteln aus und schieß mit PING. Und wenn er landet: drauf auf den Kopf!"),
+  ]},
+  { kind: "level", n: 9 },
   { kind: "scene", chapter: "Epilog · 19:00 Uhr · Redo XXL", L: "tim", R: "faroo", end: true, lines: [
     S("faroo", "Okay, okay … ich hab übertrieben. Ich wollte nur, dass alle meinen Stream schauen."),
     S("tim", "Dann streamen wir eben zusammen. Ein XXL-Schnitzel für jeden, auch für Opa Brixx."),
@@ -528,9 +548,9 @@ function levelDone(n, res) {
     const lv = LEVELS[n];
     save.totalMugs += res.mugs; save.schnitzel[n] = Math.max(save.schnitzel[n] || 0, res.schn); store.write();
     const boss = !!lv.boss;
-    modal(`<h2>${lv.boss === "faroo" ? "Faroo besiegt!" : boss ? "Brixx besiegt!" : "Geschafft!"}</h2><p>${lv.name}</p>
+    modal(`<h2>${lv.boss === "chris" ? "Chris besiegt!" : lv.boss === "faroo" ? "Faroo besiegt!" : boss ? "Brixx besiegt!" : "Geschafft!"}</h2><p>${lv.name}</p>
       <div class="tally"><div>${MUG_SVG} ${res.mugs}${boss ? "" : " / " + lv.mugTotal}</div>${boss ? "" : `<div>${SCHN_SVG} ${res.schn} / 3</div>`}</div>
-      <p>${res.schn === 3 ? "Alle XXL-Schnitzel gefunden! Valle ist stolz." : lv.boss === "faroo" ? "Jetzt aber schnell zum Tisch!" : boss ? "Brixx liegt am Boden … aber da stampft etwas Riesiges heran." : "Es fehlen noch Schnitzel. Schau hinter Steinblöcke und hoch über Plattformen."}</p>
+      <p>${res.schn === 3 ? "Alle XXL-Schnitzel gefunden! Valle ist stolz." : lv.boss === "chris" ? "Der Reservierungszettel ist gerettet. Ab ins Redo XXL!" : lv.boss === "faroo" ? "Jetzt aber schnell zum Tisch!" : boss ? "Brixx liegt am Boden … aber da stampft etwas Riesiges heran." : "Es fehlen noch Schnitzel. Schau hinter Steinblöcke und hoch über Plattformen."}</p>
       <div class="rowb"><button class="btn go" id="nextBtn" type="button">Weiter</button></div>`);
     sfx("win");
     $("nextBtn").onclick = () => resolve();
@@ -641,14 +661,14 @@ function playLevel(n) {
       checkpoint: [L.start[0] * T, L.start[1] * T - 4], reached: new Set(),
       particles: [], cam: 0, paused: false, done: false, shake: 0,
       shots: [], form: L.endless ? "faroo" : "tim", playerW: L.endless ? FAROO_START_W : 30, best: 0,
-      boss: L.boss === "faroo" ? makeFaroo(L) : L.boss === "brixx" ? { kind: "brixx", x: 10 * T, y: 2 * T, w: 120, h: 110, hp: difficulty === "hard" ? 45 : 30, maxHp: difficulty === "hard" ? 45 : 30, state: "fly", t: 0, vx: 2.4, inv: 0, bombs: [] } : null,
+      boss: L.boss === "faroo" ? makeFaroo(L) : L.boss === "chris" ? makeChris() : L.boss === "brixx" ? { kind: "brixx", x: 10 * T, y: 2 * T, w: 120, h: 110, hp: difficulty === "hard" ? 45 : 30, maxHp: difficulty === "hard" ? 45 : 30, state: "fly", t: 0, vx: 2.4, inv: 0, bombs: [] } : null,
     };
     spawnPlayer();
     if (L.endless) { G.lives = difficulty === "hard" ? 3 : 5; growEndless(L, 80); }
     screen(null); updateHud();
     $("bossbar").hidden = !G.boss;
-    $("bossName").textContent = L.boss === "faroo" ? "RIESEN-FAROO" : "OPA BRIXX";
-    banner(L.boss === "faroo" ? "PLOT-TWIST!" : L.boss ? "BOSS!" : L.name.split("·")[1].trim());
+    $("bossName").textContent = L.boss === "chris" ? "CHRIS, DIE RATTE" : L.boss === "faroo" ? "RIESEN-FAROO" : "OPA BRIXX";
+    banner(L.boss === "chris" ? "ENDBOSS!" : L.boss === "faroo" ? "PLOT-TWIST!" : L.boss ? "BOSS!" : L.name.split("·")[1].trim());
     if (L.boss) sfx("boss");
     last = performance.now(); acc = 0;
     musicStop(); musicStart();
@@ -740,7 +760,7 @@ function drawPixelFx() {
   const u = pxUnit, L = G.L, t = G.time, snap = v => Math.round(v / u) * u;
   const x0 = Math.max(0, Math.floor(G.cam / T) - 1), x1 = Math.min(L.w - 1, Math.ceil((G.cam + vw) / T) + 1);
   // grass blades on every grass top, each tile with its own rhythm
-  const th = THEMES[L.theme], indoor = L.theme === "boss";
+  const th = THEMES[L.theme], indoor = L.theme === "boss" || L.theme === "lab";
   if (!indoor) for (let y = 1; y < ROWS; y++) for (let x = x0; x <= x1; x++) {
     if (L.g[y][x] !== "#" || tileAt(x, y - 1) === "#") continue;
     for (let b = 0; b < 4; b++) {
@@ -924,7 +944,7 @@ function step() {
     const m = Math.floor(p.x / T);
     if (m > G.best) { G.best = m; if (G.time % 10 === 0) updateHud(); }
   }
-  if (G.boss) (G.boss.kind === "faroo" ? faroStep() : bossStep());
+  if (G.boss) (G.boss.kind === "faroo" ? faroStep() : G.boss.kind === "chris" ? chrisStep() : bossStep());
   // Ping-pong balls: always in the boss fight, otherwise only as Tischtennis-Opa.
   if (p.shotCd > 0) p.shotCd--;
   if (input.fire && p.shotCd === 0 && (G.boss || G.form === "opa")) {
@@ -1049,6 +1069,7 @@ const TT_NAMES = { rolf: "ROLF", lena: "LENA LAUX", dennis: "DENNIS", brendon: "
 function damageBoss(n) {
   const b = G.boss; if (!b || b.hp <= 0) return;
   b.hp = Math.max(0, b.hp - n); b.hit = 4; updateHud();
+  if (b.hp <= 0 && b.kind === "chris" && b.phase === 1) return chrisMorph(b);
   if (b.hp <= 0) { sfx("win"); burst(b.x + b.w / 2, b.y + b.h / 2, "#39ff14", 60); b.bombs = []; setTimeout(() => G && !G.done && finishLevel(), 1200); }
 }
 function bossStep() {
@@ -1084,6 +1105,215 @@ function bossStep() {
       if (b.hp > 0) { banner(b.hp <= 8 ? "Noch einmal!" : "Treffer!"); b.state = "rise"; b.t = 0; }
     } else if (b.inv === 0) { hurt(); p.vx = (p.x < b.x ? -8 : 8); }
   }
+}
+
+// Chris (boss): ~30, tight trousers, beige jumper with a dark-red chest stripe, bald top with a ring of dark curls. Throws paper sheets.
+function drawChrisBody(arm, mouth) {
+  // legs: tight dark trousers
+  ctx.fillStyle = "#2a3048"; ctx.fillRect(-8, -24, 6, 23); ctx.fillRect(2, -24, 6, 23);
+  ctx.fillStyle = "#4a2e1c"; ctx.fillRect(-10, -3, 9, 4); ctx.fillRect(1, -3, 9, 4);
+  // beige jumper with dark-red stripe
+  ctx.fillStyle = "#d9c4a0"; roundRect(-14, -52, 28, 31, 8); ctx.fill();
+  ctx.fillStyle = "#c4ad86"; ctx.fillRect(-14, -24, 28, 3);
+  ctx.fillStyle = "#7a1a22"; ctx.fillRect(-14, -45, 28, 5);
+  // back arm
+  ctx.fillStyle = "#c4ad86"; roundRect(-17, -50, 6, 22, 3); ctx.fill(); circ(-14, -27, 3, "#f0c6a0");
+  // throwing arm with a sheet of paper
+  ctx.save(); ctx.translate(10, -48); ctx.rotate(arm);
+  ctx.fillStyle = "#d9c4a0"; roundRect(-3, 0, 7, 20, 3); ctx.fill(); circ(.5, 21, 3.4, "#f0c6a0");
+  ctx.fillStyle = "#ffffff"; ctx.fillRect(-4, 18, 11, 13); ctx.fillStyle = "#9aa4c0"; ctx.fillRect(-2, 21, 7, 1); ctx.fillRect(-2, 24, 7, 1); ctx.fillRect(-2, 27, 5, 1);
+  ctx.restore();
+  // neck + head
+  ctx.fillStyle = "#e8b994"; ctx.fillRect(-4, -56, 8, 5);
+  ctx.fillStyle = "#f0c6a0"; ctx.beginPath(); ctx.ellipse(0, -66, 11, 12.5, 0, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = "rgba(255,255,255,.55)"; ctx.beginPath(); ctx.ellipse(-3, -73, 3.5, 1.8, -.3, 0, Math.PI * 2); ctx.fill(); // shine on the thin top
+  // dark curls only at the sides, at ear height
+  ctx.fillStyle = "#24170f";
+  for (const [x, y] of [[-11, -67], [-12, -64], [-11, -61], [11, -67], [12, -64], [11, -61]]) { ctx.beginPath(); ctx.arc(x, y, 3, 0, Math.PI * 2); ctx.fill(); }
+  ctx.fillStyle = "#3a281c"; for (const [x, y] of [[-12, -65], [12, -63]]) { ctx.beginPath(); ctx.arc(x, y, 1.2, 0, Math.PI * 2); ctx.fill(); }
+  // a few thin, short hairs on top
+  ctx.strokeStyle = "#3a281c"; ctx.lineWidth = .9; ctx.beginPath();
+  for (const [x, y, dx] of [[-6, -76, -1], [-3, -77.5, 0], [0, -78, .5], [3, -77.5, 1], [6, -76, 1.5], [-1.5, -77.8, -.5], [1.5, -77.9, .8]]) { ctx.moveTo(x, y); ctx.quadraticCurveTo(x + dx, y - 2.5, x + dx * 1.8 + .8, y - 3.2); }
+  ctx.stroke();
+  // face (looking to the right in local space)
+  circ(4, -66, 1.9, "#1a1a1a"); circ(-3, -66, 1.9, "#1a1a1a");
+  ctx.fillStyle = "#24170f"; ctx.fillRect(1, -70, 6, 1.6); ctx.fillRect(-6, -70, 5, 1.6);
+  ctx.fillStyle = "rgba(60,40,30,.25)"; ctx.beginPath(); ctx.ellipse(0, -58, 7, 3, 0, 0, Math.PI); ctx.fill(); // stubble
+  ctx.strokeStyle = "#7a2b2b"; ctx.lineWidth = 1.6; ctx.beginPath();
+  if (mouth) { ctx.fillStyle = "#5a1a1a"; ctx.ellipse(1, -59, 3.5, 2.5, 0, 0, Math.PI * 2); ctx.fill(); }
+  else { ctx.moveTo(-3, -59); ctx.quadraticCurveTo(1, -57, 5, -60); ctx.stroke(); }
+}
+function drawPaper(x, y, rot) {
+  ctx.save(); ctx.translate(x, y); ctx.rotate(rot);
+  ctx.fillStyle = "#ffffff"; ctx.fillRect(-9, -11, 18, 22);
+  ctx.fillStyle = "#9aa4c0"; for (let k = 0; k < 4; k++) ctx.fillRect(-6, -7 + k * 5, k === 3 ? 7 : 12, 1.5);
+  ctx.fillStyle = "#e0262c"; ctx.fillRect(4, 5, 4, 4);
+  ctx.restore();
+}
+// Physics lab behind the Chris arena (screen space, fixed boss camera).
+function drawLab() {
+  const t = G.time, ax = -G.cam, aw = G.L.w * T, cx = ax + aw / 2, floor = 12 * T;
+  ctx.fillStyle = "#cfd8cf"; ctx.fillRect(0, -vh, vw, 3 * vh);
+  // tiled wall
+  ctx.fillStyle = "#e4ece2"; for (let y = 4.6 * T; y < floor; y += 24) for (let x = ax; x < ax + aw; x += 24) ctx.fillRect(x + 1, y + 1, 22, 22);
+  ctx.fillStyle = "#9ab0a0"; ctx.fillRect(ax, 4.5 * T, aw, 6);
+  // chalkboard with formulas
+  const bx = cx - 4 * T, by = 1.3 * T, bw = 8 * T, bh = 2.9 * T;
+  ctx.fillStyle = "#6a4a2a"; ctx.fillRect(bx - 8, by - 8, bw + 16, bh + 16);
+  ctx.fillStyle = "#24443a"; ctx.fillRect(bx, by, bw, bh);
+  ctx.fillStyle = "#f2f2e8"; ctx.font = "800 22px Nunito, sans-serif"; ctx.textAlign = "left"; ctx.textBaseline = "middle";
+  ctx.fillText("E = m · c²", bx + 22, by + 32); ctx.fillText("F = m · a", bx + 22, by + 72); ctx.fillText("v = s / t", bx + 22, by + 112);
+  ctx.fillText("U = R · I", bx + bw / 2 + 20, by + 32); ctx.fillText("p = m · v", bx + bw / 2 + 20, by + 72);
+  ctx.textBaseline = "alphabetic";
+  ctx.strokeStyle = "#f2f2e8"; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(bx + bw / 2 + 20, by + 120); for (let k = 0; k < 120; k += 4) ctx.lineTo(bx + bw / 2 + 20 + k, by + 112 - Math.sin(k / 12) * 12); ctx.stroke();
+  // periodic table poster
+  const px = ax + 1.4 * T, py = 1.4 * T;
+  ctx.fillStyle = "#ffffff"; ctx.fillRect(px, py, 2.6 * T, 1.9 * T);
+  const pc = ["#ff9a8a", "#ffd27a", "#9ad8ff", "#a8e8a0", "#d0b0ff"];
+  for (let r = 0; r < 5; r++) for (let c = 0; c < 9; c++) if (!(r < 2 && c > 0 && c < 8)) { ctx.fillStyle = pc[(r + c) % 5]; ctx.fillRect(px + 8 + c * 12, py + 24 + r * 12, 10, 10); }
+  ctx.fillStyle = "#1a0f2e"; ctx.font = "900 11px Nunito, sans-serif"; ctx.textAlign = "center"; ctx.fillText("PERIODENSYSTEM", px + 1.3 * T, py + 15);
+  // swinging pendulum
+  const qx = ax + aw - 3 * T, qy = 1.3 * T, ang = Math.sin(t / 22) * .6;
+  ctx.fillStyle = "#5a5a6a"; ctx.fillRect(qx - 40, qy - 6, 80, 6);
+  ctx.strokeStyle = "#5a5a6a"; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(qx, qy); ctx.lineTo(qx + Math.sin(ang) * 110, qy + Math.cos(ang) * 110); ctx.stroke();
+  circ(qx + Math.sin(ang) * 110, qy + Math.cos(ang) * 110, 12, "#c0a040");
+  // lab bench with beakers, bunsen burner and tesla coil
+  const ly = 9.2 * T;
+  ctx.fillStyle = "#2a2a34"; ctx.fillRect(ax + 1.2 * T, ly, aw - 2.4 * T, 12);
+  ctx.fillStyle = "#e8e8f0"; ctx.fillRect(ax + 1.4 * T, ly + 12, aw - 2.8 * T, floor - ly - 12);
+  ctx.fillStyle = "#c8c8d4"; for (let x = ax + 1.4 * T; x < ax + aw - 1.6 * T; x += 2 * T) ctx.fillRect(x + 2 * T - 3, ly + 12, 3, floor - ly - 12);
+  const beaker = (x, h, col, k) => {
+    ctx.fillStyle = "rgba(220,240,255,.7)"; ctx.fillRect(x, ly - h, 22, h);
+    ctx.fillStyle = col; ctx.fillRect(x + 2, ly - h * .55, 18, h * .55 - 2);
+    const bb = (t * .8 + k * 13) % 30; circ(x + 7 + (k * 5) % 9, ly - h * .2 - bb, 2, "rgba(255,255,255,.8)");
+  };
+  beaker(ax + 2.2 * T, 34, "#39ff14", 0); beaker(ax + 2.9 * T, 26, "#33e1ff", 1); beaker(ax + 3.5 * T, 40, "#ff3d8b", 2);
+  beaker(cx + 3.2 * T, 30, "#ffc531", 3); beaker(cx + 3.8 * T, 38, "#b98cff", 4);
+  // bunsen burner
+  const fx = cx - 1.2 * T; ctx.fillStyle = "#6a6a7a"; ctx.fillRect(fx - 4, ly - 26, 8, 26); ctx.fillRect(fx - 10, ly - 4, 20, 4);
+  const fh = 14 + Math.sin(t / 3) * 3 + Math.sin(t / 7) * 2; ctx.fillStyle = "#33a0ff"; ctx.beginPath(); ctx.ellipse(fx, ly - 26 - fh / 2, 5, fh / 2, 0, 0, Math.PI * 2); ctx.fill();
+  // tesla coil with sparks
+  const tx = cx + 1.4 * T; ctx.fillStyle = "#b87333"; ctx.fillRect(tx - 6, ly - 60, 12, 60); circ(tx, ly - 66, 12, "#c0c4d0");
+  if (Math.floor(t / 4) % 3) { ctx.strokeStyle = "#c8f0ff"; ctx.lineWidth = 2; for (let k = 0; k < 3; k++) { ctx.beginPath(); let x = tx, y = ly - 66; ctx.moveTo(x, y); for (let j = 0; j < 4; j++) { x += Math.cos(k * 2.1 + t) * 9 + (Math.random() - .5) * 8; y -= 6 + Math.random() * 6; ctx.lineTo(x, y); } ctx.stroke(); } }
+}
+
+// Phase 2: Chris turns into a giant rat (still wearing the torn beige jumper with the dark-red stripe).
+function drawRat(run, bite) {
+  const step = Math.sin(run) * 4;
+  // tail
+  ctx.strokeStyle = "#e89aa8"; ctx.lineWidth = 4; ctx.lineCap = "round"; ctx.beginPath(); ctx.moveTo(-34, -16);
+  ctx.bezierCurveTo(-60, -14, -66, -40 + Math.sin(run / 2) * 6, -84, -34 + Math.sin(run / 2) * 8); ctx.stroke(); ctx.lineCap = "butt";
+  // back legs, front legs with claws
+  ctx.fillStyle = "#6a5e58"; ctx.fillRect(-26 + step, -12, 10, 12); ctx.fillRect(14 - step, -12, 10, 12);
+  ctx.fillStyle = "#e89aa8"; ctx.fillRect(-28 + step, -2, 14, 3); ctx.fillRect(12 - step, -2, 14, 3);
+  ctx.fillStyle = "#f2f2f2"; for (let k = 0; k < 3; k++) { ctx.fillRect(-28 + step + k * 5, 0, 2, 3); ctx.fillRect(12 - step + k * 5 + 4, 0, 2, 3); }
+  // body: grey-brown fur
+  ctx.fillStyle = "#7d706a"; ctx.beginPath(); ctx.ellipse(-4, -26, 34, 20, 0, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = "#8e817a"; for (let k = 0; k < 6; k++) ctx.fillRect(-30 + k * 9, -44 + (k % 2) * 2, 5, 3);
+  // torn jumper over the body
+  ctx.fillStyle = "#d9c4a0"; ctx.beginPath(); ctx.moveTo(-18, -42); ctx.lineTo(14, -44); ctx.lineTo(20, -20); ctx.lineTo(14, -14); ctx.lineTo(8, -20); ctx.lineTo(2, -12); ctx.lineTo(-4, -19); ctx.lineTo(-10, -12); ctx.lineTo(-16, -20); ctx.closePath(); ctx.fill();
+  ctx.fillStyle = "#7a1a22"; ctx.fillRect(-17, -35, 34, 5);
+  // head
+  ctx.fillStyle = "#7d706a"; ctx.beginPath(); ctx.moveTo(18, -50); ctx.quadraticCurveTo(44, -50, 56, -32); ctx.quadraticCurveTo(44, -22, 22, -24); ctx.closePath(); ctx.fill();
+  ctx.beginPath(); ctx.ellipse(24, -38, 14, 13, 0, 0, Math.PI * 2); ctx.fill();
+  // ears
+  for (const [x, y] of [[14, -52], [26, -54]]) { ctx.fillStyle = "#7d706a"; ctx.beginPath(); ctx.arc(x, y, 8, 0, Math.PI * 2); ctx.fill(); ctx.fillStyle = "#e89aa8"; ctx.beginPath(); ctx.arc(x, y, 5, 0, Math.PI * 2); ctx.fill(); }
+  // curls survive the transformation, at the side
+  ctx.fillStyle = "#24170f"; for (const [x, y] of [[13, -42], [11, -38], [13, -34]]) { ctx.beginPath(); ctx.arc(x, y, 3, 0, Math.PI * 2); ctx.fill(); }
+  // glowing red eye, pink nose, whiskers, buck teeth
+  circ(34, -40, 4, "#ffffff"); circ(35, -40, 2.6, "#e0262c"); circ(35.6, -41, .9, "#ffffff");
+  ctx.fillStyle = "#24170f"; ctx.fillRect(28, -46, 10, 2);
+  circ(56, -32, 3.4, "#e89aa8");
+  ctx.strokeStyle = "#e8e8f0"; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(50, -33); ctx.lineTo(64, -38); ctx.moveTo(50, -31); ctx.lineTo(65, -31); ctx.moveTo(50, -29); ctx.lineTo(63, -24); ctx.stroke();
+  if (bite) { ctx.fillStyle = "#4a1018"; ctx.beginPath(); ctx.ellipse(44, -24, 8, 5, 0, 0, Math.PI * 2); ctx.fill(); }
+  ctx.fillStyle = "#fff6d8"; ctx.fillRect(44, -27, 4, 6); ctx.fillRect(48.5, -27, 4, 6);
+}
+// ---- Endboss Chris: phase 1 throws paper sheets, phase 2 is a giant rat that charges and leaps ----
+function makeChris() {
+  const hard = difficulty === "hard", hp = hard ? 34 : 24;
+  return { kind: "chris", phase: 1, x: 15 * T, y: 12 * T - 184, w: 64, h: 184, hp, maxHp: hp, t: 0, vx: -1.2, inv: 0, hit: 0, state: "walk", throwT: 0, papers: [], waves: [], bombs: [], face: -1 };
+}
+function chrisMorph(b) {
+  b.phase = 2; b.state = "morph"; b.t = 0; b.inv = 9999; b.papers = [];
+  b.hp = b.maxHp = difficulty === "hard" ? 42 : 30; updateHud();
+  banner("So, morgen."); setTimeout(() => G && !G.done && banner("VERWANDLUNG!"), 1300);
+  pixPulse(6, 80); G.shake = 20; sfx("boss"); burst(b.x + b.w / 2, b.y + b.h / 2, "#ffffff", 50);
+  $("bossName").textContent = "RIESENRATTE CHRIS";
+}
+function chrisStep() {
+  const b = G.boss, p = G.p, hard = difficulty === "hard"; if (b.hp <= 0) return;
+  b.t++; if (b.inv > 0 && b.inv < 9999) b.inv--; if (b.hit > 0) b.hit--;
+  const left = T + 6, right = (G.L.w - 1) * T - b.w - 6, floor = 12 * T;
+  b.face = p.x + p.w / 2 < b.x + b.w / 2 ? -1 : 1;
+  if (b.phase === 1) {
+    // walk around and throw sheets: a single aimed sheet, sometimes a fan of three
+    b.x += b.vx; if (b.x < left + 4 * T || b.x > right) b.vx *= -1;
+    if (b.throwT > 0) b.throwT--;
+    const rate = (hard ? 60 : 78) - (1 - b.hp / b.maxHp) * 24;
+    if (b.t % Math.round(rate) === 0) {
+      b.throwT = 16; sfx("throw");
+      const sx = b.x + b.w / 2 + b.face * 26, sy = b.y + 46, fan = b.t % (Math.round(rate) * 3) === 0;
+      const dx = p.x + p.w / 2 - sx, dy = p.y + p.h / 2 - sy, d = Math.hypot(dx, dy) || 1, sp = hard ? 5.4 : 4.4;
+      for (const a of fan ? [-.28, 0, .28] : [0]) { const c = Math.cos(a), s = Math.sin(a), vx = dx / d * sp, vy = dy / d * sp; b.papers.push({ x: sx, y: sy, vx: vx * c - vy * s, vy: vx * s + vy * c, rot: 0, life: 260 }); }
+    }
+  } else if (b.state === "morph") {
+    if (b.t === 60) { const cx = b.x + b.w / 2; b.w = 220; b.h = 140; b.x = Math.max(left, Math.min(right, cx - b.w / 2)); b.y = floor - b.h; }
+    if (b.t > 110) { b.state = "wait"; b.t = 0; b.inv = 0; }
+  } else if (b.state === "wait") {
+    // scratches the floor before the next attack (a clear warning)
+    if (b.t > (hard ? 34 : 48)) { b.t = 0; b.state = Math.random() < .55 ? "run" : "leap"; b.dir = b.face; b.vy = -15; b.tx = Math.max(left, Math.min(right, p.x + p.w / 2 - b.w / 2)); sfx("boss"); }
+  } else if (b.state === "run") {
+    b.x += b.dir * (hard ? 10 : 8.5);
+    if (b.x <= left || b.x >= right) { b.x = Math.max(left, Math.min(right, b.x)); b.state = "stun"; b.t = 0; G.shake = 16; sfx("boom"); burst(b.dir > 0 ? b.x + b.w : b.x, b.y + b.h / 2, "#ffffff", 20); }
+  } else if (b.state === "leap") {
+    b.x += (b.tx - b.x) * .06; b.vy += .7; b.y += b.vy;
+    if (b.y >= floor - b.h) {
+      b.y = floor - b.h; b.state = "stun"; b.t = 0; G.shake = 18; sfx("boom");
+      // shock waves along the floor in both directions: jump over them
+      b.waves.push({ x: b.x + b.w / 2, dir: -1 }, { x: b.x + b.w / 2, dir: 1 });
+    }
+  } else if (b.state === "stun") {
+    if (b.t > (hard ? 70 : 100)) { b.state = "wait"; b.t = 0; }
+  }
+  // paper sheets
+  for (const pa of b.papers) {
+    pa.x += pa.vx; pa.y += pa.vy + Math.sin((pa.life + pa.x) / 9) * .6; pa.rot += .15; pa.life--;
+    if (rects(p, { x: pa.x - 9, y: pa.y - 9, w: 18, h: 18 })) { pa.life = 0; hurt(); }
+    if (pa.y > floor || pa.x < T || pa.x > (G.L.w - 1) * T) pa.life = 0;
+  }
+  b.papers = b.papers.filter(pa => pa.life > 0);
+  for (const w of b.waves) { w.x += w.dir * (hard ? 7 : 6); if (w.x < T || w.x > (G.L.w - 1) * T) w.dead = true; else if (rects(p, { x: w.x - 14, y: floor - 26, w: 28, h: 26 })) { w.dead = true; hurt(); } }
+  b.waves = b.waves.filter(w => !w.dead);
+  // contact: a jump on the head hurts Chris (always in phase 1, only while the rat is dazed)
+  const box = { x: b.x + 8, y: b.y + (b.phase === 1 ? 0 : 20), w: b.w - 16, h: b.h - (b.phase === 1 ? 0 : 20) };
+  if (b.state !== "morph" && rects(p, box)) {
+    const top = p.y + p.h - p.vy <= box.y + 20;
+    if (top && p.vy > 0 && b.inv === 0 && (b.phase === 1 || b.state === "stun")) {
+      b.inv = 50; p.vy = -14; sfx("stomp"); G.shake = 10; burst(p.x + p.w / 2, box.y, "#ffc531", 26);
+      damageBoss(b.phase === 1 ? 3 : 6);
+      if (b.hp > 0 && b.phase === 2) { banner(b.hp <= 6 ? "Noch einmal!" : "Treffer!"); b.state = "wait"; b.t = 0; }
+    } else if (b.inv === 0 || b.state === "run" || b.state === "leap") { hurt(); p.vx = p.x < b.x + b.w / 2 ? -8 : 8; }
+  }
+}
+function drawChris(b) {
+  if (b.hp <= 0 && Math.floor(G.time / 4) % 2) return;
+  for (const pa of b.papers) drawPaper(pa.x, pa.y, pa.rot);
+  for (const w of b.waves) { ctx.fillStyle = "#ffffff"; ctx.fillRect(w.x - 12, 12 * T - 18, 24, 18); ctx.fillStyle = "#33e1ff"; ctx.fillRect(w.x - 8, 12 * T - 26, 16, 10); }
+  const flash = b.hit > 0 || (b.inv > 0 && b.inv < 9999 && Math.floor(b.inv / 4) % 2);
+  if (flash) ctx.globalAlpha = .55;
+  const cx = b.x + b.w / 2, fy = b.y + b.h;
+  // during the morph Chris and the rat flicker into each other
+  const rat = b.phase === 2 && !(b.state === "morph" && Math.floor(b.t / Math.max(2, 10 - b.t / 12)) % 2 === 0);
+  ctx.save(); ctx.translate(cx, b.state === "morph" ? 12 * T : fy);
+  if (!rat) { ctx.scale(b.face * 2.3, 2.3); drawChrisBody(b.throwT > 0 ? -2.3 + (16 - b.throwT) * .12 : -.5 + Math.sin(G.time / 14) * .25, b.throwT > 0 || b.state === "morph"); }
+  else {
+    const dir = b.state === "run" || b.state === "leap" ? (b.dir || b.face) : b.face, shake = b.state === "wait" ? Math.sin(G.time * 2) * 2 : 0;
+    ctx.translate(shake - dir * 6, 0); ctx.scale(dir * 2.6, 2.6);
+    drawRat(b.state === "run" ? G.time * .8 : b.state === "wait" ? G.time * .4 : 0, b.state === "run" || b.state === "leap");
+  }
+  ctx.restore(); ctx.globalAlpha = 1;
+  if (b.state === "stun") { ctx.fillStyle = "#ffc531"; ctx.font = "900 26px Nunito, sans-serif"; ctx.textAlign = "center"; for (let k = 0; k < 3; k++) { const a = G.time / 10 + k * 2.1; ctx.fillText("★", cx + Math.cos(a) * 60, b.y + 4 + Math.sin(a) * 12); } }
+  if (b.phase === 1 && b.hp > 0) { ctx.fillStyle = "#ffc531"; ctx.font = "900 15px Nunito, sans-serif"; ctx.textAlign = "center"; ctx.fillText("✦ ✦", cx, b.y - 14 + Math.sin(G.time / 5) * 3); }
 }
 
 // ===== New skins: in-game sprites (canvas) and story portrait overlays (SVG) =====
@@ -1346,6 +1576,7 @@ const THEMES = {
   day: { sky: ["#5ec8ff", "#bfe9ff"], far: "#8ab6e0", mid: "#5aa86a", ground: ["#7a4a2a", "#4a2a14"], top: "#5fd35a" },
   night: { sky: ["#120a3a", "#3a1a6a"], far: "#2a1a5a", mid: "#1a2a4a", ground: ["#3a2a5a", "#1a1030"], top: "#ff3d8b" },
   sunset: { sky: ["#ff7a3d", "#ffd08a"], far: "#c45a6a", mid: "#7a3a5a", ground: ["#8a4a3a", "#4a2018"], top: "#ffc531" },
+  lab: { sky: ["#cfd8cf", "#cfd8cf"], far: "#9ab0a0", mid: "#b0c0b0", ground: ["#6a6a78", "#34343e"], top: "#e8e8f0" },
   boss: { sky: ["#3a0a2a", "#ff5a3d"], far: "#5a1a3a", mid: "#3a0a2a", ground: ["#5a3a2a", "#2a1810"], top: "#39ff14" },
 };
 function draw() {
@@ -1405,7 +1636,7 @@ function draw() {
     else if (e.t === "outfit") drawOutfitPickup(e.px + 24, e.py + 24 + bob, e.who);
     else drawBot(e.px, e.py + 14, e.vx, e.t === "fast");
   }
-  if (G.boss) (G.boss.kind === "faroo" ? drawFaroo(G.boss) : drawBoss(G.boss));
+  if (G.boss) (G.boss.kind === "faroo" ? drawFaroo(G.boss) : G.boss.kind === "chris" ? drawChris(G.boss) : drawBoss(G.boss));
   for (const sh of G.shots) drawShot(sh);
   // player
   if (!(p.inv > 0 && Math.floor(p.inv / 5) % 2)) drawTim(p);
@@ -1417,6 +1648,7 @@ function roundRect(x, y, w, h, r) { ctx.beginPath(); ctx.moveTo(x + r, y); ctx.a
 function drawBackdrop(th) {
   const c = G.cam;
   if (G.L.theme === "boss") return drawStreamRoom();
+  if (G.L.theme === "lab") return drawLab();
   // sun/moon
   ctx.fillStyle = G.L.theme === "night" ? "rgba(255,255,230,.9)" : "rgba(255,250,200,.85)";
   ctx.beginPath(); ctx.arc(vw * .78, 110, 52, 0, Math.PI * 2); ctx.fill();
@@ -1899,6 +2131,7 @@ const LEVEL_MENU = [
   { n: 8, title: "Level 6 · Turnhalle", sub: "Sehr schwer · 2 versteckte Outfits" },
   { n: 3, title: "Boss · Opa Brixx", sub: "BADABOOM auf der XXL-Bank" },
   { n: 4, title: "Boss · Riesen-Faroo", sub: "Der Plot-Twist-Kampf" },
+  { n: 9, title: "Endboss · Chris, die Ratte", sub: "Papierzettel, dann die Riesenratte" },
   { n: 5, title: "Endlos · Faroo läuft", sub: "Spiel als Faroo, jedes 3. Schnitzel macht ihn schmaler" },
 ];
 function levelSelect() {
