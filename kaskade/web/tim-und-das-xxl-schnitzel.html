@@ -1337,7 +1337,7 @@ function drawChris(b) {
 }
 
 // Hoberg (boss): tall boy, blue tracksuit top, black trousers, white-red shoes, dark-blond side parting, hearing aid.
-function drawHobergBody(arm, mouth, aidOn, noAid) {
+function drawHobergBody(arm, mouth, aidOn, noAid, swing) {
   // shoes: white with red
   ctx.fillStyle = "#f4f4f4"; ctx.fillRect(-11, -4, 10, 5); ctx.fillRect(1, -4, 10, 5);
   ctx.fillStyle = "#e0262c"; ctx.fillRect(-11, -2, 10, 2); ctx.fillRect(1, -2, 10, 2); ctx.fillRect(-4, -4, 3, 2); ctx.fillRect(8, -4, 3, 2);
@@ -1347,6 +1347,19 @@ function drawHobergBody(arm, mouth, aidOn, noAid) {
   ctx.fillStyle = "#2a5bd7"; roundRect(-12, -62, 24, 32, 6); ctx.fill();
   ctx.fillStyle = "#1e46a8"; ctx.fillRect(-12, -33, 24, 3);
   ctx.fillStyle = "#ffffff"; ctx.fillRect(-.6, -60, 1.4, 27); ctx.fillRect(-4, -62, 8, 2);
+  // phone-like device on a black lanyard round his neck; when he swings it, it circles around him (drawn last, on top)
+  const device = () => {
+    const sw = swing !== undefined && swing !== null, dx = sw ? Math.cos(swing) * 34 : 0, dy = sw ? -50 + Math.sin(swing) * 34 : -47;
+    ctx.strokeStyle = "#111114"; ctx.lineWidth = sw ? 1.8 : 1.4; ctx.beginPath();
+    if (!sw) { ctx.moveTo(-3.5, -63); ctx.lineTo(-1.5, -52); ctx.moveTo(3.5, -63); ctx.lineTo(1.5, -52); } else { ctx.moveTo(0, -60); ctx.lineTo(dx, dy); }
+    ctx.stroke();
+    if (sw) { ctx.fillStyle = "rgba(255,255,255,.5)"; for (let k = 1; k <= 3; k++) { const a = swing - k * .3; ctx.fillRect(Math.cos(a) * 34 - 2, -50 + Math.sin(a) * 34 - 2, 4, 4); } }
+    ctx.save(); ctx.translate(dx, dy); ctx.rotate(sw ? swing + Math.PI / 2 : 0); if (sw) ctx.scale(1.5, 1.5);
+    ctx.fillStyle = "#2a2a32"; roundRect(-3.5, -5, 7, 11, 1.5); ctx.fill();
+    ctx.fillStyle = "#7fd0f0"; ctx.fillRect(-2.3, -3.6, 4.6, 4); ctx.fillStyle = "#e0262c"; ctx.fillRect(-.8, 2.2, 1.6, 1.6);
+    ctx.restore();
+  };
+  if (swing === undefined || swing === null) device();
   // back arm
   ctx.fillStyle = "#1e46a8"; roundRect(-15, -60, 6, 24, 3); ctx.fill(); ctx.fillStyle = "#ffffff"; ctx.fillRect(-13, -59, 1.4, 22); circ(-12, -35, 3, "#f2c6a8");
   // front arm (raised when the hearing aid attacks)
@@ -1375,6 +1388,7 @@ function drawHobergBody(arm, mouth, aidOn, noAid) {
   ctx.fillStyle = "#7a5e2c"; ctx.fillRect(2.5, -80, 5, 1.4); ctx.fillRect(-3, -80, 4, 1.4);
   if (mouth) { ctx.fillStyle = "#5a1a1a"; ctx.beginPath(); ctx.ellipse(3, -69.5, 3, 2.2, 0, 0, Math.PI * 2); ctx.fill(); }
   else { ctx.strokeStyle = "#7a2b2b"; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.moveTo(0, -70); ctx.quadraticCurveTo(3, -68.5, 6, -70.5); ctx.stroke(); }
+  if (swing !== undefined && swing !== null) device();
 }
 // Attack 1: feedback whistle, sound rings from the hearing aid. Attack 2: the hearing aid flies like a boomerang.
 function drawSoundRing(x, y, r, a) { if (r < 8) return; ctx.globalAlpha = a; ctx.strokeStyle = "#33e1ff"; ctx.lineWidth = 4; ctx.beginPath(); ctx.arc(x, y, r, -.8, .8); ctx.stroke(); ctx.strokeStyle = "#ffffff"; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(x, y, r - 6, -.7, .7); ctx.stroke(); ctx.globalAlpha = 1; }
@@ -1425,7 +1439,7 @@ function hobergStep() {
   if (b.state !== "confused") b.face = p.x + p.w / 2 < b.x + b.w / 2 ? -1 : 1;
   if (b.state === "walk") {
     b.x += b.vx; if (b.x < left + 5 * T || b.x > right) b.vx *= -1;
-    if (b.t > (hard ? 70 : 95)) { b.t = 0; b.state = Math.random() < .55 ? "fiep" : "throw"; }
+    if (b.t > (hard ? 70 : 95)) { b.t = 0; const r = Math.random(); b.state = r < .4 ? "fiep" : r < .7 ? "throw" : "swing"; }
   } else if (b.state === "fiep") {
     // the hearing aid blinks fast, then sends 3 rings: low ones to jump over, high ones to stay under
     if (b.t === 40 || b.t === 70 || b.t === 100) {
@@ -1435,10 +1449,20 @@ function hobergStep() {
     if (b.t > 120) { b.state = "walk"; b.t = 0; }
   } else if (b.state === "throw") {
     if (b.t === 30) { const reach = Math.max(4 * T, Math.min(Math.abs(p.x + p.w / 2 - ex) + 2 * T, 14 * T)); b.aid = { x0: ex, y0: ey, x: ex, y: ey, dir: b.face, reach, t: 0, dur: hard ? 100 : 120, rot: 0 }; b.state = "confused"; b.t = 0; sfx("throw"); }
+  } else if (b.state === "swing") {
+    // whirls the device on its lanyard and walks at Tim: keep away or jump over it
+    b.x += b.face * (hard ? 1.9 : 1.4); b.x = Math.max(left, Math.min(right, b.x));
+    b.swingA = (b.swingA || 0) + .22;
+    if (b.t % 9 === 0) sfx("throw");
+    if (b.t > 150) { b.state = "walk"; b.t = 0; b.swingA = null; }
   } else if (b.state === "confused") {
     // without the hearing aid he hears nothing and turns around, puzzled: now he can be jumped on
     if (b.t % 40 === 0) b.face *= -1;
     if (!b.aid) { b.state = "walk"; b.t = 0; }
+  }
+  if (b.state === "swing") {
+    const dx = b.x + b.w / 2 + b.face * 2.2 * Math.cos(b.swingA) * 34, dy = b.y + b.h + 2.2 * (-50 + Math.sin(b.swingA) * 34);
+    if (rects(p, { x: dx - 12, y: dy - 14, w: 24, h: 28 })) hurt();
   }
   // hearing-aid boomerang: out and back in an arc
   const a = b.aid;
@@ -1465,7 +1489,7 @@ function drawHoberg(b) {
   if (b.hit > 0 || (b.inv > 0 && Math.floor(b.inv / 4) % 2)) ctx.globalAlpha = .55;
   const cx = b.x + b.w / 2, fiep = b.state === "fiep";
   ctx.save(); ctx.translate(cx, b.y + b.h); ctx.scale(b.face * 2.2, 2.2);
-  drawHobergBody(fiep ? -2.6 : b.state === "throw" ? -2.2 - b.t * .03 : -.35 + Math.sin(G.time / 14) * .2, false, fiep ? Math.floor(G.time / 4) % 2 : 1, !!b.aid);
+  drawHobergBody(fiep ? -2.6 : b.state === "throw" ? -2.2 - b.t * .03 : -.35 + Math.sin(G.time / 14) * .2, false, fiep ? Math.floor(G.time / 4) % 2 : 1, !!b.aid, b.state === "swing" ? b.swingA : null);
   ctx.restore(); ctx.globalAlpha = 1;
   if (b.state === "confused") { ctx.fillStyle = "#ffc531"; ctx.font = "900 34px Nunito, sans-serif"; ctx.textAlign = "center"; ctx.fillText("?", cx + Math.sin(G.time / 8) * 10, b.y - 14); }
 }
