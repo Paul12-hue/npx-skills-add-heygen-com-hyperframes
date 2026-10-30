@@ -126,20 +126,13 @@ img.px { display: block; width: 100%; height: auto; image-rendering: pixelated; 
     <div class="chars" id="titleChars"></div>
     <h1 class="logo">TIM UND DAS<br><span>XXL-SCHNITZEL</span></h1>
     <div class="tag">Faroo hat um 19:00 einen Tisch im Redo XXL reserviert. Schafft Tim es rechtzeitig?</div>
-    <div class="rowb" id="diff">
-      <button class="btn" data-d="normal" type="button">Normal · 5 Leben</button>
-      <button class="btn" data-d="hard" type="button">Schwer · 3 Leben</button>
-    </div>
     <div class="rowb">
       <button class="btn hot" id="newBtn" type="button">Neues Abenteuer</button>
       <button class="btn go" id="contBtn" type="button" hidden>Weiterspielen</button>
       <button class="btn go" id="levelsBtn" type="button" hidden>Levelauswahl</button>
       <button class="btn" id="passBtn" type="button">Battle Pass</button>
-      <button class="btn go" id="charBtn" type="button" hidden>Spielen als: Tim</button>
       <button class="btn" id="outfitBtn" type="button">Outfits</button>
       <button class="btn" id="pixBtn" type="button">Pixel: mittel</button>
-      <button class="btn" id="musicTitleBtn" type="button">Musik: An</button>
-      <button class="btn" id="helpBtn" type="button">Steuerung</button>
     </div>
   </div>
 </section>
@@ -427,7 +420,7 @@ const STORY = [
 let difficulty = "normal";
 let save = { step: 0, totalMugs: 0, schnitzel: {} };
 const store = {
-  load() { try { const d = JSON.parse(localStorage.getItem("tim-schnitzel") || "null"); if (d && typeof d.step === "number") { save = d.save || save; save.step = d.step; difficulty = d.difficulty || "normal"; } } catch (e) {} },
+  load() { try { const d = JSON.parse(localStorage.getItem("tim-schnitzel") || "null"); if (d && typeof d.step === "number") { save = d.save || save; save.step = d.step; difficulty = "normal"; } } catch (e) {} },
   write() { try { localStorage.setItem("tim-schnitzel", JSON.stringify({ step: save.step, save, difficulty })); } catch (e) {} },
 };
 const $ = id => document.getElementById(id);
@@ -2322,15 +2315,12 @@ function toTitle() {
   $("contBtn").hidden = !(save.step > 0 && save.step < STORY.length);
   $("levelsBtn").hidden = !(save.completed || save.step >= STORY.length);
   $("pixBtn").textContent = `Pixel: ${pixMode}`;
-  $("charBtn").hidden = !save.completed; $("charBtn").textContent = `Spielen als: ${PLAYABLE[playerChar()].name}`;
   $("passBtn").textContent = `Battle Pass · Stufe ${passTier()}`;
-  $("musicTitleBtn").textContent = `Musik: ${musicOn() ? "An" : "Aus"}`; musicStop();
-  document.querySelectorAll("#diff button").forEach(b => b.classList.toggle("sel", b.dataset.d === difficulty));
+  musicStop();
 }
-$("diff").addEventListener("click", e => { const b = e.target.closest("button"); if (!b) return; difficulty = b.dataset.d; store.write(); sfx("tap"); toTitle(); });
-$("newBtn").onclick = () => { passMugs(); save.step = 0; save.totalMugs = 0; save.schnitzel = {}; store.write(); runStory(); };
+$("newBtn").onclick = () => pickPlayer(() => { passMugs(); save.step = 0; save.totalMugs = 0; save.schnitzel = {}; store.write(); runStory(); });
 $("pixBtn").onclick = () => { const ks = Object.keys(PIX_SIZES); pixMode = ks[(ks.indexOf(pixMode) + 1) % ks.length]; try { localStorage.setItem("tim-pixel-size", pixMode); } catch (err) {} sfx("tap"); toTitle(); };
-$("contBtn").onclick = () => runStory();
+$("contBtn").onclick = () => pickPlayer(() => runStory());
 const LEVEL_MENU = [
   { n: 0, title: "Level 1 · Altstadt", sub: "Tassen, Schnitzel, erste Brix-Bänke" },
   { n: 1, title: "Level 2 · Neonmarkt", sub: "Nachts, schnelle rote Bänke" },
@@ -2346,7 +2336,8 @@ const LEVEL_MENU = [
 ];
 function levelSelect() {
   modal(`<h2>Levelauswahl</h2><div class="stack">${LEVEL_MENU.map(l => `<button class="btn ${l.n === 5 ? "hot" : ""}" data-lvl="${l.n}" type="button" style="width:100%"><span style="display:block">${l.title}</span><small style="font-weight:700;opacity:.75">${l.sub}${l.n === 5 && save.bestEndless ? ` · Rekord ${save.bestEndless} m` : ""}</small></button>`).join("")}<button class="btn" id="lvlBack" type="button">Zurück</button></div>`);
-  document.querySelectorAll("[data-lvl]").forEach(b => b.onclick = () => playSingle(+b.dataset.lvl));
+  // the endless run is always played as Faroo; every other level asks for character and skin first
+  document.querySelectorAll("[data-lvl]").forEach(b => b.onclick = () => { const n = +b.dataset.lvl; if (n === 5) playSingle(n); else pickPlayer(() => playSingle(n), levelSelect); });
   $("lvlBack").onclick = toTitle;
 }
 async function playSingle(n) {
@@ -2362,11 +2353,11 @@ async function playSingle(n) {
 const PASS_STEP = 200;
 const PASS_TIERS = [null, null, null, null, null]; // character ids, filled in once the characters are decided
 // Playable characters: draw(p) paints the player sprite (like drawTim). Tim is always there.
-const PLAYABLE = { tim: { name: "Tim" } };
+const PLAYABLE = { tim: { name: "Tim", skinKey: "tim" } };
 function passMugs() { if (typeof save.passMugs !== "number") save.passMugs = save.totalMugs || 0; return save.passMugs; }
 function passTier() { return Math.min(PASS_TIERS.length, Math.floor(passMugs() / PASS_STEP)); }
 function playerChar() { const c = save.char; return c && PLAYABLE[c] && charUnlocked(c) ? c : "tim"; }
-function charUnlocked(id) { if (id === "tim") return true; const i = PASS_TIERS.indexOf(id); return i >= 0 && passTier() > i; }
+function charUnlocked(id) { if (id === "tim") return true; if (!save.completed) return false; const i = PASS_TIERS.indexOf(id); return i >= 0 && passTier() > i; }
 function battlePass() {
   const m = passMugs(), tier = passTier(), next = Math.min(PASS_TIERS.length, tier + 1);
   const inTier = tier >= PASS_TIERS.length ? PASS_STEP : m - tier * PASS_STEP;
@@ -2377,19 +2368,25 @@ function battlePass() {
     <div class="rowb"><button class="btn go" id="passBack" type="button">Fertig</button></div>`);
   $("passBack").onclick = toTitle;
 }
-function charSelect() {
-  const ids = Object.keys(PLAYABLE);
-  modal(`<h2>Spielen als</h2><p>Nach der Story kannst du mit jedem freigeschalteten Charakter spielen, in der Story und in der Levelauswahl.</p>
-    <div class="stack">${ids.map(id => { const ok = charUnlocked(id), i = PASS_TIERS.indexOf(id); return `<button class="btn${playerChar() === id ? " sel" : ""}" data-ch="${id}" type="button" style="width:100%" ${ok ? "" : "disabled"}>${PLAYABLE[id].name}${ok ? "" : ` · Battle Pass Stufe ${i + 1}`}</button>`; }).join("")}
-    ${ids.length === 1 ? `<p>Weitere Charaktere schaltest du im Battle Pass frei.</p>` : ""}
-    <button class="btn" id="charBack" type="button">Zurück</button></div>`);
-  document.querySelectorAll("[data-ch]").forEach(b => b.onclick = () => { save.char = b.dataset.ch; store.write(); sfx("tap"); charSelect(); });
-  $("charBack").onclick = toTitle;
+// Asked before every start: which character, and which of its unlocked skins.
+function pickPlayer(go, back = toTitle) {
+  const ids = Object.keys(PLAYABLE), cur = playerChar(), key = PLAYABLE[cur].skinKey, skins = key ? SKIN_DEFS[key] : [];
+  modal(`<h2>Wer spielt?</h2>
+    <div class="rowb">${ids.map(id => { const ok = charUnlocked(id), i = PASS_TIERS.indexOf(id); return `<button class="btn${cur === id ? " sel" : ""}" data-ch="${id}" type="button" ${ok ? "" : "disabled"}>${PLAYABLE[id].name}${ok ? "" : ` · ${save.completed ? `Battle Pass Stufe ${i + 1}` : "nach der Story"}`}</button>`; }).join("")}</div>
+    ${ids.length === 1 ? `<p>Weitere Charaktere schaltest du im Battle Pass frei und spielst sie nach der Story.</p>` : ""}
+    ${skins.length ? `<p>Skin</p><div class="skinopts" style="justify-content:center">${skins.map(([id, label]) => { const ok = hasSkin(key, id), sel = skinOf(key) === id; return `<button class="skinopt${sel ? " on" : ""}${ok ? "" : " locked"}" data-sk="${id}" type="button" ${ok ? "" : "disabled"}><canvas width="110" height="120" data-sk="${id}"></canvas><span>${label}</span><small>${ok ? (sel ? "Angezogen" : "Anziehen") : OUTFIT_WHERE[key + ":" + id]}</small></button>`; }).join("")}</div>` : ""}
+    <div class="rowb"><button class="btn hot" id="goBtn" type="button">Los geht's</button><button class="btn" id="pickBack" type="button">Zurück</button></div>`);
+  document.querySelectorAll("canvas[data-sk]").forEach(c => pixelRender(c, () => previewSkin(c, key, c.dataset.sk)));
+  document.querySelectorAll("[data-ch]").forEach(b => b.onclick = () => { save.char = b.dataset.ch; store.write(); sfx("tap"); pickPlayer(go, back); });
+  document.querySelectorAll("button[data-sk]:not(.locked)").forEach(b => b.onclick = () => {
+    save.skins = save.skins || { unlocked: {}, sel: {} }; save.skins.sel = save.skins.sel || {};
+    save.skins.sel[key] = b.dataset.sk; store.write(); sfx("tap"); pickPlayer(go, back);
+  });
+  $("goBtn").onclick = () => { sfx("tap"); go(); };
+  $("pickBack").onclick = back;
 }
 $("passBtn").onclick = battlePass;
-$("charBtn").onclick = charSelect;
 $("levelsBtn").onclick = levelSelect;
-$("helpBtn").onclick = () => helpModal(toTitle);
 // ===== Pixel figures outside the game (scenes, title, outfit menu) =====
 // Paint a sprite at full size, then shrink it to the pixel grid with the same hard edges and outline as in
 // the game. Text inside the sprite is kept and drawn sharp on top, never mirrored.
@@ -2472,7 +2469,6 @@ function outfitMenu() {
   $("skinBack").onclick = toTitle;
 }
 $("outfitBtn").onclick = outfitMenu;
-$("musicTitleBtn").onclick = () => { save.musicOn = !musicOn(); store.write(); $("musicTitleBtn").textContent = `Musik: ${musicOn() ? "An" : "Aus"}`; sfx("tap"); };
 store.load();
 toTitle();
 </script>
