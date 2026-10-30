@@ -1595,6 +1595,55 @@ function drawCroissant() {
   ctx.fillStyle = "#e9a43c"; for (let k = 0; k < 5; k++) { const a = Math.PI * (1.15 + k * .175); ctx.beginPath(); ctx.ellipse(Math.cos(a) * 8.5, 4 + Math.sin(a) * 8.5, 3.2, 2.2, a + Math.PI / 2, 0, Math.PI * 2); ctx.fill(); }
   ctx.strokeStyle = "#8a4e12"; ctx.lineWidth = .9; for (let k = 1; k < 5; k++) { const a = Math.PI * (1.07 + k * .175); ctx.beginPath(); ctx.moveTo(Math.cos(a) * 6.5, 4 + Math.sin(a) * 6.5); ctx.lineTo(Math.cos(a) * 11, 4 + Math.sin(a) * 11); ctx.stroke(); }
 }
+// Upamanju (Battle Pass tier 3): very broad build, Jordan-like white/black sneakers, tight beige trousers,
+// grey zip-up jumper, black buzz cut, round black Harry-Potter glasses, darker skin.
+const UPA_SKIN = "#8e5a3a";
+function drawUpaBody(step, armSwing) {
+  // tight beige trousers (sturdy legs)
+  ctx.fillStyle = "#cdb88f"; ctx.fillRect(-9 + step * .6, -17, 8, 15); ctx.fillRect(1.5 - step * .6, -17, 8, 15);
+  // high-top sneakers like Jordans: white with black toe, heel and swoosh line
+  for (const sx of [-10.5 + step * .6, .5 - step * .6]) {
+    ctx.fillStyle = "#f4f4f4"; roundRect(sx, -6, 11, 7, 2); ctx.fill();
+    ctx.fillStyle = "#16161c"; ctx.fillRect(sx + 7.5, -3, 3.5, 4); ctx.fillRect(sx, -6, 3, 4); ctx.fillRect(sx, 0, 11, 1.4);
+    ctx.strokeStyle = "#16161c"; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(sx + 2, -2); ctx.quadraticCurveTo(sx + 6, -1, sx + 9, -4.5); ctx.stroke();
+  }
+  // back arm: grey sleeve + hand
+  ctx.save(); ctx.translate(-11, -32); ctx.rotate(-armSwing * .8);
+  ctx.fillStyle = "#6e7180"; roundRect(-3.5, 0, 7, 15, 3.5); ctx.fill(); circ(0, 16, 3.2, UPA_SKIN); ctx.restore();
+  // very broad grey zip-up jumper
+  ctx.fillStyle = "#858896"; roundRect(-16, -36, 32, 23, 9); ctx.fill();
+  ctx.fillStyle = "#6e7180"; ctx.fillRect(-16, -15, 32, 3); // waistband
+  ctx.fillStyle = "#6e7180"; roundRect(-9, -37, 18, 5, 2.5); ctx.fill(); // collar
+  ctx.fillStyle = "#d8dae2"; ctx.fillRect(-.6, -35, 1.4, 21); ctx.fillRect(-1.2, -33, 2.6, 2.6); // zip and puller
+  ctx.fillStyle = "#7a7d8a"; ctx.fillRect(-13, -24, 8, 1.2); ctx.fillRect(5, -24, 8, 1.2); // pocket seams
+  // front arm: grey sleeve + hand
+  ctx.save(); ctx.translate(11, -32); ctx.rotate(armSwing);
+  ctx.fillStyle = "#858896"; roundRect(-3.5, 0, 7.5, 15, 3.5); ctx.fill(); ctx.fillStyle = "#6e7180"; ctx.fillRect(-3.5, 12, 7.5, 2.5);
+  circ(.3, 16.5, 3.4, UPA_SKIN); ctx.restore();
+  // neck + broad head
+  ctx.fillStyle = "#774a2e"; ctx.fillRect(-4.5, -40, 9, 5);
+  ctx.fillStyle = UPA_SKIN; ctx.beginPath(); ctx.ellipse(0, -48, 13, 13, 0, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = "#774a2e"; ctx.beginPath(); ctx.ellipse(-11.5, -47, 2.6, 3.6, 0, 0, Math.PI * 2); ctx.fill(); // ear
+  // black buzz cut: short, close to the head, with a little stubble texture
+  ctx.fillStyle = "#141418"; ctx.beginPath(); ctx.ellipse(-.5, -52, 13.3, 9.5, 0, Math.PI * 1.02, Math.PI * 1.98); ctx.fill();
+  ctx.fillRect(-13.6, -53, 3.2, 6);
+  ctx.fillStyle = "#2a2a32"; for (let k = 0; k < 10; k++) ctx.fillRect(-11 + (k * 7) % 20, -59 + (k * 3) % 6, 1, 1);
+  // round black Harry-Potter glasses
+  ctx.strokeStyle = "#0e0e12"; ctx.lineWidth = 1.5;
+  ctx.beginPath(); ctx.arc(5.5, -47.5, 3.6, 0, Math.PI * 2); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(1.9, -47.8); ctx.lineTo(-9.5, -48.5); ctx.stroke(); // temple arm to the ear
+  ctx.fillStyle = "rgba(200,230,255,.25)"; ctx.beginPath(); ctx.arc(5.5, -47.5, 2.8, 0, Math.PI * 2); ctx.fill();
+  // eye, brow, smile
+  circ(6, -47.5, 1.6, "#1a1a1a"); circ(6.5, -48, .5, "#ffffff");
+  ctx.fillStyle = "#141418"; ctx.fillRect(3, -53.2, 6, 1.4);
+  ctx.strokeStyle = "#3a1a10"; ctx.lineWidth = 1.6; ctx.beginPath(); ctx.arc(6, -41.5, 3, .25, Math.PI - .5); ctx.stroke();
+}
+function drawUpa(p) {
+  const run = p.ground && Math.abs(p.vx) > .5, s = run ? Math.sin(p.anim * 2.4) * 6 : 0;
+  ctx.save(); ctx.translate(p.x + p.w / 2, p.y + p.h); ctx.scale(p.face, 1);
+  drawUpaBody(s, run ? Math.sin(p.anim * 2.4) * .55 : (p.ground ? 0 : -1.2));
+  ctx.restore();
+}
 // ===== New skins: in-game sprites (canvas) and story portrait overlays (SVG) =====
 function rr(x, y, w, h, r) { ctx.beginPath(); ctx.moveTo(x + r, y); ctx.arcTo(x + w, y, x + w, y + h, r); ctx.arcTo(x + w, y + h, x, y + h, r); ctx.arcTo(x, y + h, x, y, r); ctx.arcTo(x, y, x + w, y, r); ctx.closePath(); }
 function circ(x, y, r, c) { ctx.fillStyle = c; ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fill(); }
@@ -1833,6 +1882,13 @@ function drawShot(sh) {
     ctx.fillStyle = "#ffd21e"; ctx.beginPath(); ctx.moveTo(0, -7.5); ctx.lineTo(7.5, 0); ctx.lineTo(0, 7.5); ctx.lineTo(-7.5, 0); ctx.closePath(); ctx.fill();
     ctx.fillStyle = "#1c3c8c"; ctx.beginPath(); ctx.arc(0, 0, 3.6, 0, Math.PI * 2); ctx.fill();
     ctx.strokeStyle = "#ffffff"; ctx.lineWidth = .9; ctx.beginPath(); ctx.arc(.5, 2.5, 3.6, -2.6, -.6); ctx.stroke();
+  } else if (sh.kind === "upa") {     // splash of Indian curry
+    ctx.rotate(-sh.rot);
+    ctx.fillStyle = "rgba(232,140,30,.45)"; for (let k = 1; k <= 3; k++) { ctx.beginPath(); ctx.arc(-sh.vx * k * .55, -sh.vy * k * .55, 6 - k * 1.3, 0, Math.PI * 2); ctx.fill(); }
+    ctx.fillStyle = "#e88c1e"; ctx.beginPath(); for (let k = 0; k < 10; k++) { const a = k / 10 * Math.PI * 2, r = k % 2 ? 7 : 10; ctx.lineTo(Math.cos(a + sh.rot * .3) * r, Math.sin(a + sh.rot * .3) * r); } ctx.closePath(); ctx.fill();
+    ctx.fillStyle = "#f5b84a"; ctx.beginPath(); ctx.arc(-2, -2, 4.5, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = "#b8561a"; ctx.fillRect(1, 1, 3, 3); ctx.fillRect(-4, 2, 2.5, 2.5);
+    ctx.fillStyle = "#3a9a3a"; ctx.fillRect(2, -4, 2, 1.5); ctx.fillRect(-5, -1, 1.5, 2);
   } else if (sh.kind === "valka") {   // croissant
     drawCroissant();
   } else if (sh.kind === "dennis") {  // energy can
@@ -2440,9 +2496,9 @@ async function playSingle(n) {
 // Every PASS_STEP mugs (over all runs, never reset) unlock the next tier. Each tier unlocks a playable character.
 // The characters are still to be chosen: tiers without one show "kommt bald".
 const PASS_STEP = 200;
-const PASS_TIERS = ["brian", "valka", null, null, null]; // character ids per tier; null = still to be decided
+const PASS_TIERS = ["brian", "valka", "upa", null, null]; // character ids per tier; null = still to be decided
 // Playable characters: draw(p) paints the player sprite (like drawTim). Tim is always there.
-const PLAYABLE = { tim: { name: "Tim", skinKey: "tim", shot: "tim" }, brian: { name: "Brian", draw: drawBrian, shot: "brian" }, valka: { name: "Valka", draw: drawValka, shot: "valka" } };
+const PLAYABLE = { tim: { name: "Tim", skinKey: "tim", shot: "tim" }, brian: { name: "Brian", draw: drawBrian, shot: "brian" }, valka: { name: "Valka", draw: drawValka, shot: "valka" }, upa: { name: "Upamanju", draw: drawUpa, shot: "upa" } };
 function passMugs() { if (typeof save.passMugs !== "number") save.passMugs = save.totalMugs || 0; return save.passMugs; }
 function passTier() { return Math.min(PASS_TIERS.length, Math.floor(passMugs() / PASS_STEP)); }
 function playerChar() { const c = save.char; return c && PLAYABLE[c] && charUnlocked(c) ? c : "tim"; }
