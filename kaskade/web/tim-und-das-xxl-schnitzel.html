@@ -1693,6 +1693,63 @@ function drawMiniBomb(t) {
   ctx.strokeStyle = "#c8a060"; ctx.lineWidth = 1.2; ctx.beginPath(); ctx.moveTo(0, -8); ctx.quadraticCurveTo(3, -11, 2, -13); ctx.stroke();
   const f = Math.floor(t * 3) % 2; ctx.fillStyle = f ? "#ffd21e" : "#ff7a1a"; ctx.beginPath(); ctx.arc(2, -13.5, f ? 2.2 : 1.6, 0, Math.PI * 2); ctx.fill();
 }
+// Paul (Battle Pass tier 5): tall boy, dark-blond curls pushed forward, light skin, blue eyes,
+// black sporty glasses, white T-shirt with a black zip, light-blue trousers, white shoes, a crown. Throws sweat drops.
+const PAUL_SKIN = "#f2c9a8";
+function drawPaulBody(step, armSwing) {
+  // long legs: light-blue trousers, white shoes
+  ctx.fillStyle = "#8fbce6"; ctx.fillRect(-7 + step * .6, -21, 6, 21); ctx.fillRect(1 - step * .6, -21, 6, 21);
+  ctx.fillStyle = "#f6f6f8"; ctx.fillRect(-8.5 + step * .6, -3.5, 9, 4); ctx.fillRect(0 - step * .6, -3.5, 9, 4);
+  ctx.fillStyle = "#c8ccd6"; ctx.fillRect(-8.5 + step * .6, -.6, 9, 1.2); ctx.fillRect(0 - step * .6, -.6, 9, 1.2);
+  // back arm: black jacket sleeve + hand
+  ctx.save(); ctx.translate(-6, -38); ctx.rotate(-armSwing * .8);
+  ctx.fillStyle = "#1a1a20"; roundRect(-3, 0, 6, 15, 3); ctx.fill(); circ(0, 16, 2.7, PAUL_SKIN); ctx.restore();
+  // white T-shirt, with an open black zip-up jacket over it
+  ctx.fillStyle = "#ffffff"; roundRect(-11, -41, 22, 22, 5); ctx.fill();
+  ctx.fillStyle = "#1a1a20"; roundRect(-11, -41, 8.5, 22, 4); ctx.fill(); roundRect(2.5, -41, 8.5, 22, 4); ctx.fill();
+  ctx.fillStyle = "#c8ccd6"; ctx.fillRect(-3, -40, 1, 20); ctx.fillRect(2.4, -40, 1, 20); // open zip on both edges
+  ctx.fillStyle = "#2c2c34"; ctx.fillRect(-11, -21, 8.5, 2); ctx.fillRect(2.5, -21, 8.5, 2); // waistband
+  ctx.fillStyle = "#e4e6ec"; ctx.beginPath(); ctx.moveTo(-2.5, -41); ctx.lineTo(0, -38.5); ctx.lineTo(2.5, -41); ctx.fill(); // T-shirt collar
+  ctx.fillStyle = "#c8ccd6"; ctx.fillRect(2.6, -33, 1.6, 2.4); // zip puller
+  // front arm: black jacket sleeve + hand
+  ctx.save(); ctx.translate(6, -38); ctx.rotate(armSwing);
+  ctx.fillStyle = "#24242c"; roundRect(-3, 0, 6.2, 15, 3); ctx.fill(); ctx.fillStyle = "#1a1a20"; ctx.fillRect(-3, 12.5, 6.2, 2);
+  circ(.1, 16.5, 2.9, PAUL_SKIN); ctx.restore();
+  // neck + head
+  ctx.fillStyle = "#e0b090"; ctx.fillRect(-2.8, -44, 5.6, 4);
+  ctx.fillStyle = PAUL_SKIN; ctx.beginPath(); ctx.ellipse(0, -53, 11.5, 13, 0, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = "#e0b090"; ctx.beginPath(); ctx.ellipse(-9.5, -52, 2.4, 3.4, 0, 0, Math.PI * 2); ctx.fill(); // ear
+  // dark-blond curls pushed forward: flat at the back, curls piled towards the forehead
+  ctx.fillStyle = "#9a7a42";
+  ctx.beginPath(); ctx.ellipse(-1, -60, 11.5, 6.5, 0, Math.PI, 0); ctx.fill();
+  for (const [x, y, r] of [[-9, -60, 2.8], [-5, -63, 3], [-.5, -64, 3.2], [4, -63.5, 3.4], [8, -61.5, 3.4], [11, -58, 3], [12, -54.5, 2.4], [6.5, -58.5, 3], [2, -60, 2.8]]) { ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fill(); }
+  ctx.strokeStyle = "#c6a466"; ctx.lineWidth = .9; for (const [x, y] of [[4, -63.5], [8, -61.5], [11, -58], [-.5, -64], [6.5, -58.5]]) { ctx.beginPath(); ctx.arc(x, y, 1.5, .5, 4.5); ctx.stroke(); }
+  // golden crown on top
+  ctx.fillStyle = "#ffc531"; ctx.beginPath(); ctx.moveTo(-6, -66); ctx.lineTo(-6, -72); ctx.lineTo(-3, -69); ctx.lineTo(0, -74); ctx.lineTo(3, -69); ctx.lineTo(6, -72); ctx.lineTo(6, -66); ctx.closePath(); ctx.fill();
+  ctx.fillStyle = "#c98a00"; ctx.fillRect(-6, -67.5, 12, 1.5);
+  circ(0, -70, 1.1, "#e0262c"); circ(-4, -68.8, .8, "#33e1ff"); circ(4, -68.8, .8, "#39ff14");
+  // blue eye behind black sporty glasses
+  circ(5.5, -52.5, 1.9, "#ffffff"); circ(5.8, -52.5, 1.3, "#2f7fd8"); circ(6, -52.6, .6, "#0e0e12");
+  ctx.strokeStyle = "#0e0e12"; ctx.lineWidth = 1.3; roundRect(2.2, -55.2, 7.8, 4.6, 1.8); ctx.stroke(); // sporty frame, clear lens
+  ctx.fillStyle = "rgba(255,255,255,.7)"; ctx.fillRect(7.6, -54.6, 1.2, 1); // glint
+  ctx.fillStyle = "#0e0e12"; ctx.fillRect(-9, -54, 11, 1.4); // sporty arm to the ear
+  // smile
+  ctx.strokeStyle = "#7a2b2b"; ctx.lineWidth = 1.6; ctx.beginPath(); ctx.arc(5, -46.5, 3, .25, Math.PI - .5); ctx.stroke();
+}
+function drawPaul(p) {
+  const run = p.ground && Math.abs(p.vx) > .5, s = run ? Math.sin(p.anim * 2.4) * 7 : 0;
+  ctx.save(); ctx.translate(p.x + p.w / 2, p.y + p.h); ctx.scale(p.face, 1);
+  drawPaulBody(s, run ? Math.sin(p.anim * 2.4) * .6 : (p.ground ? 0 : -1.2));
+  ctx.restore();
+}
+function drawSweatDrop() {
+  // a big shiny sweat drop (round bottom, pointed tip), with two tiny drops flying behind
+  ctx.fillStyle = "#a8e4ff"; ctx.beginPath(); ctx.arc(0, 15, 1.8, 0, Math.PI * 2); ctx.arc(-2.5, 19.5, 1.2, 0, Math.PI * 2); ctx.fill();
+  ctx.beginPath(); ctx.moveTo(0, -11); ctx.bezierCurveTo(3, -6, 7, -1, 7, 3); ctx.arc(0, 3, 7, 0, Math.PI); ctx.bezierCurveTo(-7, -1, -3, -6, 0, -11); ctx.closePath();
+  ctx.fillStyle = "#5cc2f5"; ctx.fill(); ctx.strokeStyle = "#1f7ab8"; ctx.lineWidth = 1.3; ctx.stroke();
+  ctx.fillStyle = "#9ee0ff"; ctx.beginPath(); ctx.arc(.8, 4, 4.4, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = "#ffffff"; ctx.beginPath(); ctx.ellipse(-2.8, 0, 1.3, 3, -.4, 0, Math.PI * 2); ctx.fill(); ctx.beginPath(); ctx.arc(2.6, 6.5, .9, 0, Math.PI * 2); ctx.fill();
+}
 // ===== New skins: in-game sprites (canvas) and story portrait overlays (SVG) =====
 function rr(x, y, w, h, r) { ctx.beginPath(); ctx.moveTo(x + r, y); ctx.arcTo(x + w, y, x + w, y + h, r); ctx.arcTo(x + w, y + h, x, y + h, r); ctx.arcTo(x, y + h, x, y, r); ctx.arcTo(x, y, x + w, y, r); ctx.closePath(); }
 function circ(x, y, r, c) { ctx.fillStyle = c; ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fill(); }
@@ -1942,6 +1999,8 @@ function drawShot(sh) {
     ctx.fillStyle = "#e07a1a"; ctx.beginPath(); ctx.ellipse(0, -5.5, 10, 3, 0, Math.PI, 0); ctx.fill(); // curry on top
     ctx.fillStyle = "#b8561a"; ctx.fillRect(-4, -7.5, 2.5, 2); ctx.fillRect(2, -7, 2.5, 2);
     ctx.fillStyle = "#3a9a3a"; ctx.fillRect(-1, -8, 2, 1.5); ctx.fillRect(5, -6.5, 1.5, 1.5);
+  } else if (sh.kind === "paul") {    // sweat drop, stays upright and wobbles a little
+    ctx.rotate(-sh.rot + Math.sin(sh.rot) * .2); ctx.scale(.85, .85); drawSweatDrop();
   } else if (sh.kind === "jerk") {    // small dark bomb
     ctx.rotate(-sh.rot + Math.sin(sh.rot) * .4); drawMiniBomb(sh.rot);
   } else if (sh.kind === "valka") {   // croissant
@@ -2551,9 +2610,9 @@ async function playSingle(n) {
 // Every PASS_STEP mugs (over all runs, never reset) unlock the next tier. Each tier unlocks a playable character.
 // The characters are still to be chosen: tiers without one show "kommt bald".
 const PASS_STEP = 200;
-const PASS_TIERS = ["brian", "valka", "upa", "jerk", null]; // character ids per tier; null = still to be decided
+const PASS_TIERS = ["brian", "valka", "upa", "jerk", "paul"]; // character ids per tier; null = still to be decided
 // Playable characters: draw(p) paints the player sprite (like drawTim). Tim is always there.
-const PLAYABLE = { tim: { name: "Tim", skinKey: "tim", shot: "tim" }, brian: { name: "Brian", draw: drawBrian, shot: "brian" }, valka: { name: "Valka", draw: drawValka, shot: "valka" }, upa: { name: "Upamanju", draw: drawUpa, shot: "upa" }, jerk: { name: "Jerk", draw: drawJerk, shot: "jerk" } };
+const PLAYABLE = { tim: { name: "Tim", skinKey: "tim", shot: "tim" }, brian: { name: "Brian", draw: drawBrian, shot: "brian" }, valka: { name: "Valka", draw: drawValka, shot: "valka" }, upa: { name: "Upamanju", draw: drawUpa, shot: "upa" }, jerk: { name: "Jerk", draw: drawJerk, shot: "jerk" }, paul: { name: "Paul", draw: drawPaul, shot: "paul" } };
 function passMugs() { if (typeof save.passMugs !== "number") save.passMugs = save.totalMugs || 0; return save.passMugs; }
 function passTier() { return Math.min(PASS_TIERS.length, Math.floor(passMugs() / PASS_STEP)); }
 function playerChar() { const c = save.char; return c && PLAYABLE[c] && charUnlocked(c) ? c : "tim"; }
