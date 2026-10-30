@@ -1002,7 +1002,7 @@ function step() {
   if (G.boss) (G.boss.kind === "faroo" ? faroStep() : G.boss.kind === "chris" ? chrisStep() : G.boss.kind === "hoberg" ? hobergStep() : bossStep());
   // Ping-pong balls: always in the boss fight, otherwise only as Tischtennis-Opa.
   if (p.shotCd > 0) p.shotCd--;
-  if (input.fire && p.shotCd === 0 && (G.boss || G.form === "opa")) {
+  if (input.fire && p.shotCd === 0 && canShoot()) {
     p.shotCd = G.boss ? 12 : 16;
     const sx = p.x + p.w / 2 + p.face * 16, sy = p.y + 14;
     let vx = p.face * 11, vy = -1.5;
@@ -2609,7 +2609,7 @@ function updateHud() {
   $("hLevel").textContent = G.L.endless ? `${G.best} m · Rekord ${Math.max(save.bestEndless || 0, G.best)} m` : G.L.name;
   if (G.L.endless) $("hSchn").innerHTML = `${SCHN_SVG}<span>${G.schn}</span>`;
   if (G.boss) $("bossHp").style.width = (G.boss.hp / G.boss.maxHp * 100) + "%";
-  document.querySelector(".pad .k.fire").hidden = !(G.boss || G.form === "opa");
+  document.querySelector(".pad .k.fire").hidden = !canShoot();
   document.querySelector(".pad .k.ult").hidden = G.form !== "opa";
 }
 
@@ -2712,6 +2712,8 @@ function passTier() { return Math.min(PASS_TIERS.length, Math.floor(passMugs() /
 // The Battle Pass characters are only played in the time race; story and level select are always Tim.
 function chosenChar() { const c = save.char; return c && PLAYABLE[c] && charUnlocked(c) ? c : "tim"; }
 function playerChar() { return race ? chosenChar() : "tim"; }
+// Shooting: always in boss fights and as a table-tennis player; in the time race the Battle Pass characters can always throw.
+function canShoot() { return !!(G && (G.boss || G.form === "opa" || (G.race && playerChar() !== "tim"))); }
 function charUnlocked(id) { if (id === "tim") return true; if (!save.completed) return false; const i = PASS_TIERS.indexOf(id); return i >= 0 && passTier() > i; }
 function battlePass() {
   const m = passMugs(), tier = passTier(), next = Math.min(PASS_TIERS.length, tier + 1);
