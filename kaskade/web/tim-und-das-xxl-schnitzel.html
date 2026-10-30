@@ -92,6 +92,14 @@ img.px { display: block; width: 100%; height: auto; image-rendering: pixelated; 
 .skinopt.locked canvas { filter: brightness(0) opacity(.55); }
 .skinopt.locked { cursor: default; opacity: .8; }
 .card { width: min(760px, 100%); }
+.pass { display: flex; flex-direction: column; gap: 8px; text-align: left; }
+.passbar { height: 16px; border-radius: 8px; background: rgba(0,0,0,.4); border: 2px solid rgba(255,255,255,.3); overflow: hidden; }
+.passbar i { display: block; height: 100%; background: linear-gradient(90deg, #1fb800, var(--green)); }
+.tier { display: flex; align-items: center; gap: 12px; padding: 10px 14px; border-radius: 14px; background: rgba(255,255,255,.07); border: 2px solid rgba(255,255,255,.12); }
+.tier b { font-family: var(--display); font-size: 22px; letter-spacing: .04em; color: var(--gold); min-width: 74px; }
+.tier span { flex: 1; font-weight: 800; }
+.tier small { font-weight: 800; color: var(--fg2); font-variant-numeric: tabular-nums; }
+.tier.done { border-color: var(--green); background: rgba(57,255,20,.12); }
 .help { text-align: left; } .help li { color: var(--fg2); line-height: 1.5; margin-bottom: 4px; }
 .banner { position: fixed; left: 50%; top: 38%; transform: translate(-50%, -50%); font-family: var(--display); font-size: clamp(40px, 7vw, 84px); letter-spacing: .04em; color: var(--green); text-shadow: 0 5px 0 #0c5a00, 0 9px 0 #000; z-index: 8; pointer-events: none; text-align: center; width: max-content; max-width: 92vw; line-height: 1; animation: bannerIn 1.6s ease-out forwards; }
 @keyframes bannerIn { 0% { transform: translate(-50%, -50%) scale(.3); opacity: 0; } 18% { transform: translate(-50%, -50%) scale(1.12); opacity: 1; } 75% { opacity: 1; } 100% { transform: translate(-50%, -62%); opacity: 0; } }
@@ -126,6 +134,8 @@ img.px { display: block; width: 100%; height: auto; image-rendering: pixelated; 
       <button class="btn hot" id="newBtn" type="button">Neues Abenteuer</button>
       <button class="btn go" id="contBtn" type="button" hidden>Weiterspielen</button>
       <button class="btn go" id="levelsBtn" type="button" hidden>Levelauswahl</button>
+      <button class="btn" id="passBtn" type="button">Battle Pass</button>
+      <button class="btn go" id="charBtn" type="button" hidden>Spielen als: Tim</button>
       <button class="btn" id="outfitBtn" type="button">Outfits</button>
       <button class="btn" id="pixBtn" type="button">Pixel: mittel</button>
       <button class="btn" id="musicTitleBtn" type="button">Musik: An</button>
@@ -572,13 +582,16 @@ function modal(html) { $("card").innerHTML = html; screen("modal"); }
 function levelDone(n, res) {
   return new Promise(resolve => {
     const lv = LEVELS[n];
+    const tierBefore = passTier(); save.passMugs = passMugs() + res.mugs;
     save.totalMugs += res.mugs; save.schnitzel[n] = Math.max(save.schnitzel[n] || 0, res.schn); store.write();
+    const newTier = passTier() > tierBefore;
     const boss = !!lv.boss;
     modal(`<h2>${lv.boss === "hoberg" ? "Hoberg besiegt!" : lv.boss === "chris" ? "Chris besiegt!" : lv.boss === "faroo" ? "Faroo besiegt!" : boss ? "Brixx besiegt!" : "Geschafft!"}</h2><p>${lv.name}</p>
       <div class="tally"><div>${MUG_SVG} ${res.mugs}${boss ? "" : " / " + lv.mugTotal}</div>${boss ? "" : `<div>${SCHN_SVG} ${res.schn} / 3</div>`}</div>
       <p>${res.schn === 3 ? "Alle XXL-Schnitzel gefunden! Valle ist stolz." : lv.boss === "hoberg" ? "Der Weg zur Anton-Weilmaier-Schule ist frei." : lv.boss === "chris" ? "Der Reservierungszettel ist gerettet. Ab ins Redo XXL!" : lv.boss === "faroo" ? "Jetzt aber schnell zum Tisch!" : boss ? "Brixx liegt am Boden … aber da stampft etwas Riesiges heran." : "Es fehlen noch Schnitzel. Schau hinter Steinblöcke und hoch über Plattformen."}</p>
+      ${newTier ? `<p class="popname">Battle Pass: Stufe ${passTier()} erreicht!</p>` : ""}
       <div class="rowb"><button class="btn go" id="nextBtn" type="button">Weiter</button></div>`);
-    sfx("win");
+    sfx(newTier ? "outfit" : "win");
     $("nextBtn").onclick = () => resolve();
   });
 }
@@ -842,6 +855,7 @@ function gameOver() {
   musicStop();
   if (G.L.endless) {
     G.done = true; const n = G.n, res = G.resolve, dist = G.best, schn = G.schn, mugs = G.mugs;
+    save.passMugs = passMugs() + mugs; store.write();
     const record = dist > (save.bestEndless || 0);
     if (record) { save.bestEndless = dist; store.write(); }
     modal(`<h2>${record ? "Neuer Rekord!" : "Lauf vorbei"}</h2><p>Faroo ist ${dist} Meter weit gekommen.</p>
@@ -2053,6 +2067,7 @@ function drawFarooPlayer(p) {
 function drawTim(p) {
   if (G.form === "faroo") return drawFarooPlayer(p);
   if (G.form === "opa") return drawOpa(p);
+  const pc = playerChar(); if (pc !== "tim" && PLAYABLE[pc].draw) return PLAYABLE[pc].draw(p);
   if (skinOf("tim") !== "default") return drawSpritePlayer(p, SPRITES["tim_" + skinOf("tim")]);
   const run = p.ground && Math.abs(p.vx) > .5, leg = run ? Math.sin(p.anim * 2.4) * 7 : 0;
   ctx.save(); ctx.translate(p.x + p.w / 2, p.y + p.h); ctx.scale(p.face, 1);
@@ -2307,11 +2322,13 @@ function toTitle() {
   $("contBtn").hidden = !(save.step > 0 && save.step < STORY.length);
   $("levelsBtn").hidden = !(save.completed || save.step >= STORY.length);
   $("pixBtn").textContent = `Pixel: ${pixMode}`;
+  $("charBtn").hidden = !save.completed; $("charBtn").textContent = `Spielen als: ${PLAYABLE[playerChar()].name}`;
+  $("passBtn").textContent = `Battle Pass · Stufe ${passTier()}`;
   $("musicTitleBtn").textContent = `Musik: ${musicOn() ? "An" : "Aus"}`; musicStop();
   document.querySelectorAll("#diff button").forEach(b => b.classList.toggle("sel", b.dataset.d === difficulty));
 }
 $("diff").addEventListener("click", e => { const b = e.target.closest("button"); if (!b) return; difficulty = b.dataset.d; store.write(); sfx("tap"); toTitle(); });
-$("newBtn").onclick = () => { save = { step: 0, totalMugs: 0, schnitzel: {} }; store.write(); runStory(); };
+$("newBtn").onclick = () => { passMugs(); save.step = 0; save.totalMugs = 0; save.schnitzel = {}; store.write(); runStory(); };
 $("pixBtn").onclick = () => { const ks = Object.keys(PIX_SIZES); pixMode = ks[(ks.indexOf(pixMode) + 1) % ks.length]; try { localStorage.setItem("tim-pixel-size", pixMode); } catch (err) {} sfx("tap"); toTitle(); };
 $("contBtn").onclick = () => runStory();
 const LEVEL_MENU = [
@@ -2339,6 +2356,38 @@ async function playSingle(n) {
   if (!LEVELS[n].endless) await levelDone(n, res);
   levelSelect();
 }
+// ================= Battle Pass & playable characters =================
+// Every PASS_STEP mugs (over all runs, never reset) unlock the next tier. Each tier unlocks a playable character.
+// The characters are still to be chosen: tiers without one show "kommt bald".
+const PASS_STEP = 200;
+const PASS_TIERS = [null, null, null, null, null]; // character ids, filled in once the characters are decided
+// Playable characters: draw(p) paints the player sprite (like drawTim). Tim is always there.
+const PLAYABLE = { tim: { name: "Tim" } };
+function passMugs() { if (typeof save.passMugs !== "number") save.passMugs = save.totalMugs || 0; return save.passMugs; }
+function passTier() { return Math.min(PASS_TIERS.length, Math.floor(passMugs() / PASS_STEP)); }
+function playerChar() { const c = save.char; return c && PLAYABLE[c] && charUnlocked(c) ? c : "tim"; }
+function charUnlocked(id) { if (id === "tim") return true; const i = PASS_TIERS.indexOf(id); return i >= 0 && passTier() > i; }
+function battlePass() {
+  const m = passMugs(), tier = passTier(), next = Math.min(PASS_TIERS.length, tier + 1);
+  const inTier = tier >= PASS_TIERS.length ? PASS_STEP : m - tier * PASS_STEP;
+  modal(`<h2>Battle Pass</h2><p>${MUG_SVG.replace("<svg", '<svg style="width:22px;height:22px;vertical-align:-5px"')} ${m.toLocaleString("de-DE")} Tassen gesammelt · alle ${PASS_STEP} Tassen eine neue Stufe</p>
+    <div class="pass"><div class="passbar"><i style="width:${Math.min(100, inTier / PASS_STEP * 100)}%"></i></div>
+    <small style="font-weight:800;color:var(--fg2)">${tier >= PASS_TIERS.length ? "Alle Stufen geschafft!" : `Noch ${(next * PASS_STEP - m).toLocaleString("de-DE")} Tassen bis Stufe ${next}`}</small>
+    ${PASS_TIERS.map((id, i) => { const done = tier > i, ch = id && PLAYABLE[id]; return `<div class="tier${done ? " done" : ""}"><b>Stufe ${i + 1}</b><span>${ch ? `Neuer Charakter: ${ch.name}` : "Neuer Charakter · kommt bald"}</span><small>${done ? "Freigeschaltet" : `${((i + 1) * PASS_STEP).toLocaleString("de-DE")} Tassen`}</small></div>`; }).join("")}</div>
+    <div class="rowb"><button class="btn go" id="passBack" type="button">Fertig</button></div>`);
+  $("passBack").onclick = toTitle;
+}
+function charSelect() {
+  const ids = Object.keys(PLAYABLE);
+  modal(`<h2>Spielen als</h2><p>Nach der Story kannst du mit jedem freigeschalteten Charakter spielen, in der Story und in der Levelauswahl.</p>
+    <div class="stack">${ids.map(id => { const ok = charUnlocked(id), i = PASS_TIERS.indexOf(id); return `<button class="btn${playerChar() === id ? " sel" : ""}" data-ch="${id}" type="button" style="width:100%" ${ok ? "" : "disabled"}>${PLAYABLE[id].name}${ok ? "" : ` · Battle Pass Stufe ${i + 1}`}</button>`; }).join("")}
+    ${ids.length === 1 ? `<p>Weitere Charaktere schaltest du im Battle Pass frei.</p>` : ""}
+    <button class="btn" id="charBack" type="button">Zurück</button></div>`);
+  document.querySelectorAll("[data-ch]").forEach(b => b.onclick = () => { save.char = b.dataset.ch; store.write(); sfx("tap"); charSelect(); });
+  $("charBack").onclick = toTitle;
+}
+$("passBtn").onclick = battlePass;
+$("charBtn").onclick = charSelect;
 $("levelsBtn").onclick = levelSelect;
 $("helpBtn").onclick = () => helpModal(toTitle);
 // ===== Pixel figures outside the game (scenes, title, outfit menu) =====
