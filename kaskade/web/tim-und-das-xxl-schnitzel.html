@@ -130,6 +130,7 @@ img.px { display: block; width: 100%; height: auto; image-rendering: pixelated; 
       <button class="btn hot" id="newBtn" type="button">Neues Abenteuer</button>
       <button class="btn go" id="contBtn" type="button" hidden>Weiterspielen</button>
       <button class="btn go" id="levelsBtn" type="button" hidden>Levelauswahl</button>
+      <button class="btn go" id="raceBtn" type="button">Zeitrennen</button>
       <button class="btn" id="passBtn" type="button">Battle Pass</button>
       <button class="btn" id="outfitBtn" type="button">Outfits</button>
       <button class="btn" id="pixBtn" type="button">Pixel: mittel</button>
@@ -685,9 +686,9 @@ function growEndless(L, upTo) {
 function playLevel(n) {
   return new Promise(resolve => {
     const L = LEVELS[n].endless ? makeEndless() : LEVELS[n];
-    const lives = G && G.keepLives ? G.lives : (difficulty === "hard" ? 3 : 5);
+    const lives = race ? 1 : G && G.keepLives ? G.lives : (difficulty === "hard" ? 3 : 5);
     G = {
-      n, L, resolve, lives, mugs: 0, schn: 0, mugBank: 0, time: 0,
+      n, L, resolve, lives, mugs: 0, schn: 0, mugBank: 0, time: 0, race: !!race,
       ents: L.ents.filter(e => e.t !== "outfit" || !hasSkin(e.who, e.id)).map(e => ({ ...e, px: e.x * T, py: e.y * T, alive: true, vx: e.t === "fast" ? -2.4 : -1.2, bob: Math.random() * 6 })),
       movers: L.movers.map(m => ({ ...m, dir: 1, dx: 0 })),
       checkpoint: [L.start[0] * T, L.start[1] * T - 4], reached: new Set(),
@@ -716,6 +717,7 @@ function loop(now) {
   const dt = Math.min(100, now - last); last = now;
   if (!G.paused) { acc += dt; while (acc >= 1000 / 60) { step(); acc -= 1000 / 60; if (!G || G.done) return; } }
   drawPixelated();
+  if (G.race && G.time % 3 === 0 && !G.done) $("hLevel").textContent = `⏱ ${raceTime(G.time)}`;
   requestAnimationFrame(loop);
 }
 
@@ -861,13 +863,19 @@ function gameOver() {
     return;
   }
   G.done = true; const n = G.n, res = G.resolve;
+  if (G.race) {
+    modal(`<h2>Ausgeschieden</h2><p>Im Zeitrennen hast du nur ein Leben. Nach ${raceTime(G.time)} war Schluss.</p><div class="rowb"><button class="btn hot" id="retryBtn" type="button">Nochmal</button><button class="btn" id="quitBtn" type="button">Andere Strecke</button></div>`);
+    $("retryBtn").onclick = () => { G = null; playLevel(n).then(res); };
+    $("quitBtn").onclick = () => { G = null; res("quit"); };
+    return;
+  }
   modal(`<h2>Keine Leben mehr</h2><p>Valle: „Kopf hoch, Tim. Kein Schnitzel ohne Anlauf. Nochmal!“</p><div class="rowb"><button class="btn hot" id="retryBtn" type="button">Level neu starten</button><button class="btn" id="quitBtn" type="button">Titelbildschirm</button></div>`);
   $("retryBtn").onclick = () => { G = null; playLevel(n).then(res); };
   $("quitBtn").onclick = () => { G = null; res("quit"); };
 }
 function finishLevel() {
   if (G.done) return; G.done = true; musicStop(); sfx("win"); pixPulse(3, 60);
-  const r = { mugs: G.mugs, schn: G.schn }, res = G.resolve, lives = G.lives;
+  const r = { mugs: G.mugs, schn: G.schn, time: G.time }, res = G.resolve, lives = G.lives;
   banner(G.boss ? "Gewonnen!" : "Alta GiG!");
   setTimeout(() => { G = { keepLives: true, lives }; res(r); }, 1500);
 }
@@ -940,7 +948,7 @@ function step() {
       const sz = e.t === "schn" ? 44 : 30;
       if (rects(p, { x: e.px + (T - sz) / 2, y: e.py + (T - sz) / 2, w: sz, h: sz })) {
         e.alive = false;
-        if (e.t === "mug") { G.mugs++; G.mugBank++; sfx("mug"); burst(e.px + 24, e.py + 24, "#39ff14", 8); if (G.mugBank >= 100) { G.mugBank -= 100; G.lives++; banner("+1 Leben!"); } }
+        if (e.t === "mug") { G.mugs++; G.mugBank++; sfx("mug"); burst(e.px + 24, e.py + 24, "#39ff14", 8); if (G.mugBank >= 100 && !G.race) { G.mugBank -= 100; G.lives++; banner("+1 Leben!"); } }
         else if (G.L.endless) {
           G.schn++; sfx("schn"); burst(e.px + 24, e.py + 24, "#ffc531", 26);
           if (G.schn % 3 === 0 && G.playerW > SLIM_W) {
@@ -2615,7 +2623,9 @@ const PASS_TIERS = ["brian", "valka", "upa", "jerk", "paul"]; // character ids p
 const PLAYABLE = { tim: { name: "Tim", skinKey: "tim", shot: "tim" }, brian: { name: "Brian", draw: drawBrian, shot: "brian" }, valka: { name: "Valka", draw: drawValka, shot: "valka" }, upa: { name: "Upamanju", draw: drawUpa, shot: "upa" }, jerk: { name: "Jerk", draw: drawJerk, shot: "jerk" }, paul: { name: "Paul", draw: drawPaul, shot: "paul" } };
 function passMugs() { if (typeof save.passMugs !== "number") save.passMugs = save.totalMugs || 0; return save.passMugs; }
 function passTier() { return Math.min(PASS_TIERS.length, Math.floor(passMugs() / PASS_STEP)); }
-function playerChar() { const c = save.char; return c && PLAYABLE[c] && charUnlocked(c) ? c : "tim"; }
+// The Battle Pass characters are only played in the time race; story and level select are always Tim.
+function chosenChar() { const c = save.char; return c && PLAYABLE[c] && charUnlocked(c) ? c : "tim"; }
+function playerChar() { return race ? chosenChar() : "tim"; }
 function charUnlocked(id) { if (id === "tim") return true; if (!save.completed) return false; const i = PASS_TIERS.indexOf(id); return i >= 0 && passTier() > i; }
 function battlePass() {
   const m = passMugs(), tier = passTier(), next = Math.min(PASS_TIERS.length, tier + 1);
@@ -2628,26 +2638,60 @@ function battlePass() {
   $("passBack").onclick = toTitle;
 }
 // Asked before every start: which character, and which of its unlocked skins.
-function pickPlayer(go, back = toTitle, listOpen = false) {
-  const ids = Object.keys(PLAYABLE), cur = playerChar(), key = PLAYABLE[cur].skinKey, skins = key ? SKIN_DEFS[key] : [];
-  modal(`<h2>Wer spielt?</h2>
-    <button class="btn sel" id="chOpen" type="button" aria-expanded="${listOpen}" style="min-width:220px;align-self:center">${PLAYABLE[cur].name} ${listOpen ? "▴" : "▾"}</button>
-    ${listOpen ? `<div class="stack" style="width:100%;max-width:420px;margin:0 auto">${ids.map(id => { const ok = charUnlocked(id), i = PASS_TIERS.indexOf(id); return `<button class="btn${cur === id ? " sel" : ""}" data-ch="${id}" type="button" style="width:100%" ${ok ? "" : "disabled"}>${PLAYABLE[id].name}${ok ? "" : ` · ${save.completed ? `Battle Pass Stufe ${i + 1}` : "nach der Story"}`}</button>`; }).join("")}</div>` : ""}
+function pickPlayer(go, back = toTitle, listOpen = false, chars = false) {
+  const ids = Object.keys(PLAYABLE), cur = chars ? chosenChar() : "tim", key = PLAYABLE[cur].skinKey, skins = key ? SKIN_DEFS[key] : [];
+  modal(`<h2>${chars ? "Wer spielt?" : "Tims Outfit"}</h2>
+    ${chars ? `<button class="btn sel" id="chOpen" type="button" aria-expanded="${listOpen}" style="min-width:220px;align-self:center">${PLAYABLE[cur].name} ${listOpen ? "▴" : "▾"}</button>` : ""}
+    ${chars && listOpen ? `<div class="stack" style="width:100%;max-width:420px;margin:0 auto">${ids.map(id => { const ok = charUnlocked(id), i = PASS_TIERS.indexOf(id); return `<button class="btn${cur === id ? " sel" : ""}" data-ch="${id}" type="button" style="width:100%" ${ok ? "" : "disabled"}>${PLAYABLE[id].name}${ok ? "" : ` · ${save.completed ? `Battle Pass Stufe ${i + 1}` : "nach der Story"}`}</button>`; }).join("")}</div>` : ""}
     ${!skins.length && PLAYABLE[cur].draw ? `<canvas id="charPrev" width="110" height="120" style="display:block;margin:0 auto"></canvas>` : ""}
     ${skins.length ? `<p>Skin</p><div class="skinopts" style="justify-content:center">${skins.map(([id, label]) => { const ok = hasSkin(key, id), sel = skinOf(key) === id; return `<button class="skinopt${sel ? " on" : ""}${ok ? "" : " locked"}" data-sk="${id}" type="button" ${ok ? "" : "disabled"}><canvas width="110" height="120" data-sk="${id}"></canvas><span>${label}</span><small>${ok ? (sel ? "Angezogen" : "Anziehen") : OUTFIT_WHERE[key + ":" + id]}</small></button>`; }).join("")}</div>` : ""}
-    <div class="rowb"><button class="btn hot" id="goBtn" type="button">Los geht's</button><button class="btn" id="pickBack" type="button">Zurück</button></div>`);
+    <div class="rowb"><button class="btn hot" id="goBtn" type="button">${chars ? "Weiter" : "Los geht's"}</button><button class="btn" id="pickBack" type="button">Zurück</button></div>`);
   document.querySelectorAll("canvas[data-sk]").forEach(c => pixelRender(c, () => previewSkin(c, key, c.dataset.sk)));
   const cp = $("charPrev");
   if (cp) pixelRender(cp, x => { const o = ctx, og = G; ctx = x; G = { time: 0, form: "tim" }; try { x.translate(55, 114); x.scale(1.4, 1.4); PLAYABLE[cur].draw({ x: -15, y: -44, w: 30, h: 44, vx: 0, ground: true, face: 1, anim: 0 }); } finally { ctx = o; G = og; } });
-  $("chOpen").onclick = () => { sfx("tap"); pickPlayer(go, back, !listOpen); };
-  document.querySelectorAll("[data-ch]").forEach(b => b.onclick = () => { save.char = b.dataset.ch; store.write(); sfx("tap"); pickPlayer(go, back); });
+  if (chars) $("chOpen").onclick = () => { sfx("tap"); pickPlayer(go, back, !listOpen, chars); };
+  document.querySelectorAll("[data-ch]").forEach(b => b.onclick = () => { save.char = b.dataset.ch; store.write(); sfx("tap"); pickPlayer(go, back, false, chars); });
   document.querySelectorAll("button[data-sk]:not(.locked)").forEach(b => b.onclick = () => {
     save.skins = save.skins || { unlocked: {}, sel: {} }; save.skins.sel = save.skins.sel || {};
-    save.skins.sel[key] = b.dataset.sk; store.write(); sfx("tap"); pickPlayer(go, back);
+    save.skins.sel[key] = b.dataset.sk; store.write(); sfx("tap"); pickPlayer(go, back, false, chars);
   });
   $("goBtn").onclick = () => { sfx("tap"); go(); };
   $("pickBack").onclick = back;
 }
+// ================= Time race =================
+// Own mode for the Battle Pass characters: pick a character and any jump'n'run or boss level,
+// one life, a stopwatch, and a best time per level.
+let race = null;
+function raceTime(frames) { return (frames / 60).toFixed(2).replace(".", ",") + " s"; }
+function raceMenu() {
+  const best = save.bestTimes || {};
+  modal(`<h2>Zeitrennen</h2><p>Spieler: <b>${PLAYABLE[chosenChar()].name}</b> · ein Leben · so schnell wie möglich ins Ziel</p>
+    <div class="stack">${LEVEL_MENU.filter(l => l.n !== 5).map(l => { const b = best[l.n]; return `<button class="btn" data-race="${l.n}" type="button" style="width:100%"><span style="display:block">${l.title}</span><small style="font-weight:700;opacity:.75">${b ? `Bestzeit ${raceTime(b.t)} · ${PLAYABLE[b.who] ? PLAYABLE[b.who].name : "Tim"}` : "Noch keine Zeit"}</small></button>`; }).join("")}
+    <div class="rowb"><button class="btn" id="raceChar" type="button">Spieler wechseln</button><button class="btn" id="raceBack" type="button">Menü</button></div></div>`);
+  document.querySelectorAll("[data-race]").forEach(b => b.onclick = () => startRace(+b.dataset.race));
+  $("raceChar").onclick = () => pickPlayer(raceMenu, toTitle, false, true);
+  $("raceBack").onclick = toTitle;
+}
+async function startRace(n) {
+  race = { n }; G = null;
+  const res = await playLevel(n);
+  race = null;
+  if (res === "quit") return raceMenu();
+  save.passMugs = passMugs() + res.mugs;
+  save.bestTimes = save.bestTimes || {};
+  const old = save.bestTimes[n], record = !old || res.time < old.t;
+  if (record) save.bestTimes[n] = { t: res.time, who: chosenChar() };
+  store.write();
+  modal(`<h2>${record ? "Neue Bestzeit!" : "Im Ziel!"}</h2><p>${LEVEL_MENU.find(l => l.n === n).title} · ${PLAYABLE[chosenChar()].name}</p>
+    <div class="tally"><div>⏱ ${raceTime(res.time)}</div></div>
+    <p>${record ? (old ? `Alte Bestzeit: ${raceTime(old.t)}` : "Deine erste Zeit auf dieser Strecke.") : `Bestzeit: ${raceTime(old.t)}`}</p>
+    <div class="rowb"><button class="btn hot" id="raceAgain" type="button">Nochmal</button><button class="btn go" id="raceOther" type="button">Andere Strecke</button><button class="btn" id="raceMenuBtn" type="button">Menü</button></div>`);
+  sfx(record ? "outfit" : "win");
+  $("raceAgain").onclick = () => startRace(n);
+  $("raceOther").onclick = raceMenu;
+  $("raceMenuBtn").onclick = toTitle;
+}
+$("raceBtn").onclick = () => pickPlayer(raceMenu, toTitle, false, true);
 $("passBtn").onclick = battlePass;
 $("levelsBtn").onclick = levelSelect;
 // ===== Pixel figures outside the game (scenes, title, outfit menu) =====
