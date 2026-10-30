@@ -1551,6 +1551,50 @@ function drawBrian(p) {
   drawBrianBody(s, run ? Math.sin(p.anim * 2.4) * .6 : (p.ground ? 0 : -1.2));
   ctx.restore();
 }
+// Valka (Battle Pass tier 2): thin boy, blue polo shirt, very light skin, brown curly hair (forehead free). Throws croissants.
+const VALKA_SKIN = "#f8e1d2";
+function drawValkaBody(step, armSwing) {
+  // thin legs: beige chinos, dark sneakers
+  ctx.fillStyle = "#c9b48a"; ctx.fillRect(-6 + step * .6, -16, 5, 16); ctx.fillRect(1.5 - step * .6, -16, 5, 16);
+  ctx.fillStyle = "#22252e"; ctx.fillRect(-7.5 + step * .6, -3.5, 8, 4); ctx.fillRect(.5 - step * .6, -3.5, 8, 4);
+  ctx.fillStyle = "#ffffff"; ctx.fillRect(-7.5 + step * .6, -1, 8, 1.2); ctx.fillRect(.5 - step * .6, -1, 8, 1.2);
+  // back arm: short polo sleeve + bare arm
+  ctx.save(); ctx.translate(-5, -31); ctx.rotate(-armSwing * .8);
+  ctx.fillStyle = "#1f4fae"; roundRect(-2.6, 0, 5.2, 6, 2); ctx.fill(); ctx.fillStyle = VALKA_SKIN; ctx.fillRect(-1.6, 5.5, 3.2, 8); circ(0, 14.5, 2.5, VALKA_SKIN); ctx.restore();
+  // slim blue polo shirt with collar and button placket
+  ctx.fillStyle = "#2a62d4"; roundRect(-10, -34, 20, 20, 5); ctx.fill();
+  ctx.fillStyle = "#1f4fae"; ctx.fillRect(-10, -16, 20, 2);
+  ctx.fillStyle = "#ffffff"; ctx.beginPath(); ctx.moveTo(-5, -34); ctx.lineTo(0, -30); ctx.lineTo(-1.5, -27.5); ctx.lineTo(-6, -32); ctx.closePath(); ctx.fill();
+  ctx.beginPath(); ctx.moveTo(5, -34); ctx.lineTo(0, -30); ctx.lineTo(1.5, -27.5); ctx.lineTo(6, -32); ctx.closePath(); ctx.fill();
+  ctx.fillStyle = "#1a3f8c"; ctx.fillRect(-.6, -30, 1.4, 7); circ(.1, -28, .7, "#ffffff"); circ(.1, -25, .7, "#ffffff");
+  // front arm
+  ctx.save(); ctx.translate(5, -31); ctx.rotate(armSwing);
+  ctx.fillStyle = "#2a62d4"; roundRect(-2.6, 0, 5.4, 6, 2); ctx.fill(); ctx.fillStyle = "#ffffff"; ctx.fillRect(-2.6, 5, 5.4, 1);
+  ctx.fillStyle = VALKA_SKIN; ctx.fillRect(-1.5, 6, 3.2, 8.5); circ(.1, 15, 2.7, VALKA_SKIN); ctx.restore();
+  // neck + head with very light skin
+  ctx.fillStyle = "#ecc9b6"; ctx.fillRect(-2.5, -37, 5, 4);
+  ctx.fillStyle = VALKA_SKIN; ctx.beginPath(); ctx.ellipse(0, -46, 11, 13, 0, 0, Math.PI * 2); ctx.fill();
+  // brown curls like Brian's, but they stay on top and at the back: the forehead stays free
+  ctx.fillStyle = "#6b4426";
+  for (const [x, y, r] of [[-12, -49, 4], [-13.5, -54, 3.9], [-10, -58.5, 4.3], [-5, -61.5, 4.5], [1, -62, 4.4], [5.5, -59.5, 3.6], [-13, -44, 3.4], [-4, -55.5, 4.3], [1.5, -56.5, 3.8], [-8.5, -53.5, 4]]) { ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fill(); }
+  ctx.strokeStyle = "#8f6238"; ctx.lineWidth = .9; for (const [x, y] of [[-10, -58.5], [-5, -61.5], [1, -62], [5.5, -59.5], [-13.5, -54], [-12, -49]]) { ctx.beginPath(); ctx.arc(x, y, 1.7, .5, 4.5); ctx.stroke(); }
+  // face looking ahead
+  circ(5, -44.5, 1.9, "#1a1a1a"); circ(5.6, -45.1, .6, "#ffffff");
+  ctx.fillStyle = "rgba(255,120,120,.35)"; ctx.beginPath(); ctx.arc(6.5, -40.5, 2.6, 0, Math.PI * 2); ctx.fill();
+  ctx.strokeStyle = "#8a3a3a"; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.arc(5, -39.5, 2.6, .3, Math.PI - .5); ctx.stroke();
+}
+function drawValka(p) {
+  const run = p.ground && Math.abs(p.vx) > .5, s = run ? Math.sin(p.anim * 2.4) * 7 : 0;
+  ctx.save(); ctx.translate(p.x + p.w / 2, p.y + p.h); ctx.scale(p.face, 1);
+  drawValkaBody(s, run ? Math.sin(p.anim * 2.4) * .6 : (p.ground ? 0 : -1.2));
+  ctx.restore();
+}
+function drawCroissant() {
+  // golden crescent made of rolled segments
+  ctx.fillStyle = "#c97a22"; ctx.beginPath(); ctx.arc(0, 3, 11, Math.PI * 1.05, Math.PI * 1.95); ctx.arc(0, 7, 6, Math.PI * 1.9, Math.PI * 1.1, true); ctx.closePath(); ctx.fill();
+  ctx.fillStyle = "#e9a43c"; for (let k = 0; k < 5; k++) { const a = Math.PI * (1.15 + k * .175); ctx.beginPath(); ctx.ellipse(Math.cos(a) * 8.5, 4 + Math.sin(a) * 8.5, 3.2, 2.2, a + Math.PI / 2, 0, Math.PI * 2); ctx.fill(); }
+  ctx.strokeStyle = "#8a4e12"; ctx.lineWidth = .9; for (let k = 1; k < 5; k++) { const a = Math.PI * (1.07 + k * .175); ctx.beginPath(); ctx.moveTo(Math.cos(a) * 6.5, 4 + Math.sin(a) * 6.5); ctx.lineTo(Math.cos(a) * 11, 4 + Math.sin(a) * 11); ctx.stroke(); }
+}
 // ===== New skins: in-game sprites (canvas) and story portrait overlays (SVG) =====
 function rr(x, y, w, h, r) { ctx.beginPath(); ctx.moveTo(x + r, y); ctx.arcTo(x + w, y, x + w, y + h, r); ctx.arcTo(x + w, y + h, x, y + h, r); ctx.arcTo(x, y + h, x, y, r); ctx.arcTo(x, y, x + w, y, r); ctx.closePath(); }
 function circ(x, y, r, c) { ctx.fillStyle = c; ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fill(); }
@@ -1789,6 +1833,8 @@ function drawShot(sh) {
     ctx.fillStyle = "#ffd21e"; ctx.beginPath(); ctx.moveTo(0, -7.5); ctx.lineTo(7.5, 0); ctx.lineTo(0, 7.5); ctx.lineTo(-7.5, 0); ctx.closePath(); ctx.fill();
     ctx.fillStyle = "#1c3c8c"; ctx.beginPath(); ctx.arc(0, 0, 3.6, 0, Math.PI * 2); ctx.fill();
     ctx.strokeStyle = "#ffffff"; ctx.lineWidth = .9; ctx.beginPath(); ctx.arc(.5, 2.5, 3.6, -2.6, -.6); ctx.stroke();
+  } else if (sh.kind === "valka") {   // croissant
+    drawCroissant();
   } else if (sh.kind === "dennis") {  // energy can
     ctx.fillStyle = "#1ec8f0"; roundRect(-5, -9, 10, 18, 2); ctx.fill();
     ctx.fillStyle = "#c0c4d0"; ctx.fillRect(-5, -9, 10, 3); ctx.fillRect(-5, 7, 10, 2);
@@ -2394,9 +2440,9 @@ async function playSingle(n) {
 // Every PASS_STEP mugs (over all runs, never reset) unlock the next tier. Each tier unlocks a playable character.
 // The characters are still to be chosen: tiers without one show "kommt bald".
 const PASS_STEP = 200;
-const PASS_TIERS = ["brian", null, null, null, null]; // character ids per tier; null = still to be decided
+const PASS_TIERS = ["brian", "valka", null, null, null]; // character ids per tier; null = still to be decided
 // Playable characters: draw(p) paints the player sprite (like drawTim). Tim is always there.
-const PLAYABLE = { tim: { name: "Tim", skinKey: "tim", shot: "tim" }, brian: { name: "Brian", draw: drawBrian, shot: "brian" } };
+const PLAYABLE = { tim: { name: "Tim", skinKey: "tim", shot: "tim" }, brian: { name: "Brian", draw: drawBrian, shot: "brian" }, valka: { name: "Valka", draw: drawValka, shot: "valka" } };
 function passMugs() { if (typeof save.passMugs !== "number") save.passMugs = save.totalMugs || 0; return save.passMugs; }
 function passTier() { return Math.min(PASS_TIERS.length, Math.floor(passMugs() / PASS_STEP)); }
 function playerChar() { const c = save.char; return c && PLAYABLE[c] && charUnlocked(c) ? c : "tim"; }
