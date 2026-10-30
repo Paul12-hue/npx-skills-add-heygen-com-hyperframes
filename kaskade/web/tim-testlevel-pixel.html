@@ -671,31 +671,43 @@ function loop(now) {
 
 
 // ================= Pixel test: low-res world, sharp text =================
-const PIX_SIZES = { fein: 3, mittel: 4, grob: 6 };
-let pixMode = "mittel", pixUnit = 1, pxUnit = 1, pix = { from: 1, t: 0, d: 1 }, dust = [];
+// Two pixel layers: the background in coarse pixels, figures and items in much finer pixels.
+const PIX_SIZES = { fein: [2, 1], mittel: [3, 1.5], grob: [4, 2] };
+let pixMode = "mittel", pixUnit = 1, figUnit = 1, pxUnit = 1, pix = { from: 1, t: 0, d: 1 }, dust = [];
 try { pixMode = localStorage.getItem("tim-pixel-size") || "mittel"; if (!PIX_SIZES[pixMode]) pixMode = "mittel"; } catch (e) {}
-const low = document.createElement("canvas"), lowCtx = low.getContext("2d");
 const texts = [];
-// Text drawn into the pixel canvas is remembered and drawn later at full resolution.
-lowCtx.fillText = function (t, x, y) { texts.push({ t, x, y, m: this.getTransform(), font: this.font, fill: this.fillStyle, al: this.textAlign, bl: this.textBaseline, a: this.globalAlpha }); };
-// Glows are measured in canvas pixels, so shrink them with the canvas.
 const blurDesc = Object.getOwnPropertyDescriptor(CanvasRenderingContext2D.prototype, "shadowBlur");
-Object.defineProperty(lowCtx, "shadowBlur", { get() { return blurDesc.get.call(this) * pixUnit; }, set(v) { blurDesc.set.call(this, v / pixUnit); } });
+function pixLayer(unit) {
+  const c = document.createElement("canvas"), x = c.getContext("2d");
+  // Text drawn into a pixel layer is remembered and drawn later at full resolution.
+  x.fillText = function (t, tx, ty) { texts.push({ t, x: tx, y: ty, u: unit(), m: this.getTransform(), font: this.font, fill: this.fillStyle, al: this.textAlign, bl: this.textBaseline, a: this.globalAlpha }); };
+  // Glows are measured in canvas pixels, so shrink them with the canvas.
+  Object.defineProperty(x, "shadowBlur", { get() { return blurDesc.get.call(this) * unit(); }, set(v) { blurDesc.set.call(this, v / unit()); } });
+  return x;
+}
+const lowCtx = pixLayer(() => pixUnit), figCtx = pixLayer(() => figUnit);
+function fitLayer(x, u) { const w = Math.ceil(cv.width / u), h = Math.ceil(cv.height / u); if (x.canvas.width !== w || x.canvas.height !== h) { x.canvas.width = w; x.canvas.height = h; } else { x.setTransform(1, 0, 0, 1, 0, 0); x.clearRect(0, 0, w, h); } }
+// Called inside draw() once the tiles are done: everything after that lands on the fine figure layer.
+function toFigureLayer() {
+  const m = ctx.getTransform(), r = pixUnit / figUnit;
+  figCtx.setTransform(m.a * r, m.b * r, m.c * r, m.d * r, m.e * r, m.f * r);
+  ctx = figCtx;
+}
 function pixPulse(mult, frames) { pix = { from: mult, t: 0, d: frames }; }
 function drawPixelated() {
-  // Pixel size in device pixels; a pulse starts coarse and settles back (animated pixels).
-  const base = PIX_SIZES[pixMode] * dpr;
+  // Pixel sizes in device pixels; a pulse starts coarse and settles back (animated pixels).
+  const [bg, fig] = PIX_SIZES[pixMode];
   let m = 1; if (pix.t < pix.d) { const q = pix.t / pix.d; m = 1 + (pix.from - 1) * Math.pow(1 - q, 2); pix.t++; }
-  pixUnit = Math.max(1, Math.round(base * m));
-  const lw = Math.ceil(cv.width / pixUnit), lh = Math.ceil(cv.height / pixUnit);
-  if (low.width !== lw || low.height !== lh) { low.width = lw; low.height = lh; }
+  pixUnit = Math.max(1, Math.round(bg * dpr * m)); figUnit = Math.max(1, Math.round(fig * dpr * m));
+  fitLayer(lowCtx, pixUnit); fitLayer(figCtx, figUnit);
   texts.length = 0;
   const main = ctx; ctx = lowCtx;
   try { draw(); } finally { ctx = main; }
   ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.imageSmoothingEnabled = false;
-  ctx.drawImage(low, 0, 0, lw * pixUnit, lh * pixUnit);
+  ctx.drawImage(lowCtx.canvas, 0, 0, lowCtx.canvas.width * pixUnit, lowCtx.canvas.height * pixUnit);
+  ctx.drawImage(figCtx.canvas, 0, 0, figCtx.canvas.width * figUnit, figCtx.canvas.height * figUnit);
   for (const x of texts) {
-    const m2 = x.m; ctx.setTransform(m2.a * pixUnit, m2.b * pixUnit, m2.c * pixUnit, m2.d * pixUnit, m2.e * pixUnit, m2.f * pixUnit);
+    const m2 = x.m, u = x.u; ctx.setTransform(m2.a * u, m2.b * u, m2.c * u, m2.d * u, m2.e * u, m2.f * u);
     ctx.font = x.font; ctx.fillStyle = x.fill; ctx.textAlign = x.al; ctx.textBaseline = x.bl; ctx.globalAlpha = x.a;
     CanvasRenderingContext2D.prototype.fillText.call(ctx, x.t, x.x, x.y);
   }
@@ -1354,6 +1366,7 @@ function draw() {
   for (const m of G.movers) { ctx.fillStyle = "#33e1ff"; roundRect(m.x, m.y, m.w, 16, 8); ctx.fill(); ctx.fillStyle = "rgba(255,255,255,.6)"; ctx.fillRect(m.x + 8, m.y + 3, m.w - 16, 3); ctx.fillStyle = "rgba(51,225,255,.3)"; ctx.fillRect(m.x + 10, m.y + 16, m.w - 20, 8); }
   // checkpoints
   for (const [cx, cy] of L.checkpoints) { const on = G.reached.has(cx + ":" + cy); ctx.fillStyle = "#ddd"; ctx.fillRect(cx * T + 20, cy * T - 50, 5, 98); ctx.fillStyle = on ? "#39ff14" : "#888"; ctx.beginPath(); ctx.moveTo(cx * T + 25, cy * T - 50); ctx.lineTo(cx * T + 62, cy * T - 38 + Math.sin(G.time / 8) * 3); ctx.lineTo(cx * T + 25, cy * T - 26); ctx.fill(); }
+  toFigureLayer();
   // finish: Valle
   if (L.finish) drawValle(L.finish[0] * T, L.finish[1] * T + T);
   // entities
