@@ -1099,7 +1099,7 @@ function faroStep() {
       b.inv = 50; p.vy = -15; sfx("stomp"); G.shake = 12; burst(b.x + b.w / 2, b.y, "#ffc531", 30);
       damageBoss(8);
       if (b.hp > 0) { banner(b.hp <= 8 ? "Noch einmal!" : "Treffer!"); b.state = "walk"; b.t = 0; stand(); }
-    } else if (b.inv === 0 && p.inv === 0) { hurt(); if (G.p) G.p.vx = (G.p.x < b.x + b.w / 2 ? -9 : 9); }
+    } else if (b.inv === 0 && p.inv === 0) { p.vx = (p.x < b.x + b.w / 2 ? -6 : 6); } // touching the boss does no harm
   }
 }
 // Randomizer: 2 schnitzel turn Tim into one of these table-tennis players for the rest of the level.
@@ -1142,7 +1142,7 @@ function bossStep() {
       b.inv = 60; p.vy = -14; sfx("stomp"); G.shake = 10; burst(b.x + b.w / 2, b.y, "#ffc531", 30);
       damageBoss(8);
       if (b.hp > 0) { banner(b.hp <= 8 ? "Noch einmal!" : "Treffer!"); b.state = "rise"; b.t = 0; }
-    } else if (b.inv === 0) { hurt(); p.vx = (p.x < b.x ? -8 : 8); }
+    } else if (b.inv === 0) { p.vx = (p.x < b.x ? -6 : 6); } // touching the boss does no harm
   }
 }
 
@@ -1331,7 +1331,7 @@ function chrisStep() {
       b.inv = 50; p.vy = -14; sfx("stomp"); G.shake = 10; burst(p.x + p.w / 2, box.y, "#ffc531", 26);
       damageBoss(b.phase === 1 ? 3 : 6);
       if (b.hp > 0 && b.phase === 2) { banner(b.hp <= 6 ? "Noch einmal!" : "Treffer!"); b.state = "wait"; b.t = 0; }
-    } else if (b.inv === 0 || b.state === "run" || b.state === "leap") { hurt(); p.vx = p.x < b.x + b.w / 2 ? -8 : 8; }
+    } else if (b.inv === 0) { p.vx = p.x < b.x + b.w / 2 ? -6 : 6; } // touching the boss does no harm
   }
 }
 function drawChris(b) {
@@ -1498,7 +1498,7 @@ function hobergStep() {
     const top = p.y + p.h - p.vy <= box.y + 22;
     if (top && p.vy > 0 && b.inv === 0 && b.state === "confused") {
       b.inv = 50; p.vy = -14; sfx("stomp"); G.shake = 10; burst(p.x + p.w / 2, box.y, "#ffc531", 26); damageBoss(5);
-    } else if (b.inv === 0 && b.state !== "confused") { hurt(); p.vx = p.x < b.x + b.w / 2 ? -8 : 8; }
+    } else if (b.inv === 0 && b.state !== "confused") { p.vx = p.x < b.x + b.w / 2 ? -6 : 6; } // touching the boss does no harm
   }
 }
 function drawHoberg(b) {
