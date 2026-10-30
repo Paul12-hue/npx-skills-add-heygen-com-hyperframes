@@ -255,9 +255,9 @@ function makeLevels() {
     .ground(114, 118, 10).ground(122, 126, 8).ground(130, 134, 9).schn(124, 5).arc(118, 6, 4).arc(126, 6, 4)
     .check(136, 11).ground(136, 150).enemy(142, 11, "fast").enemy(146, 11, "fast").mugs(138, 10, 10).shaft(140, "rolf", "grey")
     .mover(152, 10, 2, 5, 1.9).ground(162, 179).mugs(164, 10, 6).finishAt(175);
-  const L4 = builder(22, "boss", "Finale · Anton Weilamier Schule").ground(0, 21).wall(0, 0, 13).wall(21, 0, 13).startAt(3, 10);
+  const L4 = builder(22, "boss", "Finale · Anton-Weilmaier-Schule").ground(0, 21).wall(0, 0, 13).wall(21, 0, 13).startAt(3, 10);
   L4.boss = "brixx";
-  const L5 = builder(22, "boss", "Plot-Twist · Anton Weilamier Schule").ground(0, 21).wall(0, 0, 13).wall(21, 0, 13).startAt(3, 10);
+  const L5 = builder(22, "boss", "Plot-Twist · Anton-Weilmaier-Schule").ground(0, 21).wall(0, 0, 13).wall(21, 0, 13).startAt(3, 10);
   L5.boss = "faroo";
   const L6 = { endless: true, name: "Endlos · Faroo läuft" };
   // Harder chapters with optional, tough passages that hide outfits.
@@ -322,7 +322,7 @@ const STORY = [
   { kind: "level", n: 1 },
   { kind: "scene", chapter: "Kapitel 3 · 18:30 Uhr", L: "tim", R: "valle", lines: [
     S("tim", "Mir tun die Füße weh. Aber die Tassen leuchten so schön grün."),
-    S("valle", "Über die Dachterrassen kommst du zur Anton Weilamier Schule. Dort wartet Opa Brixx."),
+    S("valle", "Über die Dachterrassen kommst du zur Anton-Weilmaier-Schule. Dort wartet Opa Brixx."),
     S("faroo", "Halbe Stunde noch! Ich halte die Stellung im Redo XXL."),
   ]},
   { kind: "level", n: 2 },
@@ -1458,7 +1458,7 @@ function drawSchool(x0, w) {
   ctx.fillStyle = "#1f3a7a"; roundRect(sx, sy, sw, 32, 6); ctx.fill();
   ctx.strokeStyle = "#ffffff"; ctx.lineWidth = 2; ctx.stroke();
   ctx.fillStyle = "#ffffff"; ctx.font = "800 20px Nunito, sans-serif"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
-  ctx.fillText("ANTON WEILAMIER SCHULE", x0 + w / 2, sy + 17); ctx.textBaseline = "alphabetic";
+  ctx.fillText("ANTON-WEILMAIER-SCHULE", x0 + w / 2, sy + 17); ctx.textBaseline = "alphabetic";
 }
 // Boss arena: a dark streaming room with monitors, LED strip, ring light and mic (screen space, fixed boss camera).
 function drawStreamRoom() {
