@@ -1,6 +1,6 @@
 # THRENOD · Phase 4, Teil 2: Welt-Systeme, Gegner und Quests
 
-**Status:** 📝 Entwurf, wartet auf Freigabe
+**Status:** ✅ Freigegeben (H1 Memory Keys ja, H2 Nine Candles passt, H3 keine Änderungen)
 
 ---
 

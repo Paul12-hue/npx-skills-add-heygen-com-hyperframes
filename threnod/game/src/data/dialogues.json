@@ -1,0 +1,78 @@
+{
+  "grave_open": {
+    "start": "a",
+    "starts": [{ "if": "seen_grave", "start": "again" }],
+    "nodes": {
+      "a": { "text": "An open grave. The earth around it is torn — but not by a spade. It was pushed apart from below.", "next": "b", "set": { "seen_grave": true } },
+      "b": { "text": "The hole is exactly your size. There is still a hollow in the soil where your head rested.", "next": "c" },
+      "c": { "text": "You remember nothing before the cold. Not even a name.", "end": true },
+      "again": { "text": "Your grave. It feels strange to call it that. It feels stranger that it fits.", "end": true }
+    }
+  },
+  "grave_headstone": {
+    "start": "a",
+    "nodes": {
+      "a": { "text": "The headstone is older than the others, smooth with four hundred years of rain.", "next": "b" },
+      "b": { "text": "No name. No dates. Only a single candle carved into the stone — unlit.", "end": true }
+    }
+  },
+  "tilde_first": {
+    "start": "a",
+    "starts": [{ "if": "met_tilde", "start": "again" }],
+    "nodes": {
+      "a": { "speaker": "Tilde", "text": "You were *in* there. I dug around that stone for three summers. Nobody's name on it. Nobody's ever visited it.", "next": "b", "set": { "met_tilde": true } },
+      "b": { "speaker": "Tilde", "text": "…Are you a ghost? You don't look see-through. Just sort of… grey.", "choices": [
+        { "text": "I don't know what I am.", "next": "c1" },
+        { "text": "Where am I?", "next": "c2" },
+        { "text": "(Say nothing.)", "next": "c3" }
+      ] },
+      "c1": { "speaker": "Tilde", "text": "Well, that makes two of us. I'm Tilde. I dig the graves. Usually people stay in them.", "next": "d" },
+      "c2": { "speaker": "Tilde", "text": "Saint Ebba's. The graveyard above Candlewick, in Hollowmere Vale. You're standing in the bit for people nobody remembers.", "next": "d" },
+      "c3": { "speaker": "Tilde", "text": "Right. A quiet ghost. That's the worst kind.", "next": "d", "set": { "tilde_quiet_ghost": true } },
+      "d": { "speaker": "Tilde", "text": "Go down to the village. Ask for Mother Odile at the candle shrine. And — try to be memorable. Folk here forget things.", "end": true },
+      "again": { "speaker": "Tilde", "text": "Still here? Candlewick's down the road, past the signpost. Mind the lake. Sometimes it glows.", "end": true }
+    }
+  },
+  "signpost": {
+    "start": "a",
+    "nodes": {
+      "a": { "text": "A weathered signpost. Three arms, the paint long gone. Someone has scratched new words into the wood:", "next": "b" },
+      "b": { "text": "EAST — Candlewick.   NORTH — Saint Ebba's.   SOUTH-WEST — the Mere Ferry.   A fourth arm has been sawn off. Only a nail remains.", "end": true }
+    }
+  },
+  "lake_shore": {
+    "start": "a",
+    "nodes": {
+      "a": { "text": "Hollowmere lies still and black. Far below the surface, something glows — a small, warm light, like a lantern held by a patient hand.", "next": "b" },
+      "b": { "text": "You watch it for a long time. Then it dims, and for a moment you feel as if someone has said goodbye.", "end": true }
+    }
+  },
+  "candle_shrine": {
+    "start": "a",
+    "nodes": {
+      "a": { "text": "A shrine of name-candles. Each stub has a name scratched into the wax — Bertil, Gisla, Ludo, Tilde…", "next": "b" },
+      "b": { "text": "Eight of them burn. The ninth has never been lit.", "next": "c" },
+      "c": { "text": "None of them carries your name.", "end": true }
+    }
+  },
+  "well": {
+    "start": "a",
+    "nodes": {
+      "a": { "text": "The village well. A bucket on a fraying rope. Someone has tied a ribbon to the crank — the kind you tie so you won't forget something.", "end": true }
+    }
+  },
+  "bell_tower": {
+    "start": "a",
+    "nodes": {
+      "a": { "text": "A small bell tower. The bell hangs silent; its rope has been cut clean through.", "next": "b" },
+      "b": { "text": "Carved into a post, almost hidden: \"By order of the Silent Nine.\"", "end": true }
+    }
+  },
+  "mine_entrance": {
+    "start": "a",
+    "nodes": {
+      "a": { "text": "The Old Silver Mine. Cold air breathes out of the dark. Somewhere deep inside, someone is counting — slowly, over and over.", "next": "b" },
+      "b": { "text": "\"…four… five…\" The voice never reaches six. (The mine opens in the next phase of development.)", "end": true }
+    }
+  }
+}
