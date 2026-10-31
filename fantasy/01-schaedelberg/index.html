@@ -1,0 +1,321 @@
+<!doctype html>
+<html lang="de" data-resolution="portrait">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1080, height=1920" />
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      html, body { width: 1080px; height: 1920px; overflow: hidden; background: #000; }
+      #root { position: relative; width: 100%; height: 100%; overflow: hidden; }
+      #stage { position: absolute; inset: 0; }
+      #stage canvas { position: absolute; left: 0; top: 0; width: 1080px; height: 1920px; }
+    </style>
+  </head>
+  <body>
+    <div id="root" data-composition-id="main" data-start="0" data-duration="22" data-width="1080" data-height="1920">
+      <div id="stage" class="clip" data-start="0" data-duration="22" data-track-index="0" data-layout-ignore></div>
+      <audio id="bgm" class="clip" src="assets/bgm/schaedelberg.wav" data-start="0" data-duration="22" data-volume="1"></audio>
+    </div>
+
+    <script>
+      // Paused root timeline: only drives time; every pixel comes from window.__renderAt(t).
+      window.__timelines = window.__timelines || {};
+      const tl = gsap.timeline({ paused: true });
+      tl.set({}, {}, 22);
+      tl.eventCallback("onUpdate", () => { if (window.__renderAt) window.__renderAt(tl.time()); });
+      window.addEventListener("hf-seek", (e) => {
+        const d = e && e.detail;
+        if (d && typeof d.time === "number") {
+          tl.totalTime(Math.min(d.time, tl.totalDuration()), true);
+          if (window.__renderAt) window.__renderAt(d.time);
+        }
+      });
+      window.__timelines["main"] = tl;
+    </script>
+
+    <script>
+      // =====================================================================
+      // SHOT LIST: one painted keyframe per shot, animated in a shader.
+      // Image coords: x 0..1 left→right, y 0..1 top→bottom.
+      // z0/z1 zoom, c0/c1 centre, r0/r1 roll (rad) — interpolated over [t0, t1].
+      // fog/fog2: [yTop, yBottom, density, drift speed]
+      // shimmer: [xFrom, yTop, yBottom, strength] (water, wet stone)
+      // parts: [type 0 snow | 1 embers/sparks | 2 dust in light shafts | 3 fireflies, amount, extra spores]; pcol: particle colour
+      // flash: lightning strike times (s)
+      // =====================================================================
+      const DUR = 22;
+      const SHOTS = [
+        { img: "assets/img/s1.jpg", t0: 0.0, t1: 6.1,      // skull mountain: push in on the glowing eyes
+          z0: 1.06, z1: 1.30, c0: [0.50, 0.50], c1: [0.56, 0.40], r0: -0.003, r1: 0.003,
+          fog: [0.30, 0.62, 0.35, 0.8], fog2: [0.74, 1.0, 0.45, -0.7], fogCol: [0.45, 0.25, 0.75],
+          shimmer: [0.25, 0.80, 1.0, 0.35], flick: 1.0, glow: 1.0,
+          parts: [3, 0.7, 0.0], pcol: [0.75, 0.45, 1.0], flash: [] },
+        { img: "assets/img/s2.jpg", t0: 5.6, t1: 11.4,     // lich in the crystal cave: slow push to the skull face
+          z0: 1.04, z1: 1.26, c0: [0.50, 0.52], c1: [0.47, 0.40], r0: 0.003, r1: -0.002,
+          fog: [0.55, 0.85, 0.25, 0.5], fog2: [0.82, 1.0, 0.35, -0.6], fogCol: [0.25, 0.55, 0.85],
+          shimmer: [0.30, 0.80, 1.0, 1.0], flick: 1.2, glow: 1.4,
+          parts: [1, 0.8, 0.0], pcol: [0.35, 0.95, 1.0], flash: [] },
+        { img: "assets/img/s3.jpg", t0: 10.9, t1: 16.6,    // swamp: the troll ferryman glides toward us
+          z0: 1.04, z1: 1.24, c0: [0.50, 0.52], c1: [0.48, 0.56], r0: 0.0, r1: 0.0,
+          fog: [0.45, 0.80, 0.45, 0.6], fog2: [0.80, 1.0, 0.40, -0.5], fogCol: [0.30, 0.65, 0.40],
+          shimmer: [0.0, 0.60, 1.0, 1.0], flick: 1.4, glow: 1.2,
+          parts: [3, 1.0, 0.0], pcol: [0.6, 1.0, 0.35], flash: [] },
+        { img: "assets/img/s4.jpg", t0: 16.1, t1: 22.0,    // dragon around the tower: tilt up from the bridge to the fire
+          z0: 1.24, z1: 1.10, c0: [0.50, 0.59], c1: [0.46, 0.46], r0: 0.004, r1: -0.002,
+          fog: [0.75, 1.0, 0.25, 0.9], fog2: [0.0, 0.3, 0.0, 0.0], fogCol: [0.9, 0.4, 0.15],
+          shimmer: [0.0, 0.0, 0.0, 0.0], flick: 2.0, glow: 1.0,
+          parts: [1, 1.0, 0.0], pcol: [1.0, 0.55, 0.15], flash: [] },
+      ];
+      window.__SHOTS = SHOTS;
+    </script>
+
+    <script>
+      const W = 1080, H = 1920;
+      const canvas = document.createElement("canvas");
+      canvas.width = W; canvas.height = H;
+      document.getElementById("stage").appendChild(canvas);
+      const gl = canvas.getContext("webgl", { preserveDrawingBuffer: true, antialias: false, premultipliedAlpha: false });
+
+      const VS = `attribute vec2 p; varying vec2 vUv; void main(){ vUv = p * 0.5 + 0.5; gl_Position = vec4(p, 0.0, 1.0); }`;
+      const FS = `
+        precision highp float;
+        varying vec2 vUv;
+        uniform sampler2D uImg;
+        uniform float uT, uLocal, uZoom, uRoll, uFade, uFlick, uFlash, uSeed, uGlow;
+        uniform vec3 uFogCol, uPCol;
+        uniform vec2 uCenter, uPan;
+        uniform vec4 uFog, uFog2, uShimmer, uParts;
+
+        float h21(vec2 p){ vec3 p3 = fract(vec3(p.xyx) * 0.1031); p3 += dot(p3, p3.yzx + 33.33); return fract((p3.x + p3.y) * p3.z); }
+        vec2 h22(vec2 p){ vec3 p3 = fract(vec3(p.xyx) * vec3(0.1031, 0.1030, 0.0973)); p3 += dot(p3, p3.yzx + 33.33); return fract((p3.xx + p3.yz) * p3.zy); }
+        float vn(vec2 p){ vec2 i = floor(p), f = fract(p); vec2 u = f*f*(3.0-2.0*f);
+          return mix(mix(h21(i), h21(i+vec2(1,0)), u.x), mix(h21(i+vec2(0,1)), h21(i+vec2(1,1)), u.x), u.y); }
+        float fbm(vec2 p){ float s = 0.0, a = 0.5; for (int i = 0; i < 5; i++) { s += a * vn(p); p = p * 2.02 + vec2(3.1, 1.7); a *= 0.5; } return s; }
+
+        // one layer of soft round particles; vel.y < 0 falls (snow, dust), > 0 rises (embers)
+        float particles(vec2 q, float scale, vec2 vel, float size, float seed){
+          vec2 g = q * scale + vel * uLocal;
+          g.x += sin(g.y * 0.35 + uLocal * 0.7 + seed) * 0.6;
+          vec2 id = floor(g), f = fract(g);
+          vec2 r = h22(id + seed);
+          if (r.x > 0.55) return 0.0;
+          vec2 c = vec2(0.2 + 0.6 * r.y, 0.2 + 0.6 * fract(r.x * 7.3));
+          float d = length(f - c);
+          float tw = 0.6 + 0.4 * sin(uLocal * (2.0 + r.y * 3.0) + r.x * 40.0);
+          return smoothstep(size, 0.0, d) * tw;
+        }
+
+        void main(){
+          vec2 s = vec2(vUv.x, 1.0 - vUv.y);   // screen, y down
+          // camera: zoom around centre, slight roll, a little 2.5D parallax (lower = nearer)
+          vec2 d = s - 0.5;
+          d.x *= 0.5625;
+          float cr = cos(uRoll), sr = sin(uRoll);
+          d = mat2(cr, -sr, sr, cr) * d;
+          d.x /= 0.5625;
+          float depth = smoothstep(0.25, 1.0, s.y);
+          vec2 uv = uCenter + d / (uZoom * (1.0 + depth * 0.035 * uLocal / 6.0));
+          uv += uPan * depth * 0.012;
+          // cold shimmer (water, wet stone): tiny wobbling refraction
+          float shz = uShimmer.w * smoothstep(uShimmer.y - 0.04, uShimmer.y, uv.y) * smoothstep(uShimmer.z + 0.04, uShimmer.z, uv.y)
+                    * smoothstep(uShimmer.x - 0.1, uShimmer.x + 0.05, uv.x);
+          uv.x += shz * (vn(vec2(uv.y * 260.0, uLocal * 2.2)) - 0.5) * 0.004;
+          vec3 c = texture2D(uImg, uv).rgb;
+          // unsharp mask: the keyframes are upscaled, give them back crisp CGI edges
+          vec2 px = vec2(1.0 / 1080.0, 1.0 / 1920.0) / uZoom;
+          vec3 blur = (texture2D(uImg, uv + vec2(px.x, 0.0)).rgb + texture2D(uImg, uv - vec2(px.x, 0.0)).rgb
+                     + texture2D(uImg, uv + vec2(0.0, px.y)).rgb + texture2D(uImg, uv - vec2(0.0, px.y)).rgb) * 0.25;
+          c = max(c + (c - blur) * 0.9, 0.0);
+          float lum = dot(c, vec3(0.299, 0.587, 0.114));
+          // emissive glow pulse: saturated bright pixels (eyes, crystals, runes, lanterns, fire) breathe
+          float mx = max(c.r, max(c.g, c.b)), mn = min(c.r, min(c.g, c.b));
+          float sat = (mx - mn) / (mx + 1e-3);
+          float emi = smoothstep(0.45, 0.85, sat) * smoothstep(0.45, 0.9, mx);
+          float pulse = 0.5 + 0.5 * sin(uLocal * 2.4 + uv.y * 6.0) * 0.7 + 0.3 * vn(vec2(uLocal * 3.0, uv.x * 8.0));
+          c *= 1.0 + emi * (pulse - 0.45) * 0.6 * uGlow;
+
+          // warm light flicker: candles, torches, windows, braziers breathe
+          float warm = smoothstep(0.04, 0.22, c.r - c.b) * smoothstep(0.22, 0.65, lum);
+          float fl = vn(vec2(uLocal * 9.0, uv.x * 30.0 + uv.y * 17.0)) * 0.6 + vn(vec2(uLocal * 23.0, uv.y * 40.0)) * 0.4;
+          c *= 1.0 + warm * (fl - 0.45) * 0.55 * uFlick;
+          c += vec3(1.0, 0.55, 0.2) * warm * fl * 0.06 * uFlick;
+          // moonlight glints on the shimmer zone
+          float coldHi = smoothstep(0.35, 0.7, lum) * step(c.r, c.b + 0.02);
+          c *= 1.0 + shz * coldHi * (vn(vec2(uv.x * 140.0, uv.y * 520.0 - uLocal * 3.0)) - 0.4) * 0.9;
+
+          // drifting fog banks (two bands), lit a bit by the scene
+          vec2 fq = vec2(uv.x * 2.2 + uLocal * 0.035 * uFog.w, uv.y * 5.0 - uLocal * 0.01);
+          float fog = fbm(fq + fbm(fq * 1.7 + uLocal * 0.05) * 1.2);
+          float band = smoothstep(uFog.x, uFog.x + 0.12, uv.y) * smoothstep(uFog.y, uFog.y - 0.12, uv.y);
+          float f1 = smoothstep(0.42, 0.85, fog) * band * uFog.z;
+          vec2 fq2 = vec2(uv.x * 3.1 + uLocal * 0.05 * uFog2.w, uv.y * 7.0 + 9.0);
+          float fog2 = fbm(fq2 + fbm(fq2 * 1.3 - uLocal * 0.04));
+          float band2 = smoothstep(uFog2.x, uFog2.x + 0.12, uv.y) * smoothstep(uFog2.y, uFog2.y - 0.12, uv.y);
+          float f2 = smoothstep(0.45, 0.9, fog2) * band2 * uFog2.z;
+          vec3 fogCol = uFogCol * (0.45 + lum * 0.9);
+          c = mix(c, fogCol, clamp(f1 * 0.55 + f2 * 0.5, 0.0, 0.8));
+
+          // lightning: the sky blows out cold, the painted bolt flares
+          float sky = smoothstep(0.75, 0.15, uv.y);
+          float blue = smoothstep(-0.02, 0.12, c.b - c.r);
+          c += vec3(0.55, 0.6, 0.9) * uFlash * (0.25 + 0.75 * sky) * (0.35 + lum) * (0.6 + blue * 0.6);
+          c += vec3(0.8, 0.85, 1.0) * uFlash * smoothstep(0.55, 0.85, lum) * blue * 0.8;
+
+          // particles in screen space (in front of the painting)
+          float pt = 0.0;
+          vec3 pcol = vec3(0.85, 0.9, 1.0);
+          vec2 ps = s * vec2(1.0, 1.78);
+          if (uParts.x < 0.5) {          // snow
+            pt += particles(ps, 26.0, vec2(-0.25, -1.2), 0.07, 1.0) * 0.55;
+            pt += particles(ps, 14.0, vec2(-0.35, -1.0), 0.09, 7.0) * 0.8;
+            pt += particles(ps, 7.0, vec2(-0.4, -0.85), 0.07, 13.0) * 0.9;
+          } else if (uParts.x < 1.5) {   // embers rising
+            pt += particles(ps, 18.0, vec2(0.15, 0.9), 0.06, 3.0) * 0.8;
+            pt += particles(ps, 9.0, vec2(0.25, 0.7), 0.05, 5.0);
+            pcol = vec3(1.0, 0.55, 0.2);
+          } else if (uParts.x > 2.5) {   // fireflies / wisps drifting
+            vec2 fp = ps + vec2(sin(uLocal * 0.6 + ps.y * 3.0) * 0.02, cos(uLocal * 0.5 + ps.x * 4.0) * 0.02);
+            pt += particles(fp, 12.0, vec2(0.08, 0.12), 0.08, 4.0) * 1.2;
+            pt += particles(fp, 6.0, vec2(-0.06, 0.08), 0.06, 8.0) * 1.4;
+          } else {                       // dust in the moon shafts
+            float shaft = smoothstep(0.85, 0.2, abs(s.x - 0.48 - (s.y - 0.3) * 0.15) * 3.0) * smoothstep(0.95, 0.2, s.y);
+            pt += particles(ps, 34.0, vec2(0.05, -0.12), 0.07, 2.0) * shaft;
+            pt += particles(ps, 16.0, vec2(-0.04, -0.08), 0.06, 9.0) * shaft * 1.2;
+            pcol = vec3(0.8, 0.85, 1.0);
+          }
+          pcol = uPCol;
+          c += pcol * pt * uParts.y * 0.7;
+          if (uParts.z > 0.0) {
+            c += vec3(0.7, 0.8, 1.0) * particles(ps, 22.0, vec2(-0.1, -0.35), 0.05, 11.0) * uParts.z * 0.25;
+          }
+
+          // grade: slightly desaturated, cold shadows, crushed blacks
+          lum = dot(c, vec3(0.299, 0.587, 0.114));
+          c = mix(vec3(lum), c, 1.08);                    // a touch more saturation
+          c = (c - 0.5) * 1.06 + 0.5;                        // contrast
+          c = max(c, 0.0);
+          // vignette, grain, fade
+          vec2 vq = (s - 0.5) * vec2(1.0, 0.75);
+          c *= mix(0.65, 1.0, smoothstep(0.65, 0.2, length(vq)));
+          c += (h21(floor(s * vec2(1080.0, 1920.0)) + uSeed) - 0.5) * 0.025;
+          c *= uFade;
+          gl_FragColor = vec4(c, 1.0);
+        }`;
+
+      function sh(type, src) {
+        const s = gl.createShader(type); gl.shaderSource(s, src); gl.compileShader(s);
+        if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) throw new Error(gl.getShaderInfoLog(s));
+        return s;
+      }
+      const prog = gl.createProgram();
+      gl.attachShader(prog, sh(gl.VERTEX_SHADER, VS));
+      gl.attachShader(prog, sh(gl.FRAGMENT_SHADER, FS));
+      gl.linkProgram(prog);
+      gl.useProgram(prog);
+      const buf = gl.createBuffer();
+      gl.bindBuffer(gl.ARRAY_BUFFER, buf);
+      gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 1, -1, -1, 1, 1, 1]), gl.STATIC_DRAW);
+      const loc = gl.getAttribLocation(prog, "p");
+      gl.enableVertexAttribArray(loc);
+      gl.vertexAttribPointer(loc, 2, gl.FLOAT, false, 0, 0);
+      const U = {};
+      for (const n of ["uImg", "uT", "uLocal", "uZoom", "uRoll", "uFade", "uFlick", "uFlash", "uSeed", "uGlow", "uFogCol", "uPCol", "uCenter", "uPan", "uFog", "uFog2", "uShimmer", "uParts"]) U[n] = gl.getUniformLocation(prog, n);
+      gl.viewport(0, 0, W, H);
+
+      const clamp = (x, a = 0, b = 1) => Math.min(b, Math.max(a, x));
+      const ease = (x) => { x = clamp(x); return x * x * (3 - 2 * x); };
+      const lerp = (a, b, k) => a + (b - a) * k;
+      // crane-like drift: mostly linear with soft ends
+      const camEase = (x) => { x = clamp(x); return 0.7 * x + 0.3 * ease(x); };
+
+      // SHOTS is the global from the shot-list script
+      const textures = [];
+      const loads = SHOTS.map((s, i) => new Promise((res, rej) => {
+        const im = new Image();
+        im.onload = () => {
+          const tx = gl.createTexture();
+          gl.bindTexture(gl.TEXTURE_2D, tx);
+          gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGB, gl.RGB, gl.UNSIGNED_BYTE, im);
+          gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+          gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+          gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+          gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+          textures[i] = tx; res();
+        };
+        im.onerror = rej;
+        im.src = s.img;
+      }));
+
+      // lightning pulse: sharp strike + short afterglow
+      function flashAt(t, list) {
+        let f = 0;
+        for (const s of list) {
+          const dt = t - s;
+          if (dt < -0.15 || dt > 1.2) continue;
+          f = Math.max(f, Math.exp(-Math.pow(dt / 0.045, 2)) + (dt > 0 ? 0.35 * Math.exp(-dt / 0.25) : 0));
+        }
+        return Math.min(f, 1.2);
+      }
+
+      function drawShot(i, t, alpha) {
+        const s = SHOTS[i];
+        const k = camEase((t - s.t0) / (s.t1 - s.t0));
+        gl.activeTexture(gl.TEXTURE0);
+        gl.bindTexture(gl.TEXTURE_2D, textures[i]);
+        gl.uniform1i(U.uImg, 0);
+        gl.uniform1f(U.uT, t);
+        gl.uniform1f(U.uLocal, t - s.t0);
+        gl.uniform1f(U.uZoom, lerp(s.z0, s.z1, k));
+        gl.uniform1f(U.uRoll, lerp(s.r0, s.r1, k));
+        gl.uniform2f(U.uCenter, lerp(s.c0[0], s.c1[0], k), lerp(s.c0[1], s.c1[1], k));
+        gl.uniform2f(U.uPan, (s.c1[0] - s.c0[0]) * k * 10, (s.c1[1] - s.c0[1]) * k * 10);
+        gl.uniform4fv(U.uFog, s.fog);
+        gl.uniform4fv(U.uFog2, s.fog2);
+        gl.uniform4fv(U.uShimmer, s.shimmer);
+        gl.uniform4f(U.uParts, s.parts[0], s.parts[1], s.parts[2], 0);
+        gl.uniform1f(U.uFlick, s.flick);
+        gl.uniform1f(U.uGlow, s.glow);
+        gl.uniform3fv(U.uFogCol, s.fogCol);
+        gl.uniform3fv(U.uPCol, s.pcol);
+        gl.uniform1f(U.uFlash, flashAt(t, s.flash));
+        gl.uniform1f(U.uSeed, (Math.round(t * 30) % 101) * 13.0);
+        gl.uniform1f(U.uFade, alpha);
+        gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+      }
+
+      // Cuts are short dissolves through darkness (overlap of neighbouring shots).
+      function renderAt(t) {
+        if (textures.length < SHOTS.length || textures.some((x) => !x)) return;
+        gl.disable(gl.BLEND);
+        gl.clearColor(0, 0, 0, 1);
+        gl.clear(gl.COLOR_BUFFER_BIT);
+        const active = [];
+        SHOTS.forEach((s, i) => { if (t >= s.t0 && t < s.t1 + 1e-6) active.push(i); });
+        if (!active.length) return;
+        const master = clamp((DUR - 0.05 - t) / 1.1); // frame 0 is the thumbnail: no fade-in
+        if (active.length === 1) {
+          drawShot(active[0], t, master);
+        } else {
+          const a = SHOTS[active[0]], b = SHOTS[active[1]];
+          const k = clamp((t - b.t0) / (a.t1 - b.t0));
+          gl.enable(gl.BLEND);
+          gl.blendFunc(gl.ONE, gl.ONE);
+          drawShot(active[0], t, master * Math.pow(1 - k, 1.6));
+          drawShot(active[1], t, master * Math.pow(k, 1.6));
+          gl.disable(gl.BLEND);
+        }
+      }
+      window.__renderAt = renderAt;
+
+      window.__hf = window.__hf || {};
+      window.__hf.buildReady = window.__hf.buildReady || {};
+      window.__hf.buildReady["main"] = Promise.all(loads).then(() => {
+        for (const f of [1, 8, 13, 18]) renderAt(f);
+        const tlMain = window.__timelines["main"];
+        renderAt(tlMain ? tlMain.time() : 0);
+        gl.finish();
+      });
+    </script>
+  </body>
+</html>
