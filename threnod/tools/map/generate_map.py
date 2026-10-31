@@ -167,14 +167,15 @@ roads = (
 )
 
 # transitions between regions
-def transition(x, y, text, anchor="start", dx=10):
+def transition(x, y, text, anchor="start", dx=10, dy=4):
+    tx = 0 if anchor == "middle" else (dx if anchor == "start" else -dx)
     return (f'<g transform="translate({x},{y})"><path d="M0,-7 L7,0 L0,7 L-7,0 Z" class="pass"/>'
-            f'<text x="{dx if anchor=="start" else -dx}" y="4" class="small" text-anchor="{anchor}">{text}</text></g>')
+            f'<text x="{tx}" y="{dy}" class="small" text-anchor="{anchor}">{text}</text></g>')
 
 
 transitions = "".join([
     transition(700, 395, "Bell-Road Pass", "start"),
-    transition(990, 545, "Thornbridge", "start", 10),
+    transition(990, 545, "Thornbridge", "middle", 0, 26),
     transition(470, 575, "Mere Ferry", "end"),
     transition(790, 760, "The Sunless Road", "start"),
     transition(1040, 790, "?", "start"),
@@ -184,14 +185,14 @@ transitions = "".join([
 def region_label(x, y, name, sub, size=30, rot=0):
     return (f'<g transform="translate({x},{y}) rotate({rot})">'
             f'<text class="region" font-size="{size}" text-anchor="middle">{name}</text>'
-            f'<text class="sub" y="{size*0.75:.0f}" text-anchor="middle">{sub}</text></g>')
+            f'<text class="sub" y="34" text-anchor="middle">{sub}</text></g>')
 
 
 labels = "".join([
-    region_label(800, 470, "Hollowmere Vale", "where the candles keep the names", 30),
+    region_label(800, 445, "Hollowmere Vale", "where the candles keep the names", 30),
     region_label(790, 140, "The Oathspire", "the knights still keep their watch", 32),
-    region_label(700, 365, "Kesh Deep", "— beneath the stone —", 20),
-    region_label(1200, 520, "The Thornchoir", "the forest that hums", 32, -4),
+    region_label(700, 340, "Kesh Deep", "beneath the stone", 20),
+    region_label(1230, 470, "The Thornchoir", "the forest that hums", 32, -4),
     region_label(250, 330, "The Ribcoast", "Velmara's bones", 28, -8),
     region_label(790, 975, "Noonspire", "the city without sound", 30),
     region_label(1200, 950, "Lanternfall", "drink, and forget", 24),
@@ -200,7 +201,7 @@ labels = "".join([
 
 places = "".join(f'<text x="{x}" y="{y}" class="place" text-anchor="{a}">{t}</text>' for x, y, t, a in [
     (888, 530, "Candlewick", "start"),
-    (705, 500, "Saint Ebba's", "end"),
+    (718, 532, "Saint Ebba's", "middle"),
     (790, 594, "Hollowmere", "middle"),
     (920, 646, "Old Silver Mine", "start"),
     (548, 252, "Ser Varo's Keep", "middle"),
@@ -210,13 +211,13 @@ places = "".join(f'<text x="{x}" y="{y}" class="place" text-anchor="{a}">{t}</te
 
 # ---------------------------------------------------------------- compose
 legend = (
-    '<g transform="translate(1190,1030)" class="legend">'
-    '<rect x="-14" y="-28" width="300" height="140" class="legend-box"/>'
+    '<g transform="translate(1270,1030)" class="legend">'
+    '<rect x="-14" y="-28" width="290" height="140" class="legend-box"/>'
     '<text class="sub" x="0" y="-6" style="font-style:normal;letter-spacing:2px">LEGEND</text>'
-    f'{bell(8, 18)}<text x="24" y="22" class="small">Forgotten bell tower (fast travel)</text>'
-    '<path d="M2,44 L8,37 L14,44 L8,51 Z" class="pass"/><text x="24" y="48" class="small">Passage between regions</text>'
+    f'{bell(8, 18)}<text x="24" y="22" class="small">Bell tower (fast travel)</text>'
+    '<path d="M2,44 L8,37 L14,44 L8,51 Z" class="pass"/><text x="24" y="48" class="small">Region passage</text>'
     '<path d="M0,70 H18" class="road"/><text x="24" y="74" class="small">Old road</text>'
-    '<rect x="0" y="88" width="18" height="10" fill="url(#hush)"/><text x="24" y="97" class="small">The Hush (forgotten land)</text>'
+    '<rect x="0" y="88" width="18" height="10" fill="url(#hush)"/><text x="24" y="97" class="small">The Hush</text>'
     '</g>'
 )
 
@@ -230,7 +231,7 @@ compass = (
 
 title = (
     '<g transform="translate(800,1110)">'
-    '<text class="title" text-anchor="middle">THE VESPERLANDS</text>'
+    '<text class="title" text-anchor="middle">The Vesperlands</text>'
     '<text class="sub" y="34" text-anchor="middle">as they are remembered in the year 412 After Silence</text></g>'
 )
 

@@ -1,7 +1,7 @@
 # THRENOD · Phase 2: Welt und Worldbuilding
 
-**Status:** 📝 Entwurf, wartet auf Freigabe
-**Karte:** `docs/img/vesperlands-map.png` (Generator: `tools/map/`)
+**Status:** ✅ Freigegeben (Karte im Retro-Stil gewünscht)
+**Karte:** `docs/img/vesperlands-map-retro.png` (Retro, 640×480-Pixelkarte, 32 Farben, 2× hochskaliert) · Vorlage: `docs/img/vesperlands-map.png` · Generator: `tools/map/`
 
 ---
 
