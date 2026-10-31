@@ -1,6 +1,6 @@
 # THRENOD · Phase 3, Teil 2: Charaktere
 
-**Status:** 📝 Fast fertig. C2 (Caspar als NPC) und C3 (Dialogton) sind freigegeben, die Neubesetzung des Ribcoast-Begleiters ist offen.
+**Status:** ✅ Freigegeben. Maelis ist gestrichen (ersetzt durch Hollis Wake), Caspar ist NPC, der Dialogton bleibt.
 ⚠️ Enthält Spoiler. Die Dialoge im Spiel sind **englisch**.
 
 ---
@@ -32,8 +32,20 @@ Jeder Begleiter hat eine **Loyalität**, die steigt oder fällt, eine **eigene Q
 | **Möglicher Tod** | Er stellt sich beim Verrat in der Kathedrale (Kapitel 7) zwischen Caspar und dich |
 | **Weitere Rolle** | Er übernimmt Maelis' Funktion als Begleiter mit Loyalitätskonflikt: Er meldet der Kirche anfangs heimlich, wo du dich aufhältst, weil er seiner Mutter nahe bleiben will |
 
-### 1.2 Begleiter von der Ribcoast: *wird neu besetzt*
-Maelis Corvane wurde gestrichen (Entscheidung C1). Zur Auswahl stehen drei Ersatzfiguren, siehe Chat bzw. Abschnitt 4.
+### 1.2 Hollis Wake, der alte Leuchtturmwärter
+| | |
+|---|---|
+| **Wo man ihn trifft** | Ribcoast, Kapitel 2, im Leuchtturm Last Light |
+| **Aussehen** | Über 70, weißer Bart mit eingeflochtener Angelschnur, Ölzeugmantel. Er trägt immer eine brennende Sturmlaterne und stützt sich auf ein altes Ruder, weil sein Knie kaputt ist. |
+| **Persönlichkeit** | Brummig, sanft, trockener Humor, abergläubisch. Er redet mit den Toten, als säßen sie mit am Tisch. Sein Tee ist „stark wie Teer“. Er ist der Großvater der Gruppe. |
+| **Ziel** | Er will seine Frau **Mara** noch ein einziges Mal sehen. Sie starb vor 40 Jahren auf See. Er zündet das Licht jede Nacht an, damit sie heimfindet. |
+| **Angst** | Dass das Licht während seiner Wache ausgeht. Dass Mara im Hush festsitzt. |
+| **Geheimnis** | **In der Nacht, in der Mara starb, war das Licht aus.** Hollis war betrunken eingeschlafen, und ihr Boot zerschellte an den Rippen. Er hat es nie jemandem erzählt. |
+| **Wissen** | Er weiß, dass seit dem Godfall keine Toten mehr übers Meer ziehen. Sie stauen sich im Hush. Das ist ein wichtiger Hinweis für Akt I. |
+| **Beistand** | *Guiding Light:* Zwei Züge lang siehst du **die übernächste** Absicht der Gegner. Außerdem macht er verborgene Gegner und Schwachstellen sichtbar. |
+| **Questreihe** | *„The Light Was Out“*: Bei Ebbe geht es hinaus in einen Nebelstreifen des Hush auf dem Meer. Dort findet er Mara als Faded, gesteht ihr seine Schuld und muss sie **loslassen**. |
+| **Thematische Rolle** | **Hollis spiegelt Ennith im Kleinen.** Er ist ein Trauernder, der nicht loslassen kann. Kann er es am Ende, ist das ein Vorbote des besten Endes. |
+| **Abschied** | Findet er Frieden, kann er nach seiner Questreihe freiwillig in Last Light zurückbleiben. Er ist dann als Gastgeber besuchbar und erscheint mit eigener Epilog-Tafel. |
 
 ### 1.3 Ser Odran of the Unbroken Watch, der tote Ritter
 | | |
@@ -127,11 +139,3 @@ Söldner heuerst du in Tavernen an. Sie haben einen einfachen Beistand (Heilung,
 **Ennith, die ersten Worte im Finale**
 > **Ennith:** You were the last voice. Do you know what it is like — to hear a song you love, and know that it is ending?
 > **Ennith:** I only wanted *one more verse*.
-
----
-
-## 4. Ersatz für den Ribcoast-Begleiter (Optionen)
-
-- **A) Hollis Wake, der alte Leuchtturmwärter.** Über 70, ein brummiger und sanfter Witwer. Er zündet Last Light jede Nacht für die Toten an, die nicht mehr kommen. Geheimnis: Er weiß, wohin die Toten seit dem Godfall gehen, nämlich nirgendwohin. Sie stauen sich im Hush. Beistand *Guiding Light*: Er enthüllt zwei Züge lang die Absichten der Gegner.
-- **B) Isaut, die Glöcknerin der versunkenen Glocken.** Sie läutet bei Ebbe die Glocken im Meer. Die Hälfte ihrer Erinnerungen liegt unter Wasser, und sie spricht im Rhythmus der Gezeiten. Beistand *Toll*: Betäubung.
-- **C) „Someone“, ein namenloser Faded** *(Empfehlung)*. Eine verblasste Gestalt folgt dir ab der Ribcoast, stumm und halb durchsichtig. Indem du ihr hilfst, gewinnt sie Form, Stimme und schließlich einen Namen. **Geheimnis: Sie ist die vergessene Erinnerung an das Geschwister der Unsung aus ihrem Leben als Cantor.** Beistand *Echo*: Sie wiederholt deine letzte Aktion als schwächere Kopie.
