@@ -1,10 +1,11 @@
 import * as THREE from 'three';
-import { CharacterMesh, UNSUNG_COLORS } from './CharacterMesh';
+import { Humanoid } from '../character/Humanoid';
+import { unsungSpec } from '../character/figures';
 import { DEFAULT_MOVE, inputToVelocity, stepMovement } from './movement';
 import type { World } from '../world/World';
 
 export class Player {
-  readonly mesh = new CharacterMesh(UNSUNG_COLORS);
+  readonly mesh = new Humanoid(unsungSpec(), { lantern: true });
   readonly position = new THREE.Vector3();
   /** Facing direction (radians). 0 faces −z. */
   yaw = 0;

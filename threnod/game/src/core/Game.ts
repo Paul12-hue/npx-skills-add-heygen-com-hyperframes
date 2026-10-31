@@ -2,7 +2,8 @@ import * as THREE from 'three';
 import { Renderer } from '../render/Renderer';
 import { World } from '../world/World';
 import { Player } from '../player/Player';
-import { CharacterMesh } from '../player/CharacterMesh';
+import { Humanoid } from '../character/Humanoid';
+import { tildeSpec } from '../character/figures';
 import { ThirdPersonCamera } from '../camera/ThirdPersonCamera';
 import { Input } from '../input/Input';
 import { TouchControls } from '../input/TouchControls';
@@ -19,7 +20,7 @@ const SECONDS_PER_GAME_HOUR = 60; // one in-game day = 24 real minutes
 const AUTOSAVE_SECONDS = 30;
 
 interface Npc {
-  mesh: CharacterMesh;
+  mesh: Humanoid;
   target: Target;
   baseYaw: number;
 }
@@ -53,6 +54,10 @@ export class Game {
     this.player = new Player(this.world);
     this.world.scene.add(this.player.mesh.root);
     this.cam = new ThirdPersonCamera(1);
+    // soft fill light that follows the camera so faces stay readable at night
+    const fill = new THREE.PointLight(0xffe0c8, 1.1, 9, 1.2);
+    this.cam.camera.add(fill);
+    this.world.scene.add(this.cam.camera);
     this.renderer = new Renderer(canvas, this.world.scene, this.cam.camera, {
       quality: this.settings.quality,
       bloom: this.settings.bloom,
@@ -105,7 +110,7 @@ export class Game {
 
   private spawnNpcs(): void {
     // Tilde, the gravedigger's girl, waits by the open grave.
-    const mesh = new CharacterMesh({ cloak: '8e6e45', body: '6a4e30', skin: 'd9c095', legs: '4a3220', hood: false }, 0.8);
+    const mesh = new Humanoid(tildeSpec());
     const x = this.world.spawn.x - 5.5;
     const z = this.world.spawn.z + 3.2;
     mesh.root.position.set(x, this.world.height(x, z), z);
@@ -323,6 +328,12 @@ export class Game {
         fps: this.fps,
       }),
       setHour: (h: number) => (this.hour = h),
+      setCamera: (distance: number, pitch: number, yawOffset: number) => {
+        this.cam.distance = distance;
+        this.cam.pitch = pitch;
+        this.cam.yaw = this.player.yaw + yawOffset;
+        this.cam.snap();
+      },
       teleport: (x: number, z: number, yaw: number) => {
         this.player.place(x, z, yaw);
         this.cam.yaw = yaw;
