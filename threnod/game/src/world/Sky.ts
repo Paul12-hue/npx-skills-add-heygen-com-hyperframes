@@ -79,21 +79,22 @@ float noise(vec2 p) {
 }
 float fbm(vec2 p) {
   float s = 0.0, a = 0.5;
-  for (int i = 0; i < 5; i++) { s += noise(p) * a; p = p * 2.03 + 7.1; a *= 0.5; }
+  for (int i = 0; i < 3; i++) { s += noise(p) * a; p = p * 2.03 + 7.1; a *= 0.5; }
   return s;
 }
 void main() {
   vec3 d = normalize(vDir);
   float y = d.y;
-  vec3 c = mix(uHorizon, uTop, smoothstep(-0.05, 0.6, y));
+  vec3 c = mix(uHorizon, uTop, floor(smoothstep(-0.05, 0.6, y) * 7.0) / 7.0);
   // clouds projected on a dome, with a slow swirl
   vec2 p = d.xz / (0.25 + max(y, 0.0)) * 1.6;
   float ang = uTime * 0.01;
   p = mat2(cos(ang), -sin(ang), sin(ang), cos(ang)) * p;
   float w = fbm(p + vec2(uTime * 0.02, 0.0));
   float n = fbm(p * 1.3 + w * 2.2 - vec2(0.0, uTime * 0.015));
-  float cloud = smoothstep(0.42, 0.78, n) * smoothstep(-0.02, 0.18, y);
-  float rim = smoothstep(0.5, 0.6, n) - smoothstep(0.6, 0.82, n);
+  // painted, banded clouds like an old game skybox
+  float cloud = floor(smoothstep(0.38, 0.72, n) * 4.0) / 4.0 * smoothstep(-0.02, 0.18, y);
+  float rim = step(0.5, n) - step(0.58, n);
   c = mix(c, uCloud * 0.55, cloud * 0.75);
   c += uCloud * rim * 0.45 * smoothstep(0.0, 0.2, y);
   c = mix(c, uHorizon * 0.35, smoothstep(0.0, -0.35, y));

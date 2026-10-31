@@ -95,6 +95,7 @@ export class World {
       specular: new THREE.Color(o.specular ?? 0x2a2040),
       emissive: new THREE.Color(o.emissive ?? 0x000000),
       emissiveIntensity: o.emissiveIntensity ?? 1,
+      flatShading: true, // faceted surfaces like an old 3D game
     });
   }
 
@@ -107,7 +108,7 @@ export class World {
     m.set('shingle', this.textured(t.shingle, { shininess: 70, bump: 3, specular: 0x5a4a8a }));
     m.set('plaster', this.textured(t.plaster, { shininess: 12, bump: 1.2 }));
     m.set('organic', this.textured(t.organic, { shininess: 20, bump: 2 }));
-    m.set('foliage', this.textured(t.organic, { shininess: 45, bump: 2.5, specular: 0x1a5a4a }));
+    m.set('foliage', this.textured(t.organic, { shininess: 20, bump: 0.4, specular: 0x1a4a3a }));
     m.set('metal', this.textured(t.stone, { shininess: 110, bump: 0.6, specular: 0xb090ff }));
     m.set('mushCap', this.textured(t.plaster, { shininess: 120, bump: 1.5, specular: 0xd0a0ff, emissive: 0x2a0a50 }));
     m.set('mushStem', this.textured(t.organic, { shininess: 60, bump: 1.5, specular: 0x80ff80, emissive: 0x3aa020, emissiveIntensity: 0.7 }));

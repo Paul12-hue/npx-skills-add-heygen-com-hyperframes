@@ -32,15 +32,14 @@ Die Spielfigur ist **„the Unsung“**: ein Mensch, an den sich niemand mehr er
 - Alterseinstufung ungefähr 16
 - Spielsprache Englisch, ohne Sprachausgabe
 
-## 4. Visuelle Identität: „Twilight Retro“
+## 4. Visuelle Identität: „Vorgerenderte CGI der CD-ROM-Zeit“ *(überarbeitet nach Spieltest)*
 
-- Wenige Polygone mit klaren Silhouetten (PS2-Niveau), Texturen mit 64 bis 128 px, sichtbar pixelig
-- Das Bild wird in niedriger Auflösung berechnet und hochskaliert
-- Modernes Licht: Nebel in mehreren Schichten, Lichtstrahlen, Kerzenlicht, gemalte Himmel
-- Farbpalette: Dämmerungsviolett, Moosgrün, Kerzenbernstein, Knochenweiß, Rostrot
-- „Hush“-Zonen sind entsättigt und grau, ihre Geometrie zerfällt
-- Benutzeroberfläche im Stil einer mittelalterlichen Handschrift
-- Optional ein Röhren- bzw. Dither-Filter
+Vorbild sind die Dark-Fantasy-Videos des Nutzers (`fantasy/`). Der erste Entwurf mit 32 erdigen Farben wurde verworfen.
+- Kräftiges Violett, giftiges Grün, feuriges Orange und Gold vor nächtlichem Himmel mit großem orangem Mond
+- Glänzende Oberflächen mit Relief (Bump-Mapping), leuchtende Fenster, Laternen, Pilze und Kristalle (Bloom)
+- **Alter-Spiel-Pass** (wie in den Videos): niedrige interne Auflösung (240–380p) mit harten Pixeln, 18 Farbstufen je Kanal mit Bayer-Dithering, leichtes Farbbluten, Scanlines, facettierte Flächen und grobe Texturen
+- Figuren: weich modelliert mit freundlichem Gesicht; Dialog-Porträts im Stil der Videos (Canva AI)
+- Die Unsung ist **nicht** gruselig: eine sympathische, melancholische Wanderin mit silbernem Haar
 
 ## 5. Klang
 

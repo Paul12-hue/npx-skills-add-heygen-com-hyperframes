@@ -40,6 +40,10 @@ html, body {
   height: 100dvh;
   display: block;
 }
+#view.retro {
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+}
 
 #ui { position: fixed; inset: 0; pointer-events: none; }
 #ui > * { pointer-events: auto; }
@@ -257,4 +261,27 @@ html, body {
 @media (max-width: 600px) {
   .dialogue .text { font-size: 17px; }
   .btn { font-size: 18px; }
+}
+
+/* ---------------------------------------------------------- portraits */
+/* classic RPG layout: the portrait sits inside the box, the text runs beside it */
+.dialogue .portrait {
+  display: none;
+  position: absolute;
+  left: 14px;
+  top: 16px;
+  width: 152px;
+  height: 152px;
+  object-fit: cover;
+  image-rendering: pixelated;
+  border: 4px double var(--ink);
+  background: var(--night);
+}
+.dialogue.has-portrait .portrait { display: block; }
+.dialogue.has-portrait { padding-left: 186px; min-height: 186px; }
+.dialogue.has-portrait .speaker { left: 186px; }
+@media (max-width: 600px) {
+  .dialogue .portrait { width: 92px; height: 92px; }
+  .dialogue.has-portrait { padding-left: 120px; min-height: 126px; }
+  .dialogue.has-portrait .speaker { left: 120px; }
 }

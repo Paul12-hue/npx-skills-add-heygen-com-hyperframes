@@ -1,5 +1,10 @@
 import type { Choice, DialogueNode } from '../dialogue/Dialogue';
 import type { Settings } from '../save/Save';
+import unsungPortrait from '../assets/portraits/unsung.png';
+import tildePortrait from '../assets/portraits/tilde.png';
+
+/** Dialogue portraits (generated with Canva AI in the style of the dark-fantasy videos). */
+const PORTRAITS: Record<string, string> = { Tilde: tildePortrait, Unsung: unsungPortrait };
 
 /** Escape HTML, then allow *emphasis*. */
 function format(text: string): string {
@@ -44,6 +49,7 @@ export class UI {
   private toast: HTMLElement;
   private dialogue: HTMLElement;
   private dlgSpeaker: HTMLElement;
+  private dlgPortrait: HTMLImageElement;
   private dlgText: HTMLElement;
   private dlgChoices: HTMLElement;
   private dlgHint: HTMLElement;
@@ -98,7 +104,9 @@ export class UI {
     this.dlgText = el('div', 'text');
     this.dlgChoices = el('div', 'choices');
     this.dlgHint = el('div', 'hint');
-    this.dialogue.append(this.dlgSpeaker, this.dlgText, this.dlgChoices, this.dlgHint);
+    this.dlgPortrait = el('img', 'portrait');
+    this.dlgPortrait.alt = '';
+    this.dialogue.append(this.dlgPortrait, this.dlgSpeaker, this.dlgText, this.dlgChoices, this.dlgHint);
     this.dialogue.addEventListener('click', () => {
       if (this.choiceCount === 0) h.onDialogueAdvance();
     });
@@ -144,7 +152,7 @@ export class UI {
 
     const res = el('select');
     res.id = 'set-quality';
-    for (const [v, t] of [['low', 'Low (fastest)'], ['medium', 'Medium'], ['high', 'High (sharpest)']] as const) {
+    for (const [v, t] of [['low', 'Low (chunky, fastest)'], ['medium', 'Medium'], ['high', 'High (sharpest)']] as const) {
       const o = el('option', '', t);
       o.value = v;
       if (s.quality === v) o.selected = true;
@@ -156,7 +164,7 @@ export class UI {
     });
     row('Graphics quality', res);
 
-    const toggle = (key: 'bloom' | 'grain' | 'invertY' | 'showFps', label: string) => {
+    const toggle = (key: 'bloom' | 'grain' | 'retro' | 'invertY' | 'showFps', label: string) => {
       const c = el('input');
       c.type = 'checkbox';
       c.id = 'set-' + key;
@@ -167,6 +175,7 @@ export class UI {
       });
       row(label, c);
     };
+    toggle('retro', 'Old-game look (pixels, scanlines)');
     toggle('bloom', 'Glow (bloom)');
     toggle('grain', 'Film grain');
     toggle('invertY', 'Invert camera');
@@ -265,6 +274,14 @@ export class UI {
     this.dlgSpeaker.textContent = node.speaker ?? '';
     this.dlgSpeaker.style.display = node.speaker ? '' : 'none';
     this.dialogue.classList.toggle('narration', !node.speaker);
+    // the speaker's portrait; narration and the player's answers show the Unsung
+    const who = node.speaker ?? 'Unsung';
+    const src = choices.length && !node.speaker ? PORTRAITS.Unsung : PORTRAITS[who];
+    this.dialogue.classList.toggle('has-portrait', !!src);
+    if (src) {
+      this.dlgPortrait.src = src;
+      this.dlgPortrait.alt = who;
+    }
     this.typing = { full: node.text, shown: 0 };
     this.dlgText.innerHTML = '';
     this.dlgChoices.innerHTML = '';

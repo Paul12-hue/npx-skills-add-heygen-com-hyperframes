@@ -17,7 +17,7 @@ if (!cssHref || !jsSrc) throw new Error('could not find built css/js in dist/ind
 const css = await readFile(join(dist, cssHref), 'utf8');
 
 for (const f of await readdir(join(dist, 'assets'))) {
-  if (f.endsWith('.js')) await copyFile(join(dist, 'assets', f), join(out, 'assets', f));
+  if (!f.endsWith('.css')) await copyFile(join(dist, 'assets', f), join(out, 'assets', f));
 }
 
 const page = `<title>THRENOD</title>

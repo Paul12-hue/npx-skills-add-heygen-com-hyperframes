@@ -13,7 +13,7 @@ export interface TexPair {
   bump: THREE.Texture;
 }
 
-const SIZE = 256;
+const SIZE = 128;
 
 function canvas(): [HTMLCanvasElement, CanvasRenderingContext2D] {
   const c = document.createElement('canvas');
@@ -28,7 +28,9 @@ function toTexture(c: HTMLCanvasElement, color: boolean): THREE.Texture {
   const t = new THREE.CanvasTexture(c);
   t.wrapS = t.wrapT = THREE.RepeatWrapping;
   t.colorSpace = color ? THREE.SRGBColorSpace : THREE.NoColorSpace;
-  t.anisotropy = 4;
+  // hard texels like an old game: no smoothing when magnified
+  t.magFilter = THREE.NearestFilter;
+  t.minFilter = THREE.NearestMipmapLinearFilter;
   t.needsUpdate = true;
   return t;
 }

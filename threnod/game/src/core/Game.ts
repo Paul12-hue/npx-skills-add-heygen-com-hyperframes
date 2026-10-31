@@ -62,6 +62,7 @@ export class Game {
       quality: this.settings.quality,
       bloom: this.settings.bloom,
       grain: this.settings.grain,
+      retro: this.settings.retro,
     });
     this.input = new Input(canvas);
     this.touch = new TouchControls(canvas, this.input);
@@ -123,7 +124,7 @@ export class Game {
 
   private applySettings(): void {
     const s = this.settings;
-    this.renderer.setOptions({ quality: s.quality, bloom: s.bloom, grain: s.grain });
+    this.renderer.setOptions({ quality: s.quality, bloom: s.bloom, grain: s.grain, retro: s.retro });
     this.world.sky.setShadowSize(this.renderer.shadowSize);
     this.input.invertY = s.invertY;
     this.input.sensitivity = s.sensitivity;

@@ -21,6 +21,7 @@ export interface Settings {
   quality: 'low' | 'medium' | 'high';
   bloom: boolean;
   grain: boolean;
+  retro: boolean;
   invertY: boolean;
   sensitivity: number;
   showFps: boolean;
@@ -30,6 +31,7 @@ export const DEFAULT_SETTINGS: Settings = {
   quality: 'medium',
   bloom: true,
   grain: true,
+  retro: true,
   invertY: false,
   sensitivity: 1,
   showFps: false,
@@ -61,7 +63,7 @@ export function parseSettings(raw: string | null): Settings {
     const s = raw ? (JSON.parse(raw) as Partial<Settings>) : {};
     const out = { ...DEFAULT_SETTINGS, ...s };
     if (!['low', 'medium', 'high'].includes(out.quality)) out.quality = DEFAULT_SETTINGS.quality;
-    for (const k of ['bloom', 'grain', 'invertY', 'showFps'] as const) if (typeof out[k] !== 'boolean') out[k] = DEFAULT_SETTINGS[k];
+    for (const k of ['bloom', 'grain', 'retro', 'invertY', 'showFps'] as const) if (typeof out[k] !== 'boolean') out[k] = DEFAULT_SETTINGS[k];
     // drop settings from older builds
     const known = Object.keys(DEFAULT_SETTINGS);
     for (const k of Object.keys(out)) if (!known.includes(k)) delete (out as Record<string, unknown>)[k];

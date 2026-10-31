@@ -130,9 +130,9 @@ export function applyBoxUV(geo: THREE.BufferGeometry, scale: number): void {
 export function pineGeometry(): Prop {
   return build([
     p(at(new THREE.CylinderGeometry(0.16, 0.3, 2.2, 6), 0, 1.1, 0), 'organic', '4a3020'),
-    p(at(new THREE.ConeGeometry(2.0, 3.0, 7), 0, 2.7, 0), 'foliage', '2a6a50'),
-    p(at(new THREE.ConeGeometry(1.55, 2.6, 7), 0, 4.0, 0, 0.45), 'foliage', '307a5a'),
-    p(at(new THREE.ConeGeometry(1.0, 2.2, 7), 0, 5.3, 0), 'foliage', '3a8a64'),
+    p(at(new THREE.ConeGeometry(2.0, 3.0, 7), 0, 2.7, 0), 'foliage', '1e6a52'),
+    p(at(new THREE.ConeGeometry(1.55, 2.6, 7), 0, 4.0, 0, 0.45), 'foliage', '2a8a5e'),
+    p(at(new THREE.ConeGeometry(1.0, 2.2, 7), 0, 5.3, 0), 'foliage', '3aa070'),
   ]);
 }
 
