@@ -66,7 +66,7 @@ export class UI {
         <h1>Threnod</h1>
         <p class="subtitle">The Last Song of a Forgotten World</p>
         <div class="menu"></div>
-        <p class="footnote">Development build · Phase 5 · technical foundation</p>
+        <p class="footnote">Development build · Phase 5 · visual style test</p>
       </div>`;
     const menu = this.title.querySelector('.menu')!;
     this.continueBtn = this.button('Continue', () => h.onContinue());
@@ -143,21 +143,23 @@ export class UI {
     const change = () => this.h.onSettingsChange({ ...s });
 
     const res = el('select');
-    for (const [v, t] of [[270, 'Chunky (270p)'], [360, 'Classic (360p)'], [480, 'Sharp (480p)'], [720, 'Smooth (720p)']] as const) {
+    res.id = 'set-quality';
+    for (const [v, t] of [['low', 'Low (fastest)'], ['medium', 'Medium'], ['high', 'High (sharpest)']] as const) {
       const o = el('option', '', t);
-      o.value = String(v);
-      if (s.renderHeight === v) o.selected = true;
+      o.value = v;
+      if (s.quality === v) o.selected = true;
       res.append(o);
     }
     res.addEventListener('change', () => {
-      s.renderHeight = Number(res.value) as Settings['renderHeight'];
+      s.quality = res.value as Settings['quality'];
       change();
     });
-    row('Resolution', res);
+    row('Graphics quality', res);
 
-    const toggle = (key: 'palette' | 'dither' | 'invertY' | 'showFps', label: string) => {
+    const toggle = (key: 'bloom' | 'grain' | 'invertY' | 'showFps', label: string) => {
       const c = el('input');
       c.type = 'checkbox';
+      c.id = 'set-' + key;
       c.checked = s[key];
       c.addEventListener('change', () => {
         s[key] = c.checked;
@@ -165,8 +167,8 @@ export class UI {
       });
       row(label, c);
     };
-    toggle('palette', 'Retro palette (32 colours)');
-    toggle('dither', 'Dithering');
+    toggle('bloom', 'Glow (bloom)');
+    toggle('grain', 'Film grain');
     toggle('invertY', 'Invert camera');
     const sens = el('input');
     sens.type = 'range';

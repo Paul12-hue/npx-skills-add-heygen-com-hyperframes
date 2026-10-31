@@ -39,8 +39,6 @@ html, body {
   height: 100vh;
   height: 100dvh;
   display: block;
-  image-rendering: pixelated;
-  image-rendering: crisp-edges;
 }
 
 #ui { position: fixed; inset: 0; pointer-events: none; }

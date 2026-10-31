@@ -45,6 +45,8 @@ const browser = await chromium.launch({ args: ['--use-angle=swiftshader', '--ena
 // ------------------------------------------------------------ desktop run
 {
   const page = await browser.newPage({ viewport: { width: 1280, height: 720 } });
+  // software rendering in CI is slow; the low preset keeps the frame rate usable
+  await page.addInitScript(() => localStorage.setItem('threnod.settings', JSON.stringify({ quality: 'low' })));
   const errors = [];
   page.on('pageerror', (e) => errors.push(e.message));
   page.on('console', (m) => m.type() === 'error' && errors.push(m.text()));
@@ -71,29 +73,29 @@ const browser = await chromium.launch({ args: ['--use-angle=swiftshader', '--ena
 
   // walk up to Tilde and talk
   await page.evaluate(() => window.__threnod.teleport(-41.4 - 5.5 + 1.4, -38.5 + 3.2, Math.PI / 2));
-  await sleep(300);
+  await sleep(1000);
   const s2 = await st();
   check('Tilde is targetable', s2.target === 'tilde', `target=${s2.target}`);
   await page.keyboard.press('e');
-  await sleep(300);
+  await sleep(800);
   const s3 = await st();
   check('E opens a dialogue', s3.mode === 'dialogue' && !!s3.dialogue, s3.dialogue?.text?.slice(0, 40));
   await page.keyboard.press('e'); // finish typing
   await page.keyboard.press('e'); // next node
   await sleep(1800);
   await page.keyboard.press('e'); // reveal choices
-  await sleep(200);
+  await sleep(800);
   const s4 = await st();
   check('dialogue offers choices', s4.dialogue?.choices === 3, `choices=${s4.dialogue?.choices}`);
   await page.screenshot({ path: `${OUT}/03-dialogue.png` });
   await page.keyboard.press('3');
-  await sleep(200);
+  await sleep(800);
   check('choice sets a flag', (await st()).flags.tilde_quiet_ghost === true);
   for (let i = 0; i < 6 && (await st()).mode === 'dialogue'; i++) {
     await page.keyboard.press('e');
-    await sleep(120);
+    await sleep(500);
     await page.keyboard.press('e');
-    await sleep(120);
+    await sleep(500);
   }
   check('dialogue closes', (await st()).mode === 'playing');
 
@@ -112,7 +114,7 @@ const browser = await chromium.launch({ args: ['--use-angle=swiftshader', '--ena
   await page.screenshot({ path: `${OUT}/05-lake-day.png` });
 
   await page.keyboard.press('Escape');
-  await sleep(200);
+  await sleep(800);
   check('Escape pauses', (await st()).mode === 'paused');
   const saved = await page.evaluate(() => localStorage.getItem('threnod.save'));
   check('pausing saves the game', !!saved && JSON.parse(saved).version === 1);
@@ -138,11 +140,12 @@ const browser = await chromium.launch({ args: ['--use-angle=swiftshader', '--ena
     userAgent: 'Mozilla/5.0 (iPad; CPU OS 18_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Mobile/15E148 Safari/604.1',
   });
   const page = await ctx.newPage();
+  await page.addInitScript(() => localStorage.setItem('threnod.settings', JSON.stringify({ quality: 'low' })));
   const errors = [];
   page.on('pageerror', (e) => errors.push(e.message));
   await page.goto(url);
   await page.waitForFunction(() => window.__threnod, null, { timeout: 15000 });
-  await page.evaluate(() => localStorage.clear());
+  await page.evaluate(() => localStorage.removeItem('threnod.save'));
   await page.getByRole('button', { name: 'New Game' }).tap();
   await sleep(500);
   const st = () => page.evaluate(() => window.__threnod.state());
@@ -179,11 +182,11 @@ const browser = await chromium.launch({ args: ['--use-angle=swiftshader', '--ena
   check('right-side drag turns the camera', Math.abs(yaw1 - yaw0) > 0.2, `yaw ${yaw0.toFixed(2)} → ${yaw1.toFixed(2)}`);
 
   await page.evaluate(() => window.__threnod.teleport(-41.4 - 5.5 + 1.4, -38.5 + 3.2, Math.PI / 2));
-  await sleep(300);
+  await sleep(1000);
   const btn = page.locator('.action-btn');
   check('touch action button appears', await btn.isVisible(), await btn.textContent());
   await btn.tap();
-  await sleep(300);
+  await sleep(1000);
   check('tapping the action button talks', (await st()).mode === 'dialogue');
   await page.screenshot({ path: `${OUT}/07-ipad-dialogue.png` });
   check('no JavaScript errors (touch)', errors.length === 0, errors.slice(0, 3).join(' | '));

@@ -18,18 +18,18 @@ export interface SaveData {
 }
 
 export interface Settings {
-  renderHeight: 270 | 360 | 480 | 720;
-  palette: boolean;
-  dither: boolean;
+  quality: 'low' | 'medium' | 'high';
+  bloom: boolean;
+  grain: boolean;
   invertY: boolean;
   sensitivity: number;
   showFps: boolean;
 }
 
 export const DEFAULT_SETTINGS: Settings = {
-  renderHeight: 360,
-  palette: true,
-  dither: true,
+  quality: 'medium',
+  bloom: true,
+  grain: true,
   invertY: false,
   sensitivity: 1,
   showFps: false,
@@ -60,7 +60,11 @@ export function parseSettings(raw: string | null): Settings {
   try {
     const s = raw ? (JSON.parse(raw) as Partial<Settings>) : {};
     const out = { ...DEFAULT_SETTINGS, ...s };
-    if (![270, 360, 480, 720].includes(out.renderHeight)) out.renderHeight = DEFAULT_SETTINGS.renderHeight;
+    if (!['low', 'medium', 'high'].includes(out.quality)) out.quality = DEFAULT_SETTINGS.quality;
+    for (const k of ['bloom', 'grain', 'invertY', 'showFps'] as const) if (typeof out[k] !== 'boolean') out[k] = DEFAULT_SETTINGS[k];
+    // drop settings from older builds
+    const known = Object.keys(DEFAULT_SETTINGS);
+    for (const k of Object.keys(out)) if (!known.includes(k)) delete (out as Record<string, unknown>)[k];
     if (typeof out.sensitivity !== 'number' || !(out.sensitivity > 0.2 && out.sensitivity < 3)) out.sensitivity = 1;
     return out;
   } catch {

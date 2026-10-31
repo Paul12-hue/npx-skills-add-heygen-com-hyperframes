@@ -72,13 +72,12 @@ export function heightAt(x: number, z: number): number {
 
 const C = (hex: string) => new THREE.Color('#' + hex);
 const COLORS = {
-  lakebed: C('45605f'),
-  shore: C('8e6e45'),
-  path: C('6a4e30'),
-  pathLight: C('8e6e45'),
-  grass: [C('5d6b3a'), C('3f4a27'), C('7f8c4a'), C('4f5c31')],
-  rock: [C('7c7883'), C('5f5b66')],
-  hill: C('3f4a27'),
+  lakebed: C('0c1a2a'),
+  shore: C('5a4a48'),
+  earth: C('5a4038'),
+  grass: [C('2e6a3e'), C('3a7a44'), C('2a5a3a'), C('4a8a48')],
+  moss: C('6a9a3a'),
+  rock: [C('7a6a90'), C('5a5070')],
 };
 
 export class Terrain {
@@ -88,7 +87,7 @@ export class Terrain {
   private cell: number;
   private half: number;
 
-  constructor() {
+  constructor(material?: THREE.Material) {
     const { size, segments } = LAYOUT;
     this.n = segments + 1;
     this.cell = size / segments;
@@ -99,59 +98,61 @@ export class Terrain {
         this.heights[j * this.n + i] = heightAt(i * this.cell - this.half, j * this.cell - this.half);
       }
     }
-    this.mesh = new THREE.Mesh(this.buildGeometry(), new THREE.MeshLambertMaterial({ vertexColors: true, flatShading: true }));
+    this.mesh = new THREE.Mesh(this.buildGeometry(), material ?? new THREE.MeshLambertMaterial({ vertexColors: true }));
     this.mesh.name = 'terrain';
+    this.mesh.receiveShadow = true;
   }
 
-  private vertex(i: number, j: number): THREE.Vector3 {
-    return new THREE.Vector3(i * this.cell - this.half, this.heights[j * this.n + i], j * this.cell - this.half);
-  }
-
-  /** Non-indexed geometry with one flat colour per triangle (PS1-style facets). */
+  /** Smooth indexed grid with per-vertex colours and world-space UVs. */
   private buildGeometry(): THREE.BufferGeometry {
-    const seg = this.n - 1;
-    const pos = new Float32Array(seg * seg * 6 * 3);
-    const col = new Float32Array(seg * seg * 6 * 3);
-    let k = 0;
+    const n = this.n;
+    const pos = new Float32Array(n * n * 3);
+    const col = new Float32Array(n * n * 3);
+    const uv = new Float32Array(n * n * 2);
     const tmp = new THREE.Color();
-    const pushTri = (a: THREE.Vector3, b: THREE.Vector3, c: THREE.Vector3) => {
-      this.faceColor(a, b, c, tmp);
-      for (const v of [a, b, c]) {
-        pos[k] = v.x; pos[k + 1] = v.y; pos[k + 2] = v.z;
-        col[k] = tmp.r; col[k + 1] = tmp.g; col[k + 2] = tmp.b;
-        k += 3;
+    for (let j = 0; j < n; j++) {
+      for (let i = 0; i < n; i++) {
+        const k = j * n + i;
+        const x = i * this.cell - this.half;
+        const z = j * this.cell - this.half;
+        const y = this.heights[k];
+        pos.set([x, y, z], k * 3);
+        uv.set([x / 6, z / 6], k * 2);
+        this.vertexColor(i, j, x, y, z, tmp);
+        col.set([tmp.r, tmp.g, tmp.b], k * 3);
       }
-    };
-    for (let j = 0; j < seg; j++) {
-      for (let i = 0; i < seg; i++) {
-        const a = this.vertex(i, j);
-        const b = this.vertex(i, j + 1);
-        const c = this.vertex(i + 1, j + 1);
-        const d = this.vertex(i + 1, j);
-        pushTri(a, b, d);
-        pushTri(b, c, d);
+    }
+    const idx: number[] = [];
+    for (let j = 0; j < n - 1; j++) {
+      for (let i = 0; i < n - 1; i++) {
+        const a = j * n + i;
+        const b = (j + 1) * n + i;
+        const c = (j + 1) * n + i + 1;
+        const d = j * n + i + 1;
+        idx.push(a, b, d, b, c, d);
       }
     }
     const g = new THREE.BufferGeometry();
     g.setAttribute('position', new THREE.BufferAttribute(pos, 3));
     g.setAttribute('color', new THREE.BufferAttribute(col, 3));
+    g.setAttribute('uv', new THREE.BufferAttribute(uv, 2));
+    g.setIndex(idx);
     g.computeVertexNormals();
     return g;
   }
 
-  private faceColor(a: THREE.Vector3, b: THREE.Vector3, c: THREE.Vector3, out: THREE.Color): void {
-    const cx = (a.x + b.x + c.x) / 3;
-    const cz = (a.z + b.z + c.z) / 3;
-    const cy = (a.y + b.y + c.y) / 3;
-    const n = new THREE.Vector3().subVectors(b, a).cross(new THREE.Vector3().subVectors(c, a)).normalize();
-    const slope = 1 - Math.abs(n.y);
-    const v = fbm(cx * 0.08, cz * 0.08, 2, 3);
-    if (cy < -0.4) out.copy(COLORS.lakebed);
-    else if (cy < 0.5) out.copy(COLORS.shore);
-    else if (distToPath(cx, cz) < 1.8 + v) out.copy(v > 0.55 ? COLORS.pathLight : COLORS.path);
-    else if (slope > 0.42) out.copy(COLORS.rock[v > 0.5 ? 0 : 1]);
-    else if (cy > 14) out.copy(v > 0.5 ? COLORS.hill : COLORS.rock[1]);
-    else out.copy(COLORS.grass[Math.min(3, Math.floor(v * 4.2))]);
+  private vertexColor(i: number, j: number, x: number, y: number, z: number, out: THREE.Color): void {
+    const h = (ii: number, jj: number) => this.heights[Math.min(this.n - 1, Math.max(0, jj)) * this.n + Math.min(this.n - 1, Math.max(0, ii))];
+    const slope = Math.hypot(h(i + 1, j) - h(i - 1, j), h(i, j + 1) - h(i, j - 1)) / (2 * this.cell);
+    const v = fbm(x * 0.06, z * 0.06, 3, 3);
+    if (y < -0.6) out.copy(COLORS.lakebed);
+    else if (y < 0.45) out.copy(COLORS.shore);
+    else if (distToPath(x, z) < 3.2) out.copy(COLORS.earth);
+    else if (slope > 0.75) out.copy(COLORS.rock[v > 0.5 ? 0 : 1]);
+    else {
+      out.copy(COLORS.grass[Math.min(3, Math.floor(v * 4.2))]);
+      if (fbm(x * 0.15, z * 0.15, 2, 9) > 0.66) out.lerp(COLORS.moss, 0.6);
+    }
   }
 
   /** Height of the rendered surface at (x, z), interpolated exactly like the triangles. */

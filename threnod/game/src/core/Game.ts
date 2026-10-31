@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { RetroRenderer } from '../render/RetroRenderer';
+import { Renderer } from '../render/Renderer';
 import { World } from '../world/World';
 import { Player } from '../player/Player';
 import { CharacterMesh } from '../player/CharacterMesh';
@@ -14,7 +14,7 @@ import dialogues from '../data/dialogues.json';
 
 type Mode = 'title' | 'playing' | 'dialogue' | 'paused';
 
-const START_HOUR = 18.5; // the game begins at dusk
+const START_HOUR = 21; // the game begins at night, under the orange moon
 const SECONDS_PER_GAME_HOUR = 60; // one in-game day = 24 real minutes
 const AUTOSAVE_SECONDS = 30;
 
@@ -25,7 +25,7 @@ interface Npc {
 }
 
 export class Game {
-  private renderer: RetroRenderer;
+  private renderer: Renderer;
   private world: World;
   private player: Player;
   private cam: ThirdPersonCamera;
@@ -49,15 +49,15 @@ export class Game {
 
   constructor(canvas: HTMLCanvasElement, uiRoot: HTMLElement) {
     this.settings = Storage.loadSettings();
-    this.renderer = new RetroRenderer(canvas, {
-      internalHeight: this.settings.renderHeight,
-      palette: this.settings.palette,
-      dither: this.settings.dither,
-    });
     this.world = new World();
     this.player = new Player(this.world);
     this.world.scene.add(this.player.mesh.root);
     this.cam = new ThirdPersonCamera(1);
+    this.renderer = new Renderer(canvas, this.world.scene, this.cam.camera, {
+      quality: this.settings.quality,
+      bloom: this.settings.bloom,
+      grain: this.settings.grain,
+    });
     this.input = new Input(canvas);
     this.touch = new TouchControls(canvas, this.input);
     this.applySettings();
@@ -118,7 +118,8 @@ export class Game {
 
   private applySettings(): void {
     const s = this.settings;
-    this.renderer.setOptions({ internalHeight: s.renderHeight, palette: s.palette, dither: s.dither });
+    this.renderer.setOptions({ quality: s.quality, bloom: s.bloom, grain: s.grain });
+    this.world.sky.setShadowSize(this.renderer.shadowSize);
     this.input.invertY = s.invertY;
     this.input.sensitivity = s.sensitivity;
     this.resize();
@@ -249,8 +250,8 @@ export class Game {
     }
 
     for (const n of this.npcs) n.mesh.animate(dt, 0, this.clock.elapsedTime);
-    this.world.update(dt, this.hour, this.player.position);
-    this.renderer.render(this.world.scene, this.cam.camera);
+    this.world.update(dt, this.hour, this.player.position, this.cam.camera);
+    this.renderer.render(dt);
     this.ui.update(dt);
     this.input.endFrame();
     this.input.clearPressed(); // unconsumed presses never leak into the next frame
@@ -322,7 +323,11 @@ export class Game {
         fps: this.fps,
       }),
       setHour: (h: number) => (this.hour = h),
-      teleport: (x: number, z: number, yaw: number) => this.player.place(x, z, yaw),
+      teleport: (x: number, z: number, yaw: number) => {
+        this.player.place(x, z, yaw);
+        this.cam.yaw = yaw;
+        this.cam.snap();
+      },
     };
   }
 }

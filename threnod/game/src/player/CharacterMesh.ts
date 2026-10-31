@@ -8,9 +8,9 @@ export interface CharacterColors {
   hood: boolean;
 }
 
-export const UNSUNG_COLORS: CharacterColors = { cloak: '7c7883', body: '5f5b66', skin: 'c8aa78', legs: '403d47', hood: true };
+export const UNSUNG_COLORS: CharacterColors = { cloak: '6a6a8a', body: '4a4660', skin: 'd8b090', legs: '2a2838', hood: true };
 
-const mat = (hex: string) => new THREE.MeshLambertMaterial({ color: '#' + hex, flatShading: true });
+const mat = (hex: string) => new THREE.MeshPhongMaterial({ color: '#' + hex, shininess: 40, specular: 0x3a2a5a });
 
 /**
  * A low-poly humanoid built from primitives, with a simple procedural walk cycle.
@@ -39,7 +39,7 @@ export class CharacterMesh {
     const torso = new THREE.Mesh(new THREE.CylinderGeometry(0.24, 0.3, 0.75, 6), mat(colors.body));
     torso.position.y = 1.18;
     const cloak = new THREE.Mesh(new THREE.ConeGeometry(0.46, 1.25, 7, 1, true), mat(colors.cloak));
-    (cloak.material as THREE.MeshLambertMaterial).side = THREE.DoubleSide;
+    (cloak.material as THREE.MeshPhongMaterial).side = THREE.DoubleSide;
     cloak.position.set(0, 1.0, 0.04); // the cloak hangs at the back (+z); the figure faces −z
 
     const head = new THREE.Mesh(new THREE.IcosahedronGeometry(0.2, 0), mat(colors.skin));
@@ -69,6 +69,9 @@ export class CharacterMesh {
     shadow.position.y = 0.04;
     this.root.add(shadow);
 
+    this.root.traverse((o) => {
+      if (o instanceof THREE.Mesh && o !== shadow) o.castShadow = true;
+    });
     this.root.scale.setScalar(scale);
   }
 

@@ -4,7 +4,6 @@ import { findTarget, placeName } from '../src/interaction/Interaction';
 import { parseSave, parseSettings, DEFAULT_SETTINGS, SAVE_VERSION } from '../src/save/Save';
 import { heightAt, LAYOUT, lakeFactor } from '../src/world/terrain';
 import { fbm, rng } from '../src/world/noise';
-import { nearestPaletteIndex, PALETTE_HEX } from '../src/render/palette';
 import { skyStateAt } from '../src/world/Sky';
 
 describe('movement', () => {
@@ -78,7 +77,10 @@ describe('save data', () => {
   it('falls back to default settings', () => {
     expect(parseSettings(null)).toEqual(DEFAULT_SETTINGS);
     expect(parseSettings('garbage')).toEqual(DEFAULT_SETTINGS);
-    expect(parseSettings(JSON.stringify({ renderHeight: 123 })).renderHeight).toBe(360);
+    expect(parseSettings(JSON.stringify({ quality: 'ultra' })).quality).toBe('medium');
+    const old = parseSettings(JSON.stringify({ renderHeight: 360, palette: true, bloom: false }));
+    expect(old.bloom).toBe(false);
+    expect(Object.keys(old)).not.toContain('palette');
   });
 });
 
@@ -100,16 +102,12 @@ describe('world generation', () => {
   });
 });
 
-describe('palette and sky', () => {
-  it('has 32 colours and snaps to the nearest', () => {
-    expect(PALETTE_HEX).toHaveLength(32);
-    expect(PALETTE_HEX[nearestPaletteIndex(1, 1, 1)]).toBe('fbf7ec');
-    expect(PALETTE_HEX[nearestPaletteIndex(0, 0, 0)]).toBe('120a05');
-  });
-  it('is dark at night and never fully bright at noon (the Long Vesper)', () => {
+describe('sky', () => {
+  it('is darkest at night and never fully bright at noon (the Long Vesper)', () => {
     expect(skyStateAt(0).night).toBe(1);
     expect(skyStateAt(12).night).toBe(0);
-    expect(skyStateAt(12).sunIntensity).toBeLessThan(1.5);
+    expect(skyStateAt(12).top.r + skyStateAt(12).top.g + skyStateAt(12).top.b).toBeLessThan(1.2);
     expect(skyStateAt(24).night).toBeCloseTo(skyStateAt(0).night);
+    expect(skyStateAt(21).night).toBeGreaterThan(0.8);
   });
 });
