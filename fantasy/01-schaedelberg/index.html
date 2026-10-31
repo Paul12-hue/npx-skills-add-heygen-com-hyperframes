@@ -84,6 +84,7 @@
         uniform sampler2D uImg;
         uniform float uT, uLocal, uZoom, uRoll, uFade, uFlick, uFlash, uSeed, uGlow;
         uniform vec3 uFogCol, uPCol;
+        uniform vec2 uRes;   // internal "game" resolution, e.g. 360x640
         uniform vec2 uCenter, uPan;
         uniform vec4 uFog, uFog2, uShimmer, uParts;
 
@@ -108,6 +109,8 @@
 
         void main(){
           vec2 s = vec2(vUv.x, 1.0 - vUv.y);   // screen, y down
+          vec2 pix = floor(s * uRes);              // retro: every effect runs on the low-res pixel grid
+          s = (pix + 0.5) / uRes;
           // camera: zoom around centre, slight roll, a little 2.5D parallax (lower = nearer)
           vec2 d = s - 0.5;
           d.x *= 0.5625;
@@ -121,12 +124,12 @@
           float shz = uShimmer.w * smoothstep(uShimmer.y - 0.04, uShimmer.y, uv.y) * smoothstep(uShimmer.z + 0.04, uShimmer.z, uv.y)
                     * smoothstep(uShimmer.x - 0.1, uShimmer.x + 0.05, uv.x);
           uv.x += shz * (vn(vec2(uv.y * 260.0, uLocal * 2.2)) - 0.5) * 0.004;
-          vec3 c = texture2D(uImg, uv).rgb;
-          // unsharp mask: the keyframes are upscaled, give them back crisp CGI edges
-          vec2 px = vec2(1.0 / 1080.0, 1.0 / 1920.0) / uZoom;
-          vec3 blur = (texture2D(uImg, uv + vec2(px.x, 0.0)).rgb + texture2D(uImg, uv - vec2(px.x, 0.0)).rgb
-                     + texture2D(uImg, uv + vec2(0.0, px.y)).rgb + texture2D(uImg, uv - vec2(0.0, px.y)).rgb) * 0.25;
-          c = max(c + (c - blur) * 0.9, 0.0);
+          // box-filter the keyframe down to one low-res pixel (4 taps), with a little horizontal colour bleed
+          vec2 px = 0.25 / (uRes * uZoom);
+          vec3 c = (texture2D(uImg, uv + vec2(-px.x, -px.y)).rgb + texture2D(uImg, uv + vec2(px.x, -px.y)).rgb
+                  + texture2D(uImg, uv + vec2(-px.x, px.y)).rgb + texture2D(uImg, uv + vec2(px.x, px.y)).rgb) * 0.25;
+          c.r = mix(c.r, texture2D(uImg, uv + vec2(4.0 * px.x, 0.0)).r, 0.35);
+          c.b = mix(c.b, texture2D(uImg, uv - vec2(4.0 * px.x, 0.0)).b, 0.35);
           float lum = dot(c, vec3(0.299, 0.587, 0.114));
           // emissive glow pulse: saturated bright pixels (eyes, crystals, runes, lanterns, fire) breathe
           float mx = max(c.r, max(c.g, c.b)), mn = min(c.r, min(c.g, c.b));
@@ -198,8 +201,19 @@
           // vignette, grain, fade
           vec2 vq = (s - 0.5) * vec2(1.0, 0.75);
           c *= mix(0.65, 1.0, smoothstep(0.65, 0.2, length(vq)));
-          c += (h21(floor(s * vec2(1080.0, 1920.0)) + uSeed) - 0.5) * 0.025;
+          c += (h21(pix + uSeed) - 0.5) * 0.015;
           c *= uFade;
+          // 15-bit "high colour" with 4x4 ordered (Bayer) dithering, like a 90s game renderer
+          vec2 bq = mod(pix, 4.0);
+          float bayer = 0.0;
+          if (bq.y < 1.0) bayer = bq.x < 1.0 ? 0.0 : bq.x < 2.0 ? 8.0 : bq.x < 3.0 ? 2.0 : 10.0;
+          else if (bq.y < 2.0) bayer = bq.x < 1.0 ? 12.0 : bq.x < 2.0 ? 4.0 : bq.x < 3.0 ? 14.0 : 6.0;
+          else if (bq.y < 3.0) bayer = bq.x < 1.0 ? 3.0 : bq.x < 2.0 ? 11.0 : bq.x < 3.0 ? 1.0 : 9.0;
+          else bayer = bq.x < 1.0 ? 15.0 : bq.x < 2.0 ? 7.0 : bq.x < 3.0 ? 13.0 : 5.0;
+          float levels = 18.0;
+          c = floor(clamp(c, 0.0, 1.0) * levels + bayer / 16.0) / levels;
+          // faint scanlines on the low-res rows
+          c *= 0.93 + 0.07 * step(0.5, fract(vUv.y * uRes.y));
           gl_FragColor = vec4(c, 1.0);
         }`;
 
@@ -220,7 +234,7 @@
       gl.enableVertexAttribArray(loc);
       gl.vertexAttribPointer(loc, 2, gl.FLOAT, false, 0, 0);
       const U = {};
-      for (const n of ["uImg", "uT", "uLocal", "uZoom", "uRoll", "uFade", "uFlick", "uFlash", "uSeed", "uGlow", "uFogCol", "uPCol", "uCenter", "uPan", "uFog", "uFog2", "uShimmer", "uParts"]) U[n] = gl.getUniformLocation(prog, n);
+      for (const n of ["uImg", "uT", "uLocal", "uZoom", "uRoll", "uFade", "uFlick", "uFlash", "uSeed", "uGlow", "uFogCol", "uPCol", "uRes", "uCenter", "uPan", "uFog", "uFog2", "uShimmer", "uParts"]) U[n] = gl.getUniformLocation(prog, n);
       gl.viewport(0, 0, W, H);
 
       const clamp = (x, a = 0, b = 1) => Math.min(b, Math.max(a, x));
@@ -276,6 +290,7 @@
         gl.uniform4f(U.uParts, s.parts[0], s.parts[1], s.parts[2], 0);
         gl.uniform1f(U.uFlick, s.flick);
         gl.uniform1f(U.uGlow, s.glow);
+        gl.uniform2f(U.uRes, RES[0], RES[1]);
         gl.uniform3fv(U.uFogCol, s.fogCol);
         gl.uniform3fv(U.uPCol, s.pcol);
         gl.uniform1f(U.uFlash, flashAt(t, s.flash));
@@ -285,7 +300,11 @@
       }
 
       // Cuts are short dissolves through darkness (overlap of neighbouring shots).
-      function renderAt(t) {
+      // Retro settings: internal resolution and animation frame rate (pre-rendered FMV feel)
+      const RES = [270, 480];
+      const ANIM_FPS = 15;
+      function renderAt(tIn) {
+        const t = Math.floor(tIn * ANIM_FPS + 1e-6) / ANIM_FPS;
         if (textures.length < SHOTS.length || textures.some((x) => !x)) return;
         gl.disable(gl.BLEND);
         gl.clearColor(0, 0, 0, 1);

@@ -12,6 +12,10 @@ A short, wordless glimpse into a strange dark fairy-tale world that looks like a
 - No text in the video, ever (no title, captions, logo, handle).
 - Not low-poly Three.js (that is the `was-waere-wenn` series) and not soft "AI oil painting": the user rejected
   both as too AI-looking. The target is the **90s-CGI render look** of the second reference video.
+- **It must look old, not HD.** A clean 1080p version was rejected as "too AI, too high-res". Keep the retro pass:
+  internal resolution `RES = [270, 480]` (hard pixel upscale to 1080×1920), 18 colour levels per channel with
+  4×4 Bayer dithering, slight horizontal colour bleed, faint scanlines, animation at `ANIM_FPS = 15`
+  (pre-rendered FMV feel). Never add sharpening; go lower (e.g. 240×427) rather than higher if asked.
 
 ## Non-negotiables
 
@@ -75,6 +79,8 @@ Every shot needs **light sources** (eyes, lanterns, crystals, runes, fire, lava)
   (hash noise, grain seeded by frame number; no `Math.random`/`Date.now`).
 - Textures are uploaded without `UNPACK_FLIP_Y`, so sample with image coords (y down) directly.
 - `SHOTS` is a global from the first script — do not redeclare it with `const` in the renderer script.
-- One fragment shader per shot: camera transform + mild depth parallax, unsharp mask (keyframes are upscaled),
-  emissive glow pulse, warm flicker, water shimmer, two fbm fog bands, lightning, screen-space particles,
-  light saturation/contrast boost, vignette, grain. Dissolves: additive `(1−k)^1.6` / `k^1.6`.
+- One fragment shader per shot, everything evaluated on the low-res pixel grid (`uRes`): camera transform + mild
+  depth parallax, 4-tap box filter of the keyframe + colour bleed, emissive glow pulse, warm flicker, water shimmer,
+  two fbm fog bands, lightning, screen-space particles, saturation/contrast boost, vignette, light noise,
+  Bayer-dithered colour quantisation, scanlines. `renderAt` snaps t to `ANIM_FPS`.
+  Dissolves: additive `(1−k)^1.6` / `k^1.6`.
