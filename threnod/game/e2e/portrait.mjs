@@ -29,7 +29,7 @@ const shots = [
   ['unsung-face', [56, 6, 0.4], [1.3, 0.05, Math.PI], 21],
   ['unsung-34', [56, 6, 0.4], [2.2, 0.15, Math.PI * 0.75], 21],
   ['unsung-full', [56, 6, 0.4], [3.8, 0.1, Math.PI * 0.85], 21],
-  ['tilde', [-44.4, -33.2, Math.PI], [3.0, 0.12, 0.1], 21],
+  ['tilde-face', [-46.9 - 1.6, -35.3 - 1.4, Math.atan2(1.6, 1.4) + Math.PI], [3.2, 0.1, Math.PI + 0.45], 21],
 ];
 for (const [name, tp, cam, hour] of shots) {
   await page.evaluate(([tp, cam, hour]) => {

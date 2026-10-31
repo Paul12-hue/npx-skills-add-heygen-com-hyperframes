@@ -38,35 +38,52 @@ function adultJoints(h: number): Joints {
   };
 }
 
-/** A face: skull, jaw, nose, brows, cheeks, lips, ears, eye sockets. */
-function face(c: Vec3, s: number, skin: string, lip: string, brow: string, blendK = 0.02): Prim[] {
+/** Where the eyeballs sit for a face centred at c with scale s. */
+export function eyePositions(c: Vec3, s: number): [Vec3, Vec3] {
+  return [
+    [c[0] + 0.034 * s, c[1] + 0.02 * s, c[2] - 0.086 * s],
+    [c[0] - 0.034 * s, c[1] + 0.02 * s, c[2] - 0.086 * s],
+  ];
+}
+
+/**
+ * A friendly, lively face: soft skull and jaw, full cheeks with a little blush,
+ * eyelids instead of dark sockets, a small nose, a mouth with lifted corners.
+ */
+function face(c: Vec3, s: number, skin: string, lip: string, brow: string, blush: string): Prim[] {
   const p = (x: number, y: number, z: number): Vec3 => [c[0] + x * s, c[1] + y * s, c[2] + z * s];
   const r = (x: number, y: number, z: number): Vec3 => [x * s, y * s, z * s];
   const prims: Prim[] = [
-    { shape: { kind: 'ellipsoid', c: p(0, 0.02, 0.01), r: r(0.092, 0.115, 0.108) }, bone: 'head', color: skin, blend: blendK },
-    { shape: { kind: 'cone', a: p(0, -0.02, -0.02), b: p(0, -0.082, -0.058), ra: 0.072 * s, rb: 0.04 * s }, bone: 'head', color: skin, blend: 0.045 * s },
-    { shape: { kind: 'ellipsoid', c: p(0, -0.095, -0.068), r: r(0.03, 0.024, 0.024) }, bone: 'head', color: skin, blend: 0.02 * s },
-    // cheekbones
-    { shape: { kind: 'ellipsoid', c: p(0.046, -0.005, -0.07), r: r(0.03, 0.022, 0.025) }, bone: 'head', color: skin, blend: 0.035 * s },
-    { shape: { kind: 'ellipsoid', c: p(-0.046, -0.005, -0.07), r: r(0.03, 0.022, 0.025) }, bone: 'head', color: skin, blend: 0.035 * s },
-    // brow ridge
-    { shape: { kind: 'ellipsoid', c: p(0, 0.04, -0.086), r: r(0.074, 0.018, 0.026) }, bone: 'head', color: skin, blend: 0.02 * s },
-    // nose
-    { shape: { kind: 'cone', a: p(0, 0.03, -0.1), b: p(0, -0.022, -0.117), ra: 0.008 * s, rb: 0.014 * s }, bone: 'head', color: skin, blend: 0.016 * s },
-    { shape: { kind: 'ellipsoid', c: p(0, -0.027, -0.108), r: r(0.019, 0.01, 0.012) }, bone: 'head', color: skin, blend: 0.014 * s },
-    // lips
-    { shape: { kind: 'ellipsoid', c: p(0, -0.058, -0.1), r: r(0.026, 0.0075, 0.012) }, bone: 'head', color: lip, blend: 0.006 * s },
-    { shape: { kind: 'ellipsoid', c: p(0, -0.071, -0.096), r: r(0.022, 0.008, 0.012) }, bone: 'head', color: lip, blend: 0.006 * s },
+    { shape: { kind: 'ellipsoid', c: p(0, 0.02, 0.008), r: r(0.093, 0.112, 0.106) }, bone: 'head', color: skin, blend: 0.02 },
+    { shape: { kind: 'cone', a: p(0, -0.02, -0.02), b: p(0, -0.078, -0.055), ra: 0.074 * s, rb: 0.042 * s }, bone: 'head', color: skin, blend: 0.05 * s },
+    { shape: { kind: 'ellipsoid', c: p(0, -0.09, -0.064), r: r(0.03, 0.022, 0.024) }, bone: 'head', color: skin, blend: 0.025 * s },
+    // full cheeks with a soft blush
+    { shape: { kind: 'ellipsoid', c: p(0.047, -0.022, -0.07), r: r(0.032, 0.026, 0.026) }, bone: 'head', color: blush, blend: 0.04 * s },
+    { shape: { kind: 'ellipsoid', c: p(-0.047, -0.022, -0.07), r: r(0.032, 0.026, 0.026) }, bone: 'head', color: blush, blend: 0.04 * s },
+    // soft brow
+    { shape: { kind: 'ellipsoid', c: p(0, 0.046, -0.082), r: r(0.07, 0.016, 0.024) }, bone: 'head', color: skin, blend: 0.03 * s },
+    // small nose
+    { shape: { kind: 'cone', a: p(0, 0.026, -0.098), b: p(0, -0.018, -0.112), ra: 0.007 * s, rb: 0.012 * s }, bone: 'head', color: skin, blend: 0.018 * s },
+    { shape: { kind: 'ellipsoid', c: p(0, -0.022, -0.104), r: r(0.017, 0.009, 0.011) }, bone: 'head', color: skin, blend: 0.016 * s },
+    // mouth: lips with lifted corners (a gentle smile)
+    { shape: { kind: 'ellipsoid', c: p(0, -0.052, -0.098), r: r(0.021, 0.006, 0.01) }, bone: 'head', color: lip, blend: 0.008 * s },
+    { shape: { kind: 'ellipsoid', c: p(0, -0.062, -0.095), r: r(0.018, 0.0065, 0.01) }, bone: 'head', color: lip, blend: 0.008 * s },
+    { shape: { kind: 'ellipsoid', c: p(0.022, -0.05, -0.09), r: r(0.007, 0.005, 0.007) }, bone: 'head', color: lip, blend: 0.008 * s },
+    { shape: { kind: 'ellipsoid', c: p(-0.022, -0.05, -0.09), r: r(0.007, 0.005, 0.007) }, bone: 'head', color: lip, blend: 0.008 * s },
     // ears
-    { shape: { kind: 'ellipsoid', c: p(0.093, 0.0, 0.01), r: r(0.014, 0.03, 0.02) }, bone: 'head', color: skin, blend: 0.01 * s },
-    { shape: { kind: 'ellipsoid', c: p(-0.093, 0.0, 0.01), r: r(0.014, 0.03, 0.02) }, bone: 'head', color: skin, blend: 0.01 * s },
-    // eyebrows
-    { shape: { kind: 'cone', a: p(0.016, 0.047, -0.103), b: p(0.06, 0.05, -0.088), ra: 0.006 * s, rb: 0.004 * s }, bone: 'head', color: brow, blend: 0.002 },
-    { shape: { kind: 'cone', a: p(-0.016, 0.047, -0.103), b: p(-0.06, 0.05, -0.088), ra: 0.006 * s, rb: 0.004 * s }, bone: 'head', color: brow, blend: 0.002 },
-    // eye sockets
-    { shape: { kind: 'ellipsoid', c: p(0.034, 0.018, -0.104), r: r(0.02, 0.013, 0.014) }, bone: 'head', color: skin, subtract: true, blend: 0.012 * s },
-    { shape: { kind: 'ellipsoid', c: p(-0.034, 0.018, -0.104), r: r(0.02, 0.013, 0.014) }, bone: 'head', color: skin, subtract: true, blend: 0.012 * s },
+    { shape: { kind: 'ellipsoid', c: p(0.093, 0.0, 0.01), r: r(0.013, 0.028, 0.019) }, bone: 'head', color: skin, blend: 0.012 * s },
+    { shape: { kind: 'ellipsoid', c: p(-0.093, 0.0, 0.01), r: r(0.013, 0.028, 0.019) }, bone: 'head', color: skin, blend: 0.012 * s },
+    // arched eyebrows
+    { shape: { kind: 'cone', a: p(0.014, 0.052, -0.098), b: p(0.058, 0.058, -0.084), ra: 0.0055 * s, rb: 0.0035 * s }, bone: 'head', color: brow, blend: 0.002 },
+    { shape: { kind: 'cone', a: p(-0.014, 0.052, -0.098), b: p(-0.058, 0.058, -0.084), ra: 0.0055 * s, rb: 0.0035 * s }, bone: 'head', color: brow, blend: 0.002 },
   ];
+  // eyelids frame the eyeballs (no dark sockets)
+  for (const x of [0.034, -0.034]) {
+    prims.push(
+      { shape: { kind: 'ellipsoid', c: p(x, 0.032, -0.088), r: r(0.021, 0.008, 0.016) }, bone: 'head', color: skin, blend: 0.006 * s },
+      { shape: { kind: 'ellipsoid', c: p(x, 0.006, -0.087), r: r(0.018, 0.005, 0.013) }, bone: 'head', color: skin, blend: 0.006 * s },
+    );
+  }
   return prims;
 }
 
@@ -101,7 +118,7 @@ function limbs(J: Joints, o: { sleeve: string; glove: string; trousers: string; 
 /** The Unsung: hooded, grey-violet wanderer with pale skin and pale violet eyes. */
 export function unsungSpec(): FigureSpec {
   const J = adultJoints(1.76);
-  const C = { skin: 'e2c6b2', lip: 'c08a80', brow: '3a2e3a', hood: '4a3d6e', hoodIn: '2a2240', tunic: '3a4560', belt: '4a2c1c', buckle: 'c9a050', trousers: '2c2a34', boot: '3a2618', glove: '3a2618', scarf: '6a4a8a', cape: '3e3260' };
+  const C = { skin: 'eab996', blush: 'e69a86', hair: 'b8b0c8', lip: 'c47a6c', brow: '6a6078', hood: '4a3d6e', hoodIn: '2a2240', tunic: '3a4560', belt: '4a2c1c', buckle: 'c9a050', trousers: '2c2a34', boot: '3a2618', glove: '3a2618', scarf: '6a4a8a', cape: '3e3260' };
   const H = J.head;
   const prims: Prim[] = [
     // long travelling cloak, open at the front
@@ -124,22 +141,25 @@ export function unsungSpec(): FigureSpec {
     { shape: { kind: 'cone', a: J.neck, b: add(H, [0, 0.02, 0]), ra: 0.05, rb: 0.048 }, bone: 'neck', color: C.skin, blend: 0.03 },
     // mantle over the shoulders
     { shape: { kind: 'ellipsoid', c: [0, 1.445, 0.02], r: [0.235, 0.065, 0.165] }, bone: 'chest', color: C.hood, blend: 0.05 },
-    // hood: a loose shell that falls back onto the shoulders, wide open at the front
-    { shape: { kind: 'shell', c: add(H, [0, 0.1, 0.045]), r: [0.15, 0.17, 0.175], thickness: 0.016 }, bone: 'head', color: C.hood, blend: 0.03 },
-    { shape: { kind: 'cone', a: add(H, [0, 0.08, 0.13]), b: [0, 1.42, 0.14], ra: 0.1, rb: 0.17 }, bone: 'neck', color: C.hood, blend: 0.06 },
-    { shape: { kind: 'cone', a: add(H, [0, 0.2, 0.15]), b: add(H, [0, 0.1, 0.25]), ra: 0.06, rb: 0.015 }, bone: 'head', color: C.hood, blend: 0.05 },
-    { shape: { kind: 'ellipsoid', c: add(H, [0, 0.06, -0.17]), r: [0.118, 0.155, 0.16] }, bone: 'head', color: C.hoodIn, subtract: true, blend: 0.05 },
-    // short dark hair under the hood (cut away over the face before the face is added)
-    { shape: { kind: 'shell', c: add(H, [0, 0.12, 0.012]), r: [0.096, 0.105, 0.108], thickness: 0.008 }, bone: 'head', color: C.brow, blend: 0.005 },
-    { shape: { kind: 'box', c: add(H, [0, 0.0, -0.1]), h: [0.2, 0.09, 0.08], round: 0 }, bone: 'head', color: C.brow, subtract: true },
-    ...face(add(H, [0, 0.085, 0]), 1, C.skin, C.lip, C.brow),
+    // the hood is pulled down: it lies bunched behind the neck
+    { shape: { kind: 'ellipsoid', c: [0, 1.53, 0.1], r: [0.15, 0.085, 0.09] }, bone: 'neck', color: C.hood, blend: 0.04 },
+    { shape: { kind: 'cone', a: [0, 1.5, 0.15], b: [0, 1.3, 0.17], ra: 0.09, rb: 0.03 }, bone: 'chest', color: C.hood, blend: 0.05 },
+    // tousled ash-silver hair
+    { shape: { kind: 'shell', c: add(H, [0, 0.115, 0.012]), r: [0.1, 0.112, 0.114], thickness: 0.014 }, bone: 'head', color: C.hair, blend: 0.006 },
+    { shape: { kind: 'box', c: add(H, [0, 0.04, -0.12]), h: [0.2, 0.085, 0.07], round: 0 }, bone: 'head', color: C.hair, subtract: true },
+    ...face(add(H, [0, 0.085, 0]), 1, C.skin, C.lip, C.brow, C.blush),
+    { shape: { kind: 'ellipsoid', c: add(H, [0.03, 0.2, -0.07]), r: [0.06, 0.028, 0.05] }, bone: 'head', color: C.hair, blend: 0.03 },
+    { shape: { kind: 'ellipsoid', c: add(H, [-0.045, 0.19, -0.075]), r: [0.045, 0.024, 0.045] }, bone: 'head', color: C.hair, blend: 0.03 },
+    { shape: { kind: 'cone', a: add(H, [0.085, 0.13, -0.02]), b: add(H, [0.098, 0.05, -0.03]), ra: 0.024, rb: 0.01 }, bone: 'head', color: C.hair, blend: 0.02 },
+    { shape: { kind: 'cone', a: add(H, [-0.085, 0.13, -0.02]), b: add(H, [-0.098, 0.05, -0.03]), ra: 0.024, rb: 0.01 }, bone: 'head', color: C.hair, blend: 0.02 },
+    { shape: { kind: 'ellipsoid', c: add(H, [0, 0.1, 0.08]), r: [0.09, 0.09, 0.05] }, bone: 'head', color: C.hair, blend: 0.03 },
     ...limbs(J, { sleeve: C.tunic, glove: C.glove, trousers: C.trousers, boot: C.boot, armR: 1, legR: 1 }),
   ];
   return {
     name: 'unsung',
     joints: J,
     prims,
-    eyes: { l: add(H, [0.034, 0.103, -0.094]), r: add(H, [-0.034, 0.103, -0.094]), radius: 0.0152, iris: '9a7ae0', glow: 0.12 },
+    eyes: { ...eyesAt(add(H, [0, 0.085, 0]), 1), radius: 0.0165, iris: '7a6ab8', glow: 0 },
     bounds: { min: [-0.42, -0.02, -0.3], max: [0.42, 1.98, 0.42] },
   };
 }
@@ -151,7 +171,7 @@ export function tildeSpec(): FigureSpec {
   const J0 = adultJoints(h);
   // children: relatively larger heads, shorter legs
   const J: Joints = { ...J0, head: [0, J0.head[1] - 0.02, 0], neck: [0, J0.neck[1] - 0.01, 0] };
-  const C = { skin: 'eebc9c', lip: 'cc8a7c', brow: '8a3a18', hair: 'b4501e', smock: '5a6a3a', apron: 'b8a68a', sleeve: '7a5a3a', trousers: '4a3a2a', boot: '3a2618', glove: 'e8b898', patch: '8a4a2a' };
+  const C = { skin: 'f0c09c', blush: 'ec9a84', lip: 'cc7c6c', brow: '8a3a18', hair: 'b4501e', smock: '5a6a3a', apron: 'b8a68a', sleeve: '7a5a3a', trousers: '4a3a2a', boot: '3a2618', glove: 'e8b898', patch: '8a4a2a' };
   const H = J.head;
   const hs = 1.08; // head scale relative to body
   const prims: Prim[] = [
@@ -167,7 +187,7 @@ export function tildeSpec(): FigureSpec {
     // hair: cap (cut open over the face), fringe and two braids
     { shape: { kind: 'shell', c: add(H, [0, 0.1, 0.014]), r: [0.102 * hs, 0.112 * hs, 0.114 * hs], thickness: 0.012 }, bone: 'head', color: C.hair, blend: 0.006 },
     { shape: { kind: 'box', c: add(H, [0, 0.03, -0.12]), h: [0.2, 0.08, 0.06], round: 0 }, bone: 'head', color: C.hair, subtract: true },
-    ...face(add(H, [0, 0.08, 0]), hs, C.skin, C.lip, C.brow),
+    ...face(add(H, [0, 0.08, 0]), hs, C.skin, C.lip, C.brow, C.blush),
     { shape: { kind: 'ellipsoid', c: add(H, [0, 0.19, -0.06]), r: [0.085, 0.03, 0.05] }, bone: 'head', color: C.hair, blend: 0.03 },
     { shape: { kind: 'cone', a: add(H, [0.08, 0.06, 0.04]), b: add(H, [0.1, -0.16, 0.05]), ra: 0.028, rb: 0.018 }, bone: 'head', color: C.hair, blend: 0.02 },
     { shape: { kind: 'cone', a: add(H, [-0.08, 0.06, 0.04]), b: add(H, [-0.1, -0.16, 0.05]), ra: 0.028, rb: 0.018 }, bone: 'head', color: C.hair, blend: 0.02 },
@@ -175,14 +195,18 @@ export function tildeSpec(): FigureSpec {
     { shape: { kind: 'ellipsoid', c: add(H, [-0.1, -0.18, 0.05]), r: [0.022, 0.012, 0.022] }, bone: 'head', color: C.patch, blend: 0.004 },
     ...limbs(J, { sleeve: C.sleeve, glove: C.glove, trousers: C.trousers, boot: C.boot, armR: 0.85, legR: 0.85 }),
   ];
-  const e = (x: number): Vec3 => add(H, [x * hs, 0.08 + 0.018 * hs, -0.095 * hs]);
   return {
     name: 'tilde',
     joints: J,
     prims,
-    eyes: { l: e(0.034), r: e(-0.034), radius: 0.0165, iris: '4a8a5a', glow: 0 },
+    eyes: { ...eyesAt(add(H, [0, 0.08, 0]), hs), radius: 0.0175, iris: '3a8a5a', glow: 0 },
     bounds: { min: [-0.36, -0.02, -0.24], max: [0.36, 1.62, 0.24] },
   };
 }
 
 export { mirror };
+
+function eyesAt(c: Vec3, s: number): { l: Vec3; r: Vec3 } {
+  const [l, r] = eyePositions(c, s);
+  return { l, r };
+}

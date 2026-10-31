@@ -159,6 +159,10 @@ export class Humanoid {
   private bones = new Map<string, THREE.Bone>();
   private mesh: THREE.SkinnedMesh;
   private lids: THREE.Mesh[] = [];
+  private eyes: THREE.Group[] = [];
+  private gaze = new THREE.Vector2();
+  private gazeTarget = new THREE.Vector2();
+  private gazeTimer = 1;
   private phase = 0;
   private blinkTimer = 2 + Math.random() * 3;
   private lookYaw = 0;
@@ -194,7 +198,7 @@ export class Humanoid {
     // eyes with glossy irises (and lids for blinking), attached to the head bone
     const head = this.bones.get('head')!;
     const hp = spec.joints.head;
-    const sclera = new THREE.MeshPhongMaterial({ color: 0xbdb4ac, shininess: 80, specular: 0x555555 });
+    const sclera = new THREE.MeshPhongMaterial({ color: 0xe6ded6, shininess: 90, specular: 0x444444 });
     const irisMat = new THREE.MeshPhongMaterial({
       map: irisTexture(spec.eyes.iris),
       shininess: 100,
@@ -217,6 +221,7 @@ export class Humanoid {
       lid.visible = false;
       eye.add(lid);
       this.lids.push(lid);
+      this.eyes.push(eye);
       head.add(eye);
     }
 
@@ -292,14 +297,27 @@ export class Humanoid {
     set(B('forearmL'), 0.25 + Math.max(0, -s) * 0.35 * a);
     set(B('forearmR'), (this.lanternLight ? 0.55 : 0.25) + Math.max(0, s) * 0.35 * a);
     if (this.lanternLight) this.lanternLight.intensity = 2.6 * (0.92 + Math.sin(t * 11) * 0.04 + Math.sin(t * 27) * 0.04);
-    set(B('spine'), 0.05 * a + breathe * 0.5, s * 0.08 * a);
     set(B('chest'), breathe, -s * 0.06 * a);
     // idle: the head looks around now and then
     if (a < 0.1) this.lookYaw = Math.sin(t * 0.31) * 0.35 * Math.max(0, Math.sin(t * 0.13));
     else this.lookYaw *= 0.9;
-    set(B('neck'), -0.03, this.lookYaw * 0.4);
     set(B('head'), 0.02 + Math.abs(c) * 0.02 * a, this.lookYaw * 0.6);
     B('hips').position.y = (B('hips').userData.baseY ??= B('hips').position.y) + Math.abs(c) * 0.035 * a - 0.015 * a;
+
+    // idle: shift the weight from one leg to the other, now and then
+    const sway = a < 0.1 ? Math.sin(t * 0.55) * 0.035 : 0;
+    set(B('hips'), 0, 0, sway);
+    set(B('spine'), 0.05 * a + breathe * 0.5, s * 0.08 * a, -sway * 0.6);
+    set(B('neck'), -0.03, this.lookYaw * 0.4, -sway * 0.5);
+
+    // the eyes dart around like a living person's
+    this.gazeTimer -= dt;
+    if (this.gazeTimer < 0) {
+      this.gazeTarget.set((Math.random() - 0.5) * 0.5, (Math.random() - 0.5) * 0.25);
+      this.gazeTimer = 0.6 + Math.random() * 2.2;
+    }
+    this.gaze.lerp(this.gazeTarget, Math.min(1, dt * 18));
+    for (const e of this.eyes) e.rotation.set(this.gaze.y, this.gaze.x + this.lookYaw * 0.3, 0);
 
     // blinking
     this.blinkTimer -= dt;

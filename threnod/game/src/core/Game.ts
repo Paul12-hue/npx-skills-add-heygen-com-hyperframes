@@ -55,7 +55,7 @@ export class Game {
     this.world.scene.add(this.player.mesh.root);
     this.cam = new ThirdPersonCamera(1);
     // soft fill light that follows the camera so faces stay readable at night
-    const fill = new THREE.PointLight(0xffe0c8, 1.1, 9, 1.2);
+    const fill = new THREE.PointLight(0xffd4b4, 1.25, 9, 1.4);
     this.cam.camera.add(fill);
     this.world.scene.add(this.cam.camera);
     this.renderer = new Renderer(canvas, this.world.scene, this.cam.camera, {
