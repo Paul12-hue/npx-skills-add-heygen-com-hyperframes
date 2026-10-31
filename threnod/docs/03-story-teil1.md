@@ -1,6 +1,6 @@
 # THRENOD · Phase 3, Teil 1: Hauptgeschichte
 
-**Status:** 📝 Entwurf, wartet auf Freigabe
+**Status:** ✅ Freigegeben. Entscheidungen: S1 A, S2 ja, S3 kürzer, S4 alle sechs Enden bleiben, S5 kein dauerhafter Verlust
 ⚠️ **Dieses Dokument enthält alle Spoiler.** Es ist nur für das Entwicklungsteam gedacht.
 
 ---
@@ -59,7 +59,7 @@ Severin verschloss Noonspire mit dem Nachhall von Dolor in **absoluter Stille**,
 | **Aussehen** | Frei wählbar |
 | **Was sie weiß** | Anfangs nichts. Erinnerungen an das Leben als Cantor kehren mit jedem gefundenen Vers zurück. |
 | **Die Kerngabe** | Sie hört die Verse des Threnod |
-| **Der Fluch zu Beginn** | **Die Welt vergisst sie.** NPCs vergessen die Unsung nach jedem Gespräch, bis sie eine Namenskerze besitzt. Spielerisch heißt das: Im Prolog musst du dich jedes Mal neu vorstellen. Das ist unheimlich, mit stillem Humor, und wird dann eingelöst. |
+| **Der Fluch zu Beginn** | **Die Welt vergisst sie.** Das gilt nur für die **ersten 10 bis 15 Minuten** des Prologs. Zwei oder drei Begegnungen zeigen es, etwa der Wirt, der dich zum dritten Mal begrüßt, als wärst du neu. Dann bringt Tilde dich zu den Lamplighters, und du bekommst die Namenskerze. |
 | **Entwicklung** | Vom Namenlosen, an den sich niemand erinnert, zu jemandem, an den sich die ganze Welt erinnert, oder bewusst nicht (je nach Ende) |
 
 ---
@@ -80,7 +80,7 @@ Severin verschloss Noonspire mit dem Nachhall von Dolor in **absoluter Stille**,
 
 ### PROLOG: *The Unmarked Grave* (Hollowmere Vale)
 - Du erwachst in einem namenlosen Grab auf dem Friedhof von Saint Ebba. Die Totengräberin **Tilde** (12 Jahre) sieht dich als Einzige herausklettern und rennt davon.
-- In **Candlewick** vergisst dich jeder nach jedem Gespräch. Nur Tilde erinnert sich, weil sie gesehen hat, wie du dem Grab entstiegen bist.
+- In **Candlewick** vergessen dich die ersten Menschen, kaum dass du dich abgewandt hast. Das dauert nur kurz, 10 bis 15 Minuten. Nur Tilde erinnert sich, weil sie gesehen hat, wie du dem Grab entstiegen bist. Sie bringt dich zu den Lamplighters.
 - Erster Vers: Nachts am Hollowmere hörst du das Lied und siehst die Laterne unter dem See erlöschen.
 - **Old Silver Mine:** Ein Faded hat die Bergleute verschleppt. Hier kommt das **erste Duell**.
 - **Namenskerze:** Die Lamplighters gießen dir eine Kerze, und **du gibst dir einen Namen**. Ab jetzt erinnert sich die Welt an dich.
@@ -107,7 +107,8 @@ Ein Erinnerungsblitz zeigt dir, **dass du der Cantor warst.**
 | 6 *The Sunless Road* | Noonspire | Die Stadt ohne Laut. Du begegnest Severin und erfährst: **Die Götter wollten sterben.** |
 | 7 *The Choir Betrayed* | Kathedrale von Noon | **Caspar verrät dich**, um den letzten Vers selbst zu singen. Ennith erwacht durch den Lärm. Ein Begleiter kann sterben, als Story-Entscheidung. |
 
-**Finale von Akt II:** The Hush schlägt zu. **Ein Ort, den der Spieler liebt, wird vergessen.** Welcher es ist, hängt von deinen Entscheidungen ab, im Zweifel Candlewick. Dieser Verlust ist der Tiefpunkt des Spiels.
+**Finale von Akt II:** The Hush schlägt zu. **Candlewick wird vergessen.** Das Dorf steht grau und still im Nebel, und seine Bewohner sind Faded, die nicht wissen, wer sie sind. Das ist der Tiefpunkt des Spiels.
+**Der Verlust ist nicht dauerhaft** (Entscheidung S5). In Akt III gibt es die Pflichtquest **„Every Name Again“**: Du sammelst die Namen der Bewohner, entzündest ihre Kerzen neu und läutest die Glocke des Tals. Danach kehrt Candlewick in **jedem** Ende zurück.
 
 ### AKT III: *Threnod*
 | Kapitel | Kern |
@@ -126,7 +127,7 @@ Im Stil alter RPGs folgen **Epilog-Tafeln**. Für jede Region, jeden Begleiter u
 | # | Ende | Voraussetzung | Ergebnis | Ton |
 |---|---|---|---|---|
 | 1 | **A Song for the Listener** *(geheimes, bestes Ende)* | Enniths Namen gefunden, Ysolde und Severin verschont, genug Begleiter-Loyalität | Du entzündest die **neunte Kerze**, rufst Ennith beim Namen und singst **ein Klagelied für den Trauernden selbst**. Ennith lässt los. Alle Erinnerungen kehren zurück, die Götter ruhen, und die Welt wird von allen gesungen. **Jeder erinnert sich an dich.** | Hoffnungsvoll und bewegend |
-| 2 | **The Cantor's Duty** | Den Threnod regulär vollenden | Die Welt ist gerettet, aber Ennith stirbt **mit allen gehorteten Erinnerungen**. Die Vergangenheit ist für immer verloren, und vergessene Orte kehren nicht zurück. | Bittersüß |
+| 2 | **The Cantor's Duty** | Den Threnod regulär vollenden | Die Welt ist gerettet, aber Ennith stirbt **mit allen gehorteten Erinnerungen**. Die alte Geschichte der Welt (Aldersey, die Ostmark, die Namen der Toten) ist für immer verloren. Was der Spieler selbst gerettet hat, bleibt erhalten. | Bittersüß |
 | 3 | **The One Voice** | Mit Caspar paktieren oder den Vers allein singen | Du oder Caspar werdet **der neue einzige Gott**. Die Welt wird von einer einzigen Stimme getragen. | Düster und ambivalent |
 | 4 | **The Quiet** | Weg der Kirche | Dolor läutet erneut. Die Götter kehren zurück, **aber hohl**, als Unremembered. Es entsteht eine Theokratie leerer Götter. | Düster |
 | 5 | **The Mercy of Hesper** | Weg des Lethe Court | Die ganze Welt trinkt und vergisst alles. Der Hush endet, weil nichts mehr zu vergessen bleibt. Eine unschuldige, geschichtslose Welt. | Melancholisch und unheimlich |
