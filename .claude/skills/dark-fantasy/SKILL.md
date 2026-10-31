@@ -58,7 +58,17 @@ Every shot needs **light sources** (eyes, lanterns, crystals, runes, fire, lava)
    - `fog`, `fog2` `[yTop, yBottom, density, drift]` + `fogCol`; `shimmer` `[xFrom, yTop, yBottom, strength]` for water;
    - `flick` (warm lights: fire, candles), `glow` (pulse of saturated emissive pixels: eyes, crystals, runes);
    - `parts` `[type, amount, spores]` — 0 snow, 1 rising sparks/embers, 2 dust in light shafts, 3 fireflies/wisps —
-     and `pcol` (particle colour); `flash` lightning times.
+     and `pcol` (particle colour); `flash` lightning times; `bats: [count, yMin, yMax]` for flapping bats in the sky.
+   - **`movers` — required, the user wants things IN the image to move, not just a zoom into a photo.**
+     Puppet animation of image regions (max 12 per shot). First make a grid overlay of each keyframe
+     (`ffmpeg -vf drawgrid=w=108:h=192`), read off positions (image coords, y down), then give every figure,
+     light and element something to do:
+     `bob` (c, r, dir, amp ≈ 0.005–0.01, freq, phase) floating/breathing/bobbing;
+     `swing` (c, r, p = pivot, amp in rad ≈ 0.03–0.12) heads, hands, lanterns, wings, boats, staffs;
+     `spin` (c, r, freq rad/s) rune circles, vortex skies; `flow` (c, r, dir, amp ≈ 0.01–0.03, freq) fire, smoke,
+     clouds, lava, magic energy; `wave` (c, r, amp, freq, speed) robes, banners, cloth; `jaw` (c, r, p = hinge line,
+     amp ≈ 0.2) mouths opening. Mask `r` is an ellipse radius; keep it tight around the object, warps smear its edge.
+     Check two snapshots ~1 s apart of the same shot to see that the motion is visible but not rubbery.
 5. **Music:** `python3 tools/music/dark_ambient.py assets/bgm/<slug>.wav <dur> --cuts <dissolve mids> --bells <s>
    [--thunder <s>]` (needs `pip install scipy numpy`). Check `ffmpeg -i x.wav -af ebur128=peak=true -f null -`
    (≈ −16/−17 LUFS, peak < −1 dBFS); say it was measured, not heard.

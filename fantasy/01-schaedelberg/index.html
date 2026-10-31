@@ -50,22 +50,70 @@
           z0: 1.06, z1: 1.30, c0: [0.50, 0.50], c1: [0.56, 0.40], r0: -0.003, r1: 0.003,
           fog: [0.30, 0.62, 0.35, 0.8], fog2: [0.74, 1.0, 0.45, -0.7], fogCol: [0.45, 0.25, 0.75],
           shimmer: [0.25, 0.80, 1.0, 0.35], flick: 1.0, glow: 1.0,
-          parts: [3, 0.7, 0.0], pcol: [0.75, 0.45, 1.0], flash: [] },
+          parts: [3, 0.7, 0.0], pcol: [0.75, 0.45, 1.0], flash: [],
+          movers: [
+            { type: "jaw", c: [0.54, 0.43], r: [0.17, 0.09], p: [0.54, 0.365], amp: 0.22, freq: 1.1, phase: -1.4 },   // the skull mouth opens and closes
+            { type: "bob", c: [0.45, 0.27], r: [0.045, 0.03], dir: [1, 0.3], amp: 0.006, freq: 0.9, phase: 0 },      // eyes look around
+            { type: "bob", c: [0.67, 0.29], r: [0.045, 0.03], dir: [1, 0.3], amp: 0.006, freq: 0.9, phase: 0 },
+            { type: "swing", c: [0.84, 0.74], r: [0.075, 0.06], p: [0.84, 0.69], amp: 0.10, freq: 1.7, phase: 0 },     // lanterns swing in the wind
+            { type: "swing", c: [0.38, 0.67], r: [0.04, 0.035], p: [0.38, 0.645], amp: 0.12, freq: 2.0, phase: 1.0 },
+            { type: "swing", c: [0.53, 0.61], r: [0.03, 0.025], p: [0.53, 0.59], amp: 0.12, freq: 2.2, phase: 2.0 },
+            { type: "flow", c: [0.15, 0.13], r: [0.25, 0.16], dir: [0.8, 0.1], amp: 0.018, freq: 3.0 },             // clouds drift
+            { type: "flow", c: [0.92, 0.42], r: [0.14, 0.14], dir: [-0.6, 0.0], amp: 0.015, freq: 3.0 },
+          ],
+          bats: [7, 0.03, 0.30],
+        },
         { img: "assets/img/s2.jpg", t0: 5.6, t1: 11.4,     // lich in the crystal cave: slow push to the skull face
           z0: 1.04, z1: 1.26, c0: [0.50, 0.52], c1: [0.47, 0.40], r0: 0.003, r1: -0.002,
           fog: [0.55, 0.85, 0.25, 0.5], fog2: [0.82, 1.0, 0.35, -0.6], fogCol: [0.25, 0.55, 0.85],
           shimmer: [0.30, 0.80, 1.0, 1.0], flick: 1.2, glow: 1.4,
-          parts: [1, 0.8, 0.0], pcol: [0.35, 0.95, 1.0], flash: [] },
+          parts: [1, 0.8, 0.0], pcol: [0.35, 0.95, 1.0], flash: [],
+          movers: [
+            { type: "swing", c: [0.66, 0.31], r: [0.08, 0.06], p: [0.63, 0.36], amp: 0.09, freq: 1.6, phase: 0 },      // clawed hand casting
+            { type: "swing", c: [0.30, 0.22], r: [0.07, 0.24], p: [0.30, 0.48], amp: 0.025, freq: 0.8, phase: 1.0 },   // staff + arm raise
+            { type: "swing", c: [0.46, 0.26], r: [0.06, 0.045], p: [0.46, 0.31], amp: 0.06, freq: 0.7, phase: 0.5 },   // head tilts
+            { type: "wave", c: [0.49, 0.58], r: [0.20, 0.22], amp: 0.005, freq: 38.0, speed: 2.4 },                   // robe ripples
+            { type: "spin", c: [0.84, 0.565], r: [0.08, 0.045], amp: 0.0, freq: 0.6 },                                // rune circle turns
+            { type: "bob", c: [0.20, 0.43], r: [0.06, 0.05], dir: [0, 1], amp: 0.008, freq: 1.3, phase: 0 },          // floating rune
+            { type: "bob", c: [0.43, 0.07], r: [0.10, 0.08], dir: [0, 1], amp: 0.007, freq: 0.9, phase: 1.0 },        // floating crystals
+            { type: "bob", c: [0.80, 0.12], r: [0.09, 0.10], dir: [0, 1], amp: 0.006, freq: 0.8, phase: 2.2 },
+            { type: "bob", c: [0.62, 0.22], r: [0.05, 0.06], dir: [0, 1], amp: 0.008, freq: 1.1, phase: 0.4 },
+            { type: "flow", c: [0.30, 0.09], r: [0.06, 0.04], dir: [0.0, -1.0], amp: 0.01, freq: 6.0 },               // orb energy
+          ],
+        },
         { img: "assets/img/s3.jpg", t0: 10.9, t1: 16.6,    // swamp: the troll ferryman glides toward us
           z0: 1.04, z1: 1.24, c0: [0.50, 0.52], c1: [0.48, 0.56], r0: 0.0, r1: 0.0,
           fog: [0.45, 0.80, 0.45, 0.6], fog2: [0.80, 1.0, 0.40, -0.5], fogCol: [0.30, 0.65, 0.40],
           shimmer: [0.0, 0.60, 1.0, 1.0], flick: 1.4, glow: 1.2,
-          parts: [3, 1.0, 0.0], pcol: [0.6, 1.0, 0.35], flash: [] },
+          parts: [3, 1.0, 0.0], pcol: [0.6, 1.0, 0.35], flash: [],
+          movers: [
+            { type: "swing", c: [0.49, 0.60], r: [0.22, 0.20], p: [0.49, 0.70], amp: 0.025, freq: 1.0, phase: 0 },     // boat rocks on the water
+            { type: "bob", c: [0.49, 0.60], r: [0.24, 0.22], dir: [0, 1], amp: 0.006, freq: 2.0, phase: 0.7 },
+            { type: "swing", c: [0.49, 0.43], r: [0.06, 0.045], p: [0.49, 0.47], amp: 0.07, freq: 0.6, phase: 0.3 },   // troll looks around
+            { type: "swing", c: [0.64, 0.53], r: [0.05, 0.05], p: [0.64, 0.49], amp: 0.12, freq: 1.4, phase: 1.2 },    // lantern swings
+            { type: "bob", c: [0.21, 0.73], r: [0.11, 0.035], dir: [0, 1], amp: 0.005, freq: 1.5, phase: 0 },         // lily pads bob
+            { type: "bob", c: [0.80, 0.745], r: [0.12, 0.035], dir: [0, 1], amp: 0.005, freq: 1.3, phase: 1.5 },
+            { type: "bob", c: [0.81, 0.88], r: [0.16, 0.05], dir: [0, 1], amp: 0.006, freq: 1.1, phase: 2.5 },
+            { type: "bob", c: [0.24, 0.95], r: [0.22, 0.05], dir: [0, 1], amp: 0.006, freq: 1.0, phase: 0.8 },
+            { type: "flow", c: [0.55, 0.07], r: [0.05, 0.08], dir: [0.1, -1.0], amp: 0.012, freq: 6.0 },              // chimney smoke
+            { type: "swing", c: [0.82, 0.20], r: [0.20, 0.12], p: [0.88, 0.45], amp: 0.012, freq: 0.6, phase: 0 },     // mushroom sways
+          ],
+        },
         { img: "assets/img/s4.jpg", t0: 16.1, t1: 22.0,    // dragon around the tower: tilt up from the bridge to the fire
           z0: 1.24, z1: 1.10, c0: [0.50, 0.59], c1: [0.46, 0.46], r0: 0.004, r1: -0.002,
           fog: [0.75, 1.0, 0.25, 0.9], fog2: [0.0, 0.3, 0.0, 0.0], fogCol: [0.9, 0.4, 0.15],
           shimmer: [0.0, 0.0, 0.0, 0.0], flick: 2.0, glow: 1.0,
-          parts: [1, 1.0, 0.0], pcol: [1.0, 0.55, 0.15], flash: [] },
+          parts: [1, 1.0, 0.0], pcol: [1.0, 0.55, 0.15], flash: [],
+          movers: [
+            { type: "swing", c: [0.29, 0.29], r: [0.11, 0.08], p: [0.38, 0.30], amp: 0.06, freq: 0.9, phase: 0 },      // dragon head moves
+            { type: "flow", c: [0.12, 0.43], r: [0.17, 0.13], dir: [-1.0, 0.6], amp: 0.03, freq: 5.0 },               // fire streams out
+            { type: "swing", c: [0.88, 0.27], r: [0.12, 0.17], p: [0.80, 0.20], amp: 0.06, freq: 1.3, phase: 0 },      // wing beats
+            { type: "spin", c: [0.20, 0.18], r: [0.30, 0.14], amp: 0.0, freq: 0.06 },                                 // star vortex turns
+            { type: "flow", c: [0.50, 0.93], r: [0.35, 0.08], dir: [1.0, 0.0], amp: 0.012, freq: 4.0 },               // lava flows
+            { type: "flow", c: [0.07, 0.80], r: [0.12, 0.06], dir: [-1.0, 0.2], amp: 0.012, freq: 4.0 },
+            { type: "bob", c: [0.62, 0.60], r: [0.30, 0.25], dir: [0.2, 1], amp: 0.004, freq: 0.8, phase: 0 },        // coils breathe
+          ],
+        },
       ];
       window.__SHOTS = SHOTS;
     </script>
@@ -85,6 +133,9 @@
         uniform float uT, uLocal, uZoom, uRoll, uFade, uFlick, uFlash, uSeed, uGlow;
         uniform vec3 uFogCol, uPCol;
         uniform vec2 uRes;   // internal "game" resolution, e.g. 360x640
+        // movers (puppet animation of image regions): A = type, cx, cy, rx ; B = ry, amp, freq, phase ; C = px, py, dirx/speed, diry
+        uniform vec4 uMA[12], uMB[12], uMC[12];
+        uniform vec3 uBats;  // count, yMin, yMax
         uniform vec2 uCenter, uPan;
         uniform vec4 uFog, uFog2, uShimmer, uParts;
 
@@ -120,6 +171,40 @@
           float depth = smoothstep(0.25, 1.0, s.y);
           vec2 uv = uCenter + d / (uZoom * (1.0 + depth * 0.035 * uLocal / 6.0));
           uv += uPan * depth * 0.012;
+          // ---- puppet animation: warp regions of the keyframe (inverse mapping) ----
+          const vec2 ASP = vec2(1.0, 1.7778);
+          for (int i = 0; i < 12; i++) {
+            float ty = uMA[i].x;
+            if (ty < 0.5) continue;
+            vec2 mc = uMA[i].yz, mr = vec2(uMA[i].w, uMB[i].x);
+            float amp = uMB[i].y, fr = uMB[i].z, ph = uMB[i].w;
+            vec2 piv = uMC[i].xy, dir = uMC[i].zw;
+            float e = length((uv - mc) / mr);
+            float m = smoothstep(1.0, 0.5, e);
+            if (m <= 0.0) continue;
+            if (ty < 1.5) {                       // 1 bob: translate along dir
+              uv -= m * normalize(dir) * amp * sin(fr * uLocal + ph);
+            } else if (ty < 2.5) {                // 2 swing: pendulum rotation around pivot
+              float a = -m * amp * sin(fr * uLocal + ph);
+              vec2 v = (uv - piv) * ASP;
+              v = mat2(cos(a), -sin(a), sin(a), cos(a)) * v;
+              uv = piv + v / ASP;
+            } else if (ty < 3.5) {                // 3 spin: continuous rotation around the centre
+              float a = -fr * uLocal * smoothstep(1.0, 0.8, e);
+              vec2 v = (uv - mc) * ASP;
+              v = mat2(cos(a), -sin(a), sin(a), cos(a)) * v;
+              uv = mc + v / ASP;
+            } else if (ty < 4.5) {                // 4 flow: noise warp advected along dir (fire, smoke, clouds, lava)
+              vec2 q = uv * fr * 4.0 - dir * uLocal * 1.6;
+              uv -= m * amp * vec2(vn(q) - 0.5, vn(q + 17.3) - 0.5) * 2.0;
+            } else if (ty < 5.5) {                // 5 wave: cloth ripple
+              uv.x += m * amp * sin(uv.y * fr - uLocal * dir.x + ph);
+            } else {                              // 6 jaw: stretch downward below the pivot line
+              float open = amp * (0.5 + 0.5 * sin(fr * uLocal + ph));
+              float below = smoothstep(piv.y - 0.005, piv.y + 0.01, uv.y);
+              uv.y = mix(uv.y, piv.y + (uv.y - piv.y) / (1.0 + open), m * below);
+            }
+          }
           // cold shimmer (water, wet stone): tiny wobbling refraction
           float shz = uShimmer.w * smoothstep(uShimmer.y - 0.04, uShimmer.y, uv.y) * smoothstep(uShimmer.z + 0.04, uShimmer.z, uv.y)
                     * smoothstep(uShimmer.x - 0.1, uShimmer.x + 0.05, uv.x);
@@ -189,6 +274,21 @@
           }
           pcol = uPCol;
           c += pcol * pt * uParts.y * 0.7;
+          // bats flapping across the sky (screen space)
+          for (int i = 0; i < 8; i++) {
+            if (float(i) >= uBats.x) break;
+            float fi = float(i);
+            float sp = 0.06 + 0.05 * fract(fi * 0.37);
+            float bx = fract(fi * 0.29 + uLocal * sp) * 1.3 - 0.15;
+            float by = mix(uBats.y, uBats.z, fract(fi * 0.61)) + sin(uLocal * 1.3 + fi) * 0.02;
+            float sz = 0.018 + 0.012 * fract(fi * 0.83);
+            vec2 q = (s - vec2(bx, by)) * vec2(1.0, 1.7778) / sz;
+            float flap = sin(uLocal * 14.0 + fi * 2.0);
+            float wy = -abs(q.x) * 0.55 * flap + q.x * q.x * 0.25;
+            float wing = step(abs(q.x), 1.0) * step(abs(q.y - wy), 0.22 * (1.05 - abs(q.x)));
+            float body = step(length(q * vec2(2.6, 1.6)), 0.5);
+            c = mix(c, vec3(0.03, 0.01, 0.05), max(wing, body));
+          }
           if (uParts.z > 0.0) {
             c += vec3(0.7, 0.8, 1.0) * particles(ps, 22.0, vec2(-0.1, -0.35), 0.05, 11.0) * uParts.z * 0.25;
           }
@@ -234,7 +334,10 @@
       gl.enableVertexAttribArray(loc);
       gl.vertexAttribPointer(loc, 2, gl.FLOAT, false, 0, 0);
       const U = {};
-      for (const n of ["uImg", "uT", "uLocal", "uZoom", "uRoll", "uFade", "uFlick", "uFlash", "uSeed", "uGlow", "uFogCol", "uPCol", "uRes", "uCenter", "uPan", "uFog", "uFog2", "uShimmer", "uParts"]) U[n] = gl.getUniformLocation(prog, n);
+      for (const n of ["uImg", "uT", "uLocal", "uZoom", "uRoll", "uFade", "uFlick", "uFlash", "uSeed", "uGlow", "uFogCol", "uPCol", "uRes", "uBats", "uCenter", "uPan", "uFog", "uFog2", "uShimmer", "uParts"]) U[n] = gl.getUniformLocation(prog, n);
+      U.uMA = gl.getUniformLocation(prog, "uMA");
+      U.uMB = gl.getUniformLocation(prog, "uMB");
+      U.uMC = gl.getUniformLocation(prog, "uMC");
       gl.viewport(0, 0, W, H);
 
       const clamp = (x, a = 0, b = 1) => Math.min(b, Math.max(a, x));
@@ -291,6 +394,22 @@
         gl.uniform1f(U.uFlick, s.flick);
         gl.uniform1f(U.uGlow, s.glow);
         gl.uniform2f(U.uRes, RES[0], RES[1]);
+        const b = s.bats || [0, 0, 0];
+        gl.uniform3f(U.uBats, b[0], b[1], b[2]);
+        if (!s._m) {
+          const T = { bob: 1, swing: 2, spin: 3, flow: 4, wave: 5, jaw: 6 };
+          const A = new Float32Array(48), B = new Float32Array(48), C = new Float32Array(48);
+          (s.movers || []).slice(0, 12).forEach((m, k) => {
+            const p = m.p || m.c, d = m.dir || [m.speed || 0, 0];
+            A.set([T[m.type], m.c[0], m.c[1], m.r[0]], k * 4);
+            B.set([m.r[1], m.amp || 0, m.freq || 0, m.phase || 0], k * 4);
+            C.set([p[0], p[1], m.type === "wave" ? (m.speed || 0) : d[0], m.type === "wave" ? 0 : d[1]], k * 4);
+          });
+          s._m = { A, B, C };
+        }
+        gl.uniform4fv(U.uMA, s._m.A);
+        gl.uniform4fv(U.uMB, s._m.B);
+        gl.uniform4fv(U.uMC, s._m.C);
         gl.uniform3fv(U.uFogCol, s.fogCol);
         gl.uniform3fv(U.uPCol, s.pcol);
         gl.uniform1f(U.uFlash, flashAt(t, s.flash));
