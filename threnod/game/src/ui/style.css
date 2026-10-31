@@ -272,8 +272,6 @@ html, body {
   top: 16px;
   width: 152px;
   height: 152px;
-  object-fit: cover;
-  image-rendering: pixelated;
   border: 4px double var(--ink);
   background: var(--night);
 }

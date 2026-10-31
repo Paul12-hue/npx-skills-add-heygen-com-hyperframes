@@ -198,7 +198,7 @@ export class Humanoid {
     // eyes with glossy irises (and lids for blinking), attached to the head bone
     const head = this.bones.get('head')!;
     const hp = spec.joints.head;
-    const sclera = new THREE.MeshPhongMaterial({ color: 0xe6ded6, shininess: 90, specular: 0x444444 });
+    const sclera = new THREE.MeshPhongMaterial({ color: 0xf4eee8, shininess: 90, specular: 0x444444 });
     const irisMat = new THREE.MeshPhongMaterial({
       map: irisTexture(spec.eyes.iris),
       shininess: 100,
@@ -213,8 +213,8 @@ export class Humanoid {
       const eye = new THREE.Group();
       eye.position.set(pos[0] - hp[0], pos[1] - hp[1], pos[2] - hp[2]);
       eye.add(new THREE.Mesh(new THREE.SphereGeometry(r, 16, 12), sclera));
-      const iris = new THREE.Mesh(new THREE.CircleGeometry(r * 0.72, 20), irisMat);
-      iris.position.z = -r * 0.9;
+      const iris = new THREE.Mesh(new THREE.CircleGeometry(r * 0.66, 20), irisMat);
+      iris.position.z = -r * 0.94;
       iris.rotation.y = Math.PI;
       eye.add(iris);
       const lid = new THREE.Mesh(new THREE.SphereGeometry(r * 1.12, 14, 10), lidMat);

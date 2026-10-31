@@ -1,9 +1,10 @@
 import * as THREE from 'three';
+import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import { LAYOUT, Terrain, distToPath, lakeFactor } from './terrain';
 import { rng } from './noise';
 import * as P from './props';
 import { Sky } from './Sky';
-import { createTextures, glowSprite, mistSprite, type TexPair, type TextureSet } from '../render/textures';
+import { createTextures, flowerSprite, glowSprite, grassSprite, mistSprite, type TexPair, type TextureSet } from '../render/textures';
 
 export interface Collider {
   x: number;
@@ -35,7 +36,7 @@ export class World {
   readonly textures: TextureSet;
   readonly terrain: Terrain;
   readonly sky = new Sky();
-  readonly fog = new THREE.FogExp2(0x1a1450, 0.007);
+  readonly fog = new THREE.FogExp2(0x2a2470, 0.0062);
   readonly colliders: Collider[] = [];
   readonly interactables: InteractableDef[] = [];
   readonly spawn = new THREE.Vector3(LAYOUT.cemetery.x + 2.6, 0, LAYOUT.cemetery.z + 1.5);
@@ -66,6 +67,7 @@ export class World {
     this.buildMine(batch);
     this.flush(batch);
     this.buildAtmosphere();
+    this.buildGrass();
     this.spawn.y = this.terrain.getHeight(this.spawn.x, this.spawn.z);
   }
 
@@ -123,11 +125,11 @@ export class World {
 
   private texScale(k: P.MatKey): number {
     switch (k) {
-      case 'shingle': return 0.45;
-      case 'stone': return 0.4;
-      case 'wood': case 'darkwood': return 0.5;
-      case 'organic': case 'foliage': return 0.55;
-      default: return 0.35;
+      case 'shingle': return 0.35;
+      case 'stone': return 0.32;
+      case 'wood': case 'darkwood': return 0.42;
+      case 'organic': case 'foliage': return 0.45;
+      default: return 0.3;
     }
   }
 
@@ -408,6 +410,55 @@ export class World {
     this.colliders.push({ x, z, r: 2.6 }, { x: x - 3.4, z: z + 2, r: 2.6 }, { x: x + 3.4, z: z - 2, r: 2.6 });
     this.light(0x40ff40, 4, 14, x - 0.5, this.y(x, z) + 2, z - 1.5);
     this.interactables.push({ id: 'mine', x, z: z - 3, radius: 3.4, verb: 'Look', dialogue: 'mine_entrance' });
+  }
+
+  // ---------------------------------------------------------------- grass & flowers
+  /** Billboard grass tufts and flowers – crossed quads, the classic old-game meadow. */
+  private buildGrass(): void {
+    const r = rng(314);
+    const quad = () => {
+      const a = new THREE.PlaneGeometry(1.1, 0.7);
+      a.translate(0, 0.35, 0);
+      const b = a.clone().rotateY(Math.PI / 2);
+      const g = mergeGeometries([a, b], false);
+      if (!g) throw new Error('grass merge failed');
+      return g;
+    };
+    const kinds: [THREE.Texture, number, number][] = [
+      [grassSprite(), 2600, 1],
+      [flowerSprite(), 420, 0.8],
+    ];
+    for (const [tex, count, size] of kinds) {
+      const mat = new THREE.MeshLambertMaterial({ map: tex, alphaTest: 0.5, side: THREE.DoubleSide });
+      const mesh = new THREE.InstancedMesh(quad(), mat, count);
+      mesh.name = 'grass';
+      const m = new THREE.Matrix4();
+      const q = new THREE.Quaternion();
+      const col = new THREE.Color();
+      let n = 0;
+      let tries = 0;
+      while (n < count && tries < count * 12) {
+        tries++;
+        const x = (r() - 0.5) * 200;
+        const z = (r() - 0.5) * 200;
+        if (Math.hypot(x, z) > 98) continue;
+        if (lakeFactor(x, z) < 1.12) continue;
+        if (distToPath(x, z) < 2.3) continue;
+        if (Math.hypot(x - LAYOUT.village.x, z - LAYOUT.village.z) < 9) continue;
+        const y = this.y(x, z);
+        if (y < 0.4) continue;
+        if (this.colliders.some((c) => Math.hypot(c.x - x, c.z - z) < c.r + 0.3)) continue;
+        const s = size * (0.7 + r() * 0.7);
+        m.compose(new THREE.Vector3(x, y - 0.05, z), q.setFromEuler(new THREE.Euler(0, r() * 3.14, 0)), new THREE.Vector3(s, s, s));
+        mesh.setMatrixAt(n, m);
+        mesh.setColorAt(n, col.setHSL(0.28 + r() * 0.12, 0.6, 0.45 + r() * 0.25));
+        n++;
+      }
+      mesh.count = n;
+      mesh.instanceMatrix.needsUpdate = true;
+      if (mesh.instanceColor) mesh.instanceColor.needsUpdate = true;
+      this.scene.add(mesh);
+    }
   }
 
   // ---------------------------------------------------------------- atmosphere

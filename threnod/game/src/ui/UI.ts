@@ -1,10 +1,5 @@
 import type { Choice, DialogueNode } from '../dialogue/Dialogue';
 import type { Settings } from '../save/Save';
-import unsungPortrait from '../assets/portraits/unsung.png';
-import tildePortrait from '../assets/portraits/tilde.png';
-
-/** Dialogue portraits (generated with Canva AI in the style of the dark-fantasy videos). */
-const PORTRAITS: Record<string, string> = { Tilde: tildePortrait, Unsung: unsungPortrait };
 
 /** Escape HTML, then allow *emphasis*. */
 function format(text: string): string {
@@ -49,7 +44,6 @@ export class UI {
   private toast: HTMLElement;
   private dialogue: HTMLElement;
   private dlgSpeaker: HTMLElement;
-  private dlgPortrait: HTMLImageElement;
   private dlgText: HTMLElement;
   private dlgChoices: HTMLElement;
   private dlgHint: HTMLElement;
@@ -104,9 +98,7 @@ export class UI {
     this.dlgText = el('div', 'text');
     this.dlgChoices = el('div', 'choices');
     this.dlgHint = el('div', 'hint');
-    this.dlgPortrait = el('img', 'portrait');
-    this.dlgPortrait.alt = '';
-    this.dialogue.append(this.dlgPortrait, this.dlgSpeaker, this.dlgText, this.dlgChoices, this.dlgHint);
+    this.dialogue.append(this.dlgSpeaker, this.dlgText, this.dlgChoices, this.dlgHint);
     this.dialogue.addEventListener('click', () => {
       if (this.choiceCount === 0) h.onDialogueAdvance();
     });
@@ -164,7 +156,7 @@ export class UI {
     });
     row('Graphics quality', res);
 
-    const toggle = (key: 'bloom' | 'grain' | 'retro' | 'invertY' | 'showFps', label: string) => {
+    const toggle = (key: 'bloom' | 'grain' | 'invertY' | 'showFps', label: string) => {
       const c = el('input');
       c.type = 'checkbox';
       c.id = 'set-' + key;
@@ -175,7 +167,19 @@ export class UI {
       });
       row(label, c);
     };
-    toggle('retro', 'Old-game look (pixels, scanlines)');
+    const look = el('select');
+    look.id = 'set-look';
+    for (const [v, t] of [['mix', 'Old console (mixed)'], ['pixel', 'Pixel (chunky)'], ['smooth', 'Smooth (modern)']] as const) {
+      const o = el('option', '', t);
+      o.value = v;
+      if (s.look === v) o.selected = true;
+      look.append(o);
+    }
+    look.addEventListener('change', () => {
+      s.look = look.value as Settings['look'];
+      change();
+    });
+    row('Picture style', look);
     toggle('bloom', 'Glow (bloom)');
     toggle('grain', 'Film grain');
     toggle('invertY', 'Invert camera');
@@ -267,21 +271,14 @@ export class UI {
   }
 
   // ------------------------------------------------------------ dialogue
-  showDialogue(node: DialogueNode, choices: Choice[], touch: boolean): void {
+  showDialogue(node: DialogueNode, choices: Choice[], touch: boolean, hasPortrait = false): void {
     this.dialogue.classList.remove('hidden');
     this.prompt.classList.add('hidden');
     this.actionBtn.classList.add('hidden');
     this.dlgSpeaker.textContent = node.speaker ?? '';
     this.dlgSpeaker.style.display = node.speaker ? '' : 'none';
     this.dialogue.classList.toggle('narration', !node.speaker);
-    // the speaker's portrait; narration and the player's answers show the Unsung
-    const who = node.speaker ?? 'Unsung';
-    const src = choices.length && !node.speaker ? PORTRAITS.Unsung : PORTRAITS[who];
-    this.dialogue.classList.toggle('has-portrait', !!src);
-    if (src) {
-      this.dlgPortrait.src = src;
-      this.dlgPortrait.alt = who;
-    }
+    this.dialogue.classList.toggle('has-portrait', hasPortrait);
     this.typing = { full: node.text, shown: 0 };
     this.dlgText.innerHTML = '';
     this.dlgChoices.innerHTML = '';
@@ -295,6 +292,11 @@ export class UI {
     this.dlgChoices.style.visibility = 'hidden';
     this.dlgHint.textContent = choices.length ? '' : touch ? 'tap to continue' : 'E / Enter to continue';
     this.highlightChoice();
+  }
+
+  /** Attach the live 3D portrait canvas to the dialogue box. */
+  setPortraitCanvas(c: HTMLCanvasElement): void {
+    this.dialogue.prepend(c);
   }
 
   hideDialogue(): void {

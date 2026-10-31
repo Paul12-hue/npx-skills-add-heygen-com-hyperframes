@@ -41,8 +41,8 @@ function adultJoints(h: number): Joints {
 /** Where the eyeballs sit for a face centred at c with scale s. */
 export function eyePositions(c: Vec3, s: number): [Vec3, Vec3] {
   return [
-    [c[0] + 0.034 * s, c[1] + 0.02 * s, c[2] - 0.086 * s],
-    [c[0] - 0.034 * s, c[1] + 0.02 * s, c[2] - 0.086 * s],
+    [c[0] + 0.034 * s, c[1] + 0.02 * s, c[2] - 0.091 * s],
+    [c[0] - 0.034 * s, c[1] + 0.02 * s, c[2] - 0.091 * s],
   ];
 }
 
@@ -80,8 +80,8 @@ function face(c: Vec3, s: number, skin: string, lip: string, brow: string, blush
   // eyelids frame the eyeballs (no dark sockets)
   for (const x of [0.034, -0.034]) {
     prims.push(
-      { shape: { kind: 'ellipsoid', c: p(x, 0.032, -0.088), r: r(0.021, 0.008, 0.016) }, bone: 'head', color: skin, blend: 0.006 * s },
-      { shape: { kind: 'ellipsoid', c: p(x, 0.006, -0.087), r: r(0.018, 0.005, 0.013) }, bone: 'head', color: skin, blend: 0.006 * s },
+      { shape: { kind: 'ellipsoid', c: p(x, 0.041, -0.083), r: r(0.022, 0.005, 0.015) }, bone: 'head', color: skin, blend: 0.005 * s },
+      { shape: { kind: 'ellipsoid', c: p(x, -0.001, -0.083), r: r(0.018, 0.0035, 0.012) }, bone: 'head', color: skin, blend: 0.005 * s },
     );
   }
   return prims;
@@ -118,7 +118,7 @@ function limbs(J: Joints, o: { sleeve: string; glove: string; trousers: string; 
 /** The Unsung: hooded, grey-violet wanderer with pale skin and pale violet eyes. */
 export function unsungSpec(): FigureSpec {
   const J = adultJoints(1.76);
-  const C = { skin: 'eab996', blush: 'e69a86', hair: 'b8b0c8', lip: 'c47a6c', brow: '6a6078', hood: '4a3d6e', hoodIn: '2a2240', tunic: '3a4560', belt: '4a2c1c', buckle: 'c9a050', trousers: '2c2a34', boot: '3a2618', glove: '3a2618', scarf: '6a4a8a', cape: '3e3260' };
+  const C = { skin: 'eec4a6', blush: 'eab0a0', hair: 'b8b0c8', lip: 'c47a6c', brow: '6a6078', hood: '4a3d6e', hoodIn: '2a2240', tunic: '3a4560', belt: '4a2c1c', buckle: 'c9a050', trousers: '2c2a34', boot: '3a2618', glove: '3a2618', scarf: '6a4a8a', cape: '3e3260' };
   const H = J.head;
   const prims: Prim[] = [
     // long travelling cloak, open at the front
@@ -146,7 +146,7 @@ export function unsungSpec(): FigureSpec {
     { shape: { kind: 'cone', a: [0, 1.5, 0.15], b: [0, 1.3, 0.17], ra: 0.09, rb: 0.03 }, bone: 'chest', color: C.hood, blend: 0.05 },
     // tousled ash-silver hair
     { shape: { kind: 'shell', c: add(H, [0, 0.115, 0.012]), r: [0.1, 0.112, 0.114], thickness: 0.014 }, bone: 'head', color: C.hair, blend: 0.006 },
-    { shape: { kind: 'box', c: add(H, [0, 0.04, -0.12]), h: [0.2, 0.085, 0.07], round: 0 }, bone: 'head', color: C.hair, subtract: true },
+    { shape: { kind: 'box', c: add(H, [0, 0.055, -0.125]), h: [0.2, 0.095, 0.07], round: 0 }, bone: 'head', color: C.hair, subtract: true },
     ...face(add(H, [0, 0.085, 0]), 1, C.skin, C.lip, C.brow, C.blush),
     { shape: { kind: 'ellipsoid', c: add(H, [0.03, 0.2, -0.07]), r: [0.06, 0.028, 0.05] }, bone: 'head', color: C.hair, blend: 0.03 },
     { shape: { kind: 'ellipsoid', c: add(H, [-0.045, 0.19, -0.075]), r: [0.045, 0.024, 0.045] }, bone: 'head', color: C.hair, blend: 0.03 },
@@ -159,7 +159,7 @@ export function unsungSpec(): FigureSpec {
     name: 'unsung',
     joints: J,
     prims,
-    eyes: { ...eyesAt(add(H, [0, 0.085, 0]), 1), radius: 0.0165, iris: '7a6ab8', glow: 0 },
+    eyes: { ...eyesAt(add(H, [0, 0.085, 0]), 1), radius: 0.0185, iris: '7a6ab8', glow: 0 },
     bounds: { min: [-0.42, -0.02, -0.3], max: [0.42, 1.98, 0.42] },
   };
 }
@@ -171,7 +171,7 @@ export function tildeSpec(): FigureSpec {
   const J0 = adultJoints(h);
   // children: relatively larger heads, shorter legs
   const J: Joints = { ...J0, head: [0, J0.head[1] - 0.02, 0], neck: [0, J0.neck[1] - 0.01, 0] };
-  const C = { skin: 'f0c09c', blush: 'ec9a84', lip: 'cc7c6c', brow: '8a3a18', hair: 'b4501e', smock: '5a6a3a', apron: 'b8a68a', sleeve: '7a5a3a', trousers: '4a3a2a', boot: '3a2618', glove: 'e8b898', patch: '8a4a2a' };
+  const C = { skin: 'f2caae', blush: 'eeb0a0', lip: 'cc7c6c', brow: '8a3a18', hair: 'b4501e', smock: '5a6a3a', apron: 'b8a68a', sleeve: '7a5a3a', trousers: '4a3a2a', boot: '3a2618', glove: 'e8b898', patch: '8a4a2a' };
   const H = J.head;
   const hs = 1.08; // head scale relative to body
   const prims: Prim[] = [
@@ -186,9 +186,9 @@ export function tildeSpec(): FigureSpec {
     { shape: { kind: 'ellipsoid', c: [0, J.neck[1] - 0.02, 0], r: [0.1, 0.03, 0.08] }, bone: 'chest', color: C.apron, blend: 0.02 },
     // hair: cap (cut open over the face), fringe and two braids
     { shape: { kind: 'shell', c: add(H, [0, 0.1, 0.014]), r: [0.102 * hs, 0.112 * hs, 0.114 * hs], thickness: 0.012 }, bone: 'head', color: C.hair, blend: 0.006 },
-    { shape: { kind: 'box', c: add(H, [0, 0.03, -0.12]), h: [0.2, 0.08, 0.06], round: 0 }, bone: 'head', color: C.hair, subtract: true },
+    { shape: { kind: 'box', c: add(H, [0, 0.06, -0.125]), h: [0.2, 0.105, 0.065], round: 0 }, bone: 'head', color: C.hair, subtract: true },
     ...face(add(H, [0, 0.08, 0]), hs, C.skin, C.lip, C.brow, C.blush),
-    { shape: { kind: 'ellipsoid', c: add(H, [0, 0.19, -0.06]), r: [0.085, 0.03, 0.05] }, bone: 'head', color: C.hair, blend: 0.03 },
+    { shape: { kind: 'ellipsoid', c: add(H, [0.02, 0.205, -0.07]), r: [0.075, 0.026, 0.045] }, bone: 'head', color: C.hair, blend: 0.03 },
     { shape: { kind: 'cone', a: add(H, [0.08, 0.06, 0.04]), b: add(H, [0.1, -0.16, 0.05]), ra: 0.028, rb: 0.018 }, bone: 'head', color: C.hair, blend: 0.02 },
     { shape: { kind: 'cone', a: add(H, [-0.08, 0.06, 0.04]), b: add(H, [-0.1, -0.16, 0.05]), ra: 0.028, rb: 0.018 }, bone: 'head', color: C.hair, blend: 0.02 },
     { shape: { kind: 'ellipsoid', c: add(H, [0.1, -0.18, 0.05]), r: [0.022, 0.012, 0.022] }, bone: 'head', color: C.patch, blend: 0.004 },
@@ -199,7 +199,7 @@ export function tildeSpec(): FigureSpec {
     name: 'tilde',
     joints: J,
     prims,
-    eyes: { ...eyesAt(add(H, [0, 0.08, 0]), hs), radius: 0.0175, iris: '3a8a5a', glow: 0 },
+    eyes: { ...eyesAt(add(H, [0, 0.08, 0]), hs), radius: 0.019, iris: '3a8a5a', glow: 0 },
     bounds: { min: [-0.36, -0.02, -0.24], max: [0.36, 1.62, 0.24] },
   };
 }

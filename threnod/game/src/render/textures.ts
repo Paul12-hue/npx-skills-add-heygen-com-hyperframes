@@ -43,7 +43,9 @@ function paint(fn: (u: number, v: number) => [number, number]): TexPair {
   const ib = xb.createImageData(SIZE, SIZE);
   for (let y = 0; y < SIZE; y++) {
     for (let x = 0; x < SIZE; x++) {
-      const [l, b] = fn(x / SIZE, y / SIZE);
+      const [l0, b] = fn(x / SIZE, y / SIZE);
+      // punchy, hand-painted contrast like old game textures
+      const l = (l0 - 0.62) * 1.7 + 0.72;
       const i = (y * SIZE + x) * 4;
       const lv = Math.max(0, Math.min(255, l * 255));
       const bv = Math.max(0, Math.min(255, b * 255));
@@ -243,4 +245,58 @@ export function createTextures(): TextureSet {
     organic: organicTexture(),
     ground: groundTexture(),
   };
+}
+
+/** Grass tuft billboard: a few painted blades on a transparent background. */
+export function grassSprite(): THREE.Texture {
+  const [c, x] = canvas();
+  const r = rng(5);
+  x.clearRect(0, 0, SIZE, SIZE);
+  for (let i = 0; i < 22; i++) {
+    const bx = SIZE * (0.15 + r() * 0.7);
+    const h = SIZE * (0.45 + r() * 0.5);
+    const lean = (r() - 0.5) * SIZE * 0.35;
+    const g = 120 + Math.floor(r() * 110);
+    x.fillStyle = `rgb(${Math.floor(g * 0.45)},${g},${Math.floor(g * 0.5)})`;
+    x.beginPath();
+    x.moveTo(bx - 4, SIZE);
+    x.quadraticCurveTo(bx + lean * 0.3, SIZE - h * 0.6, bx + lean, SIZE - h);
+    x.quadraticCurveTo(bx + lean * 0.3 + 3, SIZE - h * 0.6, bx + 4, SIZE);
+    x.fill();
+  }
+  const t = toTexture(c, true);
+  t.wrapS = t.wrapT = THREE.ClampToEdgeWrapping;
+  return t;
+}
+
+/** Small wild flowers for the meadows. */
+export function flowerSprite(): THREE.Texture {
+  const [c, x] = canvas();
+  const r = rng(8);
+  x.clearRect(0, 0, SIZE, SIZE);
+  const colors = ['#f2e6c8', '#ffd060', '#c080ff', '#ff80c0', '#80c0ff'];
+  for (let i = 0; i < 7; i++) {
+    const fx = SIZE * (0.15 + r() * 0.7);
+    const fy = SIZE * (0.15 + r() * 0.45);
+    x.strokeStyle = '#3a7a3a';
+    x.lineWidth = 3;
+    x.beginPath();
+    x.moveTo(fx, fy);
+    x.lineTo(fx + (r() - 0.5) * 10, SIZE);
+    x.stroke();
+    x.fillStyle = colors[Math.floor(r() * colors.length)];
+    for (let k = 0; k < 5; k++) {
+      const a = (k / 5) * Math.PI * 2;
+      x.beginPath();
+      x.arc(fx + Math.cos(a) * 6, fy + Math.sin(a) * 6, 5, 0, Math.PI * 2);
+      x.fill();
+    }
+    x.fillStyle = '#ffe080';
+    x.beginPath();
+    x.arc(fx, fy, 4, 0, Math.PI * 2);
+    x.fill();
+  }
+  const t = toTexture(c, true);
+  t.wrapS = t.wrapT = THREE.ClampToEdgeWrapping;
+  return t;
 }

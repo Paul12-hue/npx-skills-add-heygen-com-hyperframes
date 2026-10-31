@@ -4,6 +4,7 @@ import { World } from '../world/World';
 import { Player } from '../player/Player';
 import { Humanoid } from '../character/Humanoid';
 import { tildeSpec } from '../character/figures';
+import { PortraitRenderer } from '../character/Portrait';
 import { ThirdPersonCamera } from '../camera/ThirdPersonCamera';
 import { Input } from '../input/Input';
 import { TouchControls } from '../input/TouchControls';
@@ -47,6 +48,7 @@ export class Game {
   private fpsFrames = 0;
   private fps = 0;
   private titleAngle = 0;
+  private portrait = new PortraitRenderer();
 
   constructor(canvas: HTMLCanvasElement, uiRoot: HTMLElement) {
     this.settings = Storage.loadSettings();
@@ -62,7 +64,7 @@ export class Game {
       quality: this.settings.quality,
       bloom: this.settings.bloom,
       grain: this.settings.grain,
-      retro: this.settings.retro,
+      look: this.settings.look,
     });
     this.input = new Input(canvas);
     this.touch = new TouchControls(canvas, this.input);
@@ -96,6 +98,7 @@ export class Game {
       this.settings,
     );
 
+    this.ui.setPortraitCanvas(this.portrait.canvas);
     this.player.place(this.world.spawn.x, this.world.spawn.z, this.world.spawnYaw);
     window.addEventListener('resize', () => this.resize());
     document.addEventListener('visibilitychange', () => {
@@ -124,7 +127,7 @@ export class Game {
 
   private applySettings(): void {
     const s = this.settings;
-    this.renderer.setOptions({ quality: s.quality, bloom: s.bloom, grain: s.grain, retro: s.retro });
+    this.renderer.setOptions({ quality: s.quality, bloom: s.bloom, grain: s.grain, look: s.look });
     this.world.sky.setShadowSize(this.renderer.shadowSize);
     this.input.invertY = s.invertY;
     this.input.sensitivity = s.sensitivity;
@@ -199,7 +202,10 @@ export class Game {
 
   private showNode(): void {
     if (!this.dialogue) return;
-    this.ui.showDialogue(this.dialogue.node, this.dialogue.choices, this.input.touchMode);
+    // the speaker's face; narration and the player's own answers show the Unsung
+    const who = this.dialogue.node.speaker ?? 'Unsung';
+    this.portrait.show(who);
+    this.ui.showDialogue(this.dialogue.node, this.dialogue.choices, this.input.touchMode, this.portrait.has(who));
   }
 
   private dialogueAdvance(): void {
@@ -258,6 +264,7 @@ export class Game {
     for (const n of this.npcs) n.mesh.animate(dt, 0, this.clock.elapsedTime);
     this.world.update(dt, this.hour, this.player.position, this.cam.camera);
     this.renderer.render(dt);
+    if (this.mode === 'dialogue') this.portrait.render(dt);
     this.ui.update(dt);
     this.input.endFrame();
     this.input.clearPressed(); // unconsumed presses never leak into the next frame

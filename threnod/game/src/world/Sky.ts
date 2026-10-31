@@ -196,9 +196,9 @@ export class Sky {
 
     this.hemi.color.copy(s.top).lerp(new THREE.Color(0x7a8aff), 0.6);
     this.hemi.groundColor.set(0x3a2010);
-    this.hemi.intensity = s.ambient * 2.2;
+    this.hemi.intensity = s.ambient * 3.0;
     this.moonLight.color.copy(s.moon);
-    this.moonLight.intensity = s.moonIntensity * 1.5;
+    this.moonLight.intensity = s.moonIntensity * 1.8;
 
     // the moon hangs low in the north-east; it crosses slowly through the night
     const ang = -0.9 + ((hour + 6) % 24) * 0.04;

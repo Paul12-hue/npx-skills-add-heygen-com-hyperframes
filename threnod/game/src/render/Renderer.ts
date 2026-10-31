@@ -7,13 +7,24 @@ import { ShaderPass } from 'three/examples/jsm/postprocessing/ShaderPass.js';
 
 export type Quality = 'low' | 'medium' | 'high';
 
+/**
+ * smooth: clean CGI picture.
+ * mix:    old-console look – reduced resolution scaled up softly, fine colour steps, faint scanlines.
+ * pixel:  hard pixels and coarse colour steps, like the dark-fantasy videos.
+ */
+export type Look = 'smooth' | 'mix' | 'pixel';
+
 export interface RenderOptions {
   quality: Quality;
   bloom: boolean;
   grain: boolean;
-  /** Old-game look: low resolution with hard pixels, colour steps + dithering, scanlines. */
-  retro: boolean;
+  look: Look;
 }
+
+const LOOKS: Record<Exclude<Look, 'smooth'>, { scale: number; levels: number; scan: number; bleed: number }> = {
+  mix: { scale: 1.6, levels: 40, scan: 0.045, bleed: 0.3 },
+  pixel: { scale: 1, levels: 17, scan: 0.08, bleed: 0.45 },
+};
 
 /**
  * Per quality level: the internal picture height in retro mode (it is scaled up with
@@ -38,6 +49,9 @@ const GradeShader = {
     uSaturation: { value: 1.28 },
     uResolution: { value: new THREE.Vector2(1, 1) },
     uRetro: { value: 1 },
+    uLevels: { value: 17 },
+    uScan: { value: 0.08 },
+    uBleed: { value: 0.45 },
   },
   vertexShader: /* glsl */ `
     varying vec2 vUv;
@@ -49,6 +63,9 @@ const GradeShader = {
     uniform float uSaturation;
     uniform vec2 uResolution;
     uniform float uRetro;
+    uniform float uLevels;
+    uniform float uScan;
+    uniform float uBleed;
     varying vec2 vUv;
     float hash(vec2 p) { return fract(sin(dot(p, vec2(12.9898, 78.233))) * 43758.5453); }
     float bayer4(vec2 p) {
@@ -68,7 +85,7 @@ const GradeShader = {
         // slight horizontal colour bleed, like an old video signal
         vec3 left = texture2D(tDiffuse, vUv - vec2(1.0 / uResolution.x, 0.0)).rgb;
         float y0 = dot(c, vec3(0.299, 0.587, 0.114));
-        vec3 chroma = mix(c - y0, left - dot(left, vec3(0.299, 0.587, 0.114)), 0.45);
+        vec3 chroma = mix(c - y0, left - dot(left, vec3(0.299, 0.587, 0.114)), uBleed);
         c = y0 + chroma;
       }
       float l = dot(c, vec3(0.299, 0.587, 0.114));
@@ -82,8 +99,8 @@ const GradeShader = {
       if (uRetro > 0.5) {
         // 18 colour steps per channel with ordered dithering, and faint scanlines
         vec2 px = vUv * uResolution;
-        c = floor(clamp(c, 0.0, 1.0) * 17.0 + 0.5 + bayer4(px)) / 17.0;
-        c *= 0.92 + 0.08 * step(0.5, fract(px.y * 0.5));
+        c = floor(clamp(c, 0.0, 1.0) * uLevels + 0.5 + bayer4(px)) / uLevels;
+        c *= 1.0 - uScan + uScan * step(0.5, fract(px.y * 0.5));
       }
       gl_FragColor = vec4(clamp(c, 0.0, 1.0), 1.0);
     }`,
@@ -134,15 +151,25 @@ export class Renderer {
     Object.assign(this.opts, opts);
     this.bloom.enabled = this.opts.bloom;
     this.grade.uniforms.uGrain.value = this.opts.grain ? 1 : 0;
-    this.grade.uniforms.uRetro.value = this.opts.retro ? 1 : 0;
-    this.renderer.domElement.classList.toggle('retro', this.opts.retro);
+    const look = this.opts.look;
+    this.grade.uniforms.uRetro.value = look === 'smooth' ? 0 : 1;
+    if (look !== 'smooth') {
+      this.grade.uniforms.uLevels.value = LOOKS[look].levels;
+      this.grade.uniforms.uScan.value = LOOKS[look].scan;
+      this.grade.uniforms.uBleed.value = LOOKS[look].bleed;
+    }
+    this.renderer.domElement.classList.toggle('retro', look === 'pixel');
     this.renderer.shadowMap.enabled = this.shadowsEnabled;
     this.renderer.shadowMap.needsUpdate = true;
   }
 
   resize(w: number, h: number): void {
     const q = QUALITY[this.opts.quality];
-    const ratio = this.opts.retro ? q.retroHeight / Math.max(1, h) : Math.min(q.pixelRatio, window.devicePixelRatio || 1);
+    const look = this.opts.look;
+    const ratio =
+      look === 'smooth'
+        ? Math.min(q.pixelRatio, window.devicePixelRatio || 1)
+        : Math.min((q.retroHeight * LOOKS[look].scale) / Math.max(1, h), window.devicePixelRatio || 1);
     this.renderer.setPixelRatio(ratio);
     this.composer.setPixelRatio(ratio);
     this.renderer.setSize(w, h, false);
