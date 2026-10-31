@@ -1,6 +1,6 @@
 # THRENOD · Phase 3, Teil 2: Charaktere
 
-**Status:** 📝 Entwurf, wartet auf Freigabe
+**Status:** 📝 Fast fertig. C2 (Caspar als NPC) und C3 (Dialogton) sind freigegeben, die Neubesetzung des Ribcoast-Begleiters ist offen.
 ⚠️ Enthält Spoiler. Die Dialoge im Spiel sind **englisch**.
 
 ---
@@ -30,19 +30,10 @@ Jeder Begleiter hat eine **Loyalität**, die steigt oder fällt, eine **eigene Q
 | **Questreihe** | *„A Name in Chalk“*: Er schreibt seinen eigenen Namen nieder, verfolgt sein vergessenes Dorf zurück und steht am Ende **vor Mireille**. Gibst du ihr den Namen ihres Sohnes zurück, kann sie zur Verbündeten werden. |
 | **Entwicklung** | Am Ende seiner Reihe **spricht er zum ersten Mal**. Ob er auch singt, entscheidest du mit. |
 | **Möglicher Tod** | Er stellt sich beim Verrat in der Kathedrale (Kapitel 7) zwischen Caspar und dich |
+| **Weitere Rolle** | Er übernimmt Maelis' Funktion als Begleiter mit Loyalitätskonflikt: Er meldet der Kirche anfangs heimlich, wo du dich aufhältst, weil er seiner Mutter nahe bleiben will |
 
-### 1.2 Maelis Corvane, die Schmugglerin
-| | |
-|---|---|
-| **Wo man sie trifft** | Ribcoast, Kapitel 2. Sie ist die Tochter des verschwundenen Leuchtturmwärters von Last Light. |
-| **Aussehen** | Ende 20, wettergegerbt, salzverkrustete Zöpfe, ein Ohrring aus einer Glockenzunge |
-| **Persönlichkeit** | Laut, sarkastisch, praktisch veranlagt, lacht zu viel, wenn es ernst wird. Die Seele jeder Taverne. |
-| **Ziel** | Sie will ihren Vater finden. Er ging bei Ebbe den versunkenen Glocken nach ins Meer. |
-| **Angst** | Stillstand. Bleibt sie zu lange an einem Ort, fürchtet sie, vergessen zu werden. |
-| **Geheimnis** | **Sie verkauft anfangs Informationen über dich an Caspar Renn**, weil er ihr versprochen hat, ihren Vater zu finden |
-| **Beistand** | *Dirty Trick:* Sand in die Augen, der Gegner verliert einen Zug, und sie stiehlt dabei ein Item |
-| **Questreihe** | *„Low Tide“*: Bei Ebbe hinaus zu den versunkenen Glocken, zu einem Wrack und zu einer Wahrheit über ihren Vater, die sie nicht hören will |
-| **Wendepunkt** | In Akt II erfährst du von ihrem Verrat. Vergibst du ihr, wird sie die treueste Begleiterin. Wenn nicht, verlässt sie dich. |
+### 1.2 Begleiter von der Ribcoast: *wird neu besetzt*
+Maelis Corvane wurde gestrichen (Entscheidung C1). Zur Auswahl stehen drei Ersatzfiguren, siehe Chat bzw. Abschnitt 4.
 
 ### 1.3 Ser Odran of the Unbroken Watch, der tote Ritter
 | | |
@@ -81,17 +72,10 @@ Jeder Begleiter hat eine **Loyalität**, die steigt oder fällt, eine **eigene Q
 | **Beistand** | *Resonance:* Er verstärkt deinen nächsten Gesang |
 | **Questreihe** | *„A Song Too Loud“*: Er bittet beim Gericht der Hearkeners um Rückkehr. Sein Geheimnis ist ein **Schlüssel zum neunten Namen**. |
 
-### 1.6 Caspar Renn, der Mentor und Verräter
-| | |
-|---|---|
-| **Wo man ihn trifft** | Am Ende des Prologs. Er wartet am Pass. |
-| **Aussehen** | Um die 50, elegant und abgetragen, ein Gehstock mit Stimmgabelgriff. Er summt ständig, aber immer leicht falsch. |
-| **Persönlichkeit** | Charmant, gelehrt, väterlich und geduldig. **Er hat zu jeder Frage eine Antwort.** Das ist das erste Warnzeichen. |
-| **Ziel** | Er will den letzten Vers selbst singen und **der neue einzige Gott** werden |
-| **Angst** | Bedeutungslosigkeit. Er stammt aus Aldersey, dem ersten vergessenen Dorf, und ist der einzige Überlebende. |
-| **Geheimnis** | Er ist **240 Jahre alt** und lebt durch gestohlene Verse |
-| **Beistand** | *Counter-Verse:* Er stört den Gesang eines Gegners |
-| **Rolle** | Begleiter in Akt I mit Lagerfeuergesprächen, in denen er dir viel Wahres erzählt. **Er verrät dich in Kapitel 7.** Im Finale kann er bekämpft, verschont oder (im Ende *The One Voice*) zum Partner werden. |
+### Caspar Renn ist jetzt NPC und kein Begleiter mehr (Entscheidung C2)
+- **Mentor-NPC.** Er reist nicht mit dir, sondern **erwartet dich an Glockentürmen und Wegkreuzungen**. Er weiß immer, wohin du unterwegs bist. Das ist ein leises Warnzeichen.
+- Aussehen, Geschichte und Geheimnis bleiben: Er ist 240 Jahre alt, der einzige Überlebende von Aldersey und will der neue einzige Gott werden.
+- **Der Verrat in Kapitel 7 bleibt.** Weil er kein Begleiter ist, kommt er überraschender.
 
 ### Söldner
 Söldner heuerst du in Tavernen an. Sie haben einen einfachen Beistand (Heilung, Ablenkung oder Fernschuss) und kurze Sprüche, aber keine eigene Geschichte. Ein Beispiel: **„Two-Coin Hesk“**, ein Armbrustschütze, der immer zuerst bezahlt werden will.
@@ -143,3 +127,11 @@ Söldner heuerst du in Tavernen an. Sie haben einen einfachen Beistand (Heilung,
 **Ennith, die ersten Worte im Finale**
 > **Ennith:** You were the last voice. Do you know what it is like — to hear a song you love, and know that it is ending?
 > **Ennith:** I only wanted *one more verse*.
+
+---
+
+## 4. Ersatz für den Ribcoast-Begleiter (Optionen)
+
+- **A) Hollis Wake, der alte Leuchtturmwärter.** Über 70, ein brummiger und sanfter Witwer. Er zündet Last Light jede Nacht für die Toten an, die nicht mehr kommen. Geheimnis: Er weiß, wohin die Toten seit dem Godfall gehen, nämlich nirgendwohin. Sie stauen sich im Hush. Beistand *Guiding Light*: Er enthüllt zwei Züge lang die Absichten der Gegner.
+- **B) Isaut, die Glöcknerin der versunkenen Glocken.** Sie läutet bei Ebbe die Glocken im Meer. Die Hälfte ihrer Erinnerungen liegt unter Wasser, und sie spricht im Rhythmus der Gezeiten. Beistand *Toll*: Betäubung.
+- **C) „Someone“, ein namenloser Faded** *(Empfehlung)*. Eine verblasste Gestalt folgt dir ab der Ribcoast, stumm und halb durchsichtig. Indem du ihr hilfst, gewinnt sie Form, Stimme und schließlich einen Namen. **Geheimnis: Sie ist die vergessene Erinnerung an das Geschwister der Unsung aus ihrem Leben als Cantor.** Beistand *Echo*: Sie wiederholt deine letzte Aktion als schwächere Kopie.
