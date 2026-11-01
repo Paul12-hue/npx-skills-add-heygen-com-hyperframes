@@ -20,6 +20,10 @@ export interface FigureSpec {
   /** eye positions (bind pose) and radius, iris colour */
   eyes: { l: Vec3; r: Vec3; radius: number; iris: string; glow: number };
   bounds: { min: Vec3; max: Vec3 };
+  /** colour names used in prims → hex (lets many villagers share one sculpted shape) */
+  palette?: Record<string, string>;
+  /** villagers with the same shape key share their mesh */
+  shapeKey?: string;
 }
 
 const mirror = (v: Vec3): Vec3 => [-v[0], v[1], v[2]];
@@ -264,4 +268,122 @@ export function fadedSpec(variant: number): FigureSpec {
     eyes: { ...eyesAt(add(H, [0, 0.085, 0]), 1), radius: 0.017, iris: 'c8c6d0', glow: 0.4 },
     bounds: { min: [-0.42, -0.02, -0.3], max: [0.42, 1.95, 0.34] },
   };
+}
+
+// ======================================================================
+/** Body types for ordinary villagers. */
+export type Build = 'man' | 'woman' | 'elder' | 'child';
+
+const SKIN = ['f0d0b8', 'e8c0a0', 'd8a888', 'c89070', 'a87058', 'f2d8c8'];
+const HAIR = ['3a2418', '5a3a20', '8a5a2a', 'b4501e', '1e1a1a', 'c8a060', '6a5a4a'];
+const CLOTH = ['6a4a3a', '4a5a3a', '3a4a5a', '7a5a3a', '5a3a4a', '8a6a4a', '4a4a5a', '6a3a2a', '3a5a50', '8a7a5a'];
+const LIGHT = ['c8b898', 'b8a888', 'd8c8a8', 'a89878', 'c0b090'];
+const BOOT = ['3a2618', '2a1e14', '4a3020'];
+
+/**
+ * An ordinary inhabitant of the vale. The seed picks the body, clothes, hair,
+ * headwear and colours, so a handful of seeds gives a varied village.
+ */
+export function villagerSpec(seed: number, build: Build): FigureSpec {
+  // the shape comes from a small set per body type (so meshes are shared); the colours from the seed
+  const shapeSeed = seed % { man: 5, woman: 4, elder: 3, child: 2 }[build];
+  const gen = (start: number) => {
+    let st = start * 9301 + 49297;
+    return () => ((st = (st * 9301 + 49297) % 233280) / 233280);
+  };
+  const r = gen(shapeSeed * 7 + { man: 1, woman: 2, elder: 3, child: 4 }[build]);
+  const rc = gen(seed);
+  const pick = <T,>(a: T[]) => a[Math.floor(r() * a.length)];
+  const pickC = <T,>(a: T[]) => a[Math.floor(rc() * a.length)];
+  const child = build === 'child';
+  const h = child ? 1.3 + r() * 0.12 : build === 'elder' ? 1.6 + r() * 0.08 : build === 'woman' ? 1.62 + r() * 0.1 : 1.72 + r() * 0.12;
+  const sc = h / 1.75;
+  const J0 = adultJoints(h);
+  const J: Joints = child ? { ...J0, head: [0, J0.head[1] - 0.02, 0], neck: [0, J0.neck[1] - 0.01, 0] } : J0;
+  const H = J.head;
+  const hs = child ? 1.08 : 1;
+  const skin = pickC(SKIN);
+  const palette: Record<string, string> = {
+    skin,
+    hair: build === 'elder' ? pickC(['c8c4c8', 'a8a4a8', 'e0dcd8']) : pickC(HAIR),
+    cloth: pickC(CLOTH),
+    second: pickC(CLOTH),
+    light: pickC(LIGHT),
+    boot: pickC(BOOT),
+    blush: new_blush(skin),
+    lip: 'b0706a',
+  };
+  // prims name palette slots; the palette above fills them in
+  const C = { skin: 'skin', hair: 'hair', cloth: 'cloth', second: 'second', light: 'light', boot: 'boot' };
+  const blush = 'blush';
+  const lip = 'lip';
+  const wide = build === 'man' ? 1.08 : 1;
+  const skirt = build === 'woman' || (build === 'elder' && r() < 0.5) || (child && r() < 0.4);
+  const prims: Prim[] = [];
+  if (skirt) {
+    prims.push(...robe(J, C.cloth, C.second, child ? 0.2 : 0.27 + r() * 0.05).map((p) => (p.bone === 'neck' ? { ...p, color: C.skin } : p)));
+    if (r() < 0.6) prims.push({ shape: { kind: 'box', c: [0, 0.7 * sc, -0.16 * sc], h: [0.14 * sc, 0.33 * sc, 0.012], round: 0.02 }, bone: 'hips', color: C.light, blend: 0.02 });
+  } else {
+    prims.push(
+      { shape: { kind: 'ellipsoid', c: [0, 1.31 * sc, 0.005], r: [0.17 * sc * wide, 0.16 * sc, 0.115 * sc] }, bone: 'chest', color: C.cloth },
+      { shape: { kind: 'ellipsoid', c: [0, 1.12 * sc, 0], r: [0.15 * sc * wide, 0.13 * sc, 0.1 * sc] }, bone: 'spine', color: C.cloth, blend: 0.08 },
+      { shape: { kind: 'ellipsoid', c: [0, 0.96 * sc, 0.005], r: [0.16 * sc, 0.11 * sc, 0.1 * sc] }, bone: 'hips', color: C.cloth, blend: 0.06 },
+      { shape: { kind: 'cone', a: [0, 0.98 * sc, 0.005], b: [0, 0.74 * sc, 0.01], ra: 0.165 * sc, rb: 0.19 * sc }, bone: 'hips', color: C.cloth, blend: 0.04 },
+      { shape: { kind: 'cone', a: [0, 1.0 * sc, 0], b: [0, 0.95 * sc, 0], ra: 0.168 * sc, rb: 0.17 * sc }, bone: 'hips', color: '4a2c1c', blend: 0.004 },
+      { shape: { kind: 'cone', a: J.neck, b: add(H, [0, 0.02, 0]), ra: 0.05 * hs, rb: 0.048 * hs }, bone: 'neck', color: C.skin, blend: 0.03 },
+    );
+    // a vest or a leather apron over the tunic
+    if (r() < 0.5) prims.push({ shape: { kind: 'ellipsoid', c: [0, 1.25 * sc, -0.01], r: [0.175 * sc * wide, 0.19 * sc, 0.12 * sc] }, bone: 'chest', color: C.second, blend: 0.01 });
+    else if (r() < 0.5) prims.push({ shape: { kind: 'box', c: [0, 1.0 * sc, -0.13 * sc], h: [0.15 * sc, 0.3 * sc, 0.012], round: 0.02 }, bone: 'spine', color: '6a4a30', blend: 0.02 });
+  }
+  // collar or shawl
+  prims.push({ shape: { kind: 'ellipsoid', c: [0, J.neck[1] - 0.03, 0.01], r: [0.12 * hs, 0.03, 0.09] }, bone: 'chest', color: C.light, blend: 0.02 });
+
+  // head: hair style and headwear
+  const style = child ? pick(['short', 'braids', 'cap']) : build === 'man' ? pick(['short', 'short', 'cap', 'hood', 'bald']) : build === 'woman' ? pick(['bun', 'long', 'scarf', 'braids']) : pick(['bun', 'scarf', 'short', 'hood']);
+  const hairCap = (col: string) => [
+    { shape: { kind: 'shell', c: add(H, [0, 0.11, 0.012]), r: [0.1 * hs, 0.112 * hs, 0.114 * hs], thickness: 0.013 }, bone: 'head', color: col, blend: 0.006 } as Prim,
+    { shape: { kind: 'ellipsoid', c: add(H, [0, 0.075, -0.16]), r: [0.085 * hs, 0.1 * hs, 0.1 * hs] }, bone: 'head', color: col, subtract: true, blend: 0.01 } as Prim,
+  ];
+  if (style !== 'bald') prims.push(...hairCap(style === 'scarf' || style === 'hood' ? (style === 'hood' ? C.second : C.light) : C.hair));
+  prims.push(...face(add(H, [0, 0.085, 0]), hs, C.skin, lip, style === 'bald' ? C.hair : C.hair, blush));
+  if (style === 'bun') prims.push({ shape: { kind: 'ellipsoid', c: add(H, [0, 0.19, 0.09]), r: [0.06, 0.055, 0.055] }, bone: 'head', color: C.hair, blend: 0.02 });
+  if (style === 'long') prims.push({ shape: { kind: 'cone', a: add(H, [0, 0.12, 0.07]), b: add(H, [0, -0.14, 0.09]), ra: 0.09, rb: 0.07 }, bone: 'head', color: C.hair, blend: 0.03 });
+  if (style === 'braids') {
+    for (const x of [0.08, -0.08]) prims.push({ shape: { kind: 'cone', a: add(H, [x, 0.06, 0.04]), b: add(H, [x * 1.2, -0.16, 0.05]), ra: 0.026, rb: 0.017 }, bone: 'head', color: C.hair, blend: 0.02 });
+  }
+  if (style === 'short') prims.push({ shape: { kind: 'ellipsoid', c: add(H, [0.01, 0.2, -0.06]), r: [0.07, 0.026, 0.05] }, bone: 'head', color: C.hair, blend: 0.03 });
+  if (style === 'cap') prims.push(
+    { shape: { kind: 'ellipsoid', c: add(H, [0, 0.19, 0.0]), r: [0.115 * hs, 0.06, 0.12 * hs] }, bone: 'head', color: C.second, blend: 0.01 },
+    { shape: { kind: 'ellipsoid', c: add(H, [0, 0.165, -0.1]), r: [0.08, 0.012, 0.05] }, bone: 'head', color: C.second, blend: 0.01 },
+  );
+  if (style === 'hood') prims.push({ shape: { kind: 'ellipsoid', c: [0, J.neck[1] + 0.02, 0.09], r: [0.14, 0.08, 0.08] }, bone: 'neck', color: C.second, blend: 0.04 });
+  if (style === 'scarf') prims.push({ shape: { kind: 'cone', a: add(H, [0, 0.0, 0.1]), b: add(H, [0, -0.12, 0.12]), ra: 0.07, rb: 0.03 }, bone: 'head', color: C.light, blend: 0.03 });
+  // beards for some of the men and elders
+  if ((build === 'man' || build === 'elder') && !skirt && r() < 0.55) {
+    const c = add(H, [0, 0.085, 0]);
+    prims.push(
+      { shape: { kind: 'ellipsoid', c: add(c, [0, -0.085, -0.06]), r: [0.07, 0.05, 0.05] }, bone: 'head', color: C.hair, blend: 0.02 },
+      { shape: { kind: 'ellipsoid', c: add(c, [0, -0.04, -0.098]), r: [0.03, 0.008, 0.012] }, bone: 'head', color: C.hair, blend: 0.006 },
+    );
+  }
+  const arm = child ? 0.85 : build === 'man' ? 1.05 : 0.95;
+  prims.push(...limbs(J, { sleeve: skirt ? C.cloth : C.cloth, glove: C.skin, trousers: skirt ? C.cloth : C.second, boot: C.boot, armR: arm, legR: child ? 0.85 : arm }));
+  return {
+    name: `villager-${build}-${seed}`,
+    shapeKey: `villager-${build}-shape${shapeSeed}`,
+    palette,
+    joints: J,
+    prims,
+    eyes: { ...eyesAt(add(H, [0, 0.085, 0]), hs), radius: child ? 0.019 : 0.0175, iris: pickC(['5a4030', '3a6a8a', '4a7a4a', '6a5a40', '2a2a3a']), glow: 0 },
+    bounds: { min: [-0.44, -0.02, -0.32], max: [0.44, h + 0.25, 0.36] },
+  };
+}
+
+function new_blush(skin: string): string {
+  const n = parseInt(skin, 16);
+  const r = Math.min(255, ((n >> 16) & 255) - 4);
+  const g = Math.max(0, ((n >> 8) & 255) - 22);
+  const b = Math.max(0, (n & 255) - 14);
+  return ((r << 16) | (g << 8) | b).toString(16).padStart(6, '0');
 }

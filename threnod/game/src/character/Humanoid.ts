@@ -1,6 +1,6 @@
 import * as THREE from 'three';
-import { figureDistance, shapeDistance, type Prim } from './sdf';
-import { surfaceNets } from './surfaceNets';
+import type { SculptJob, SculptResult } from './sculpt';
+import { sculptService } from './SculptService';
 import type { FigureSpec, Joints } from './figures';
 
 const BONES: [string, keyof Joints, string | null][] = [
@@ -23,115 +23,105 @@ const BONES: [string, keyof Joints, string | null][] = [
   ['footR', 'ankleR', 'shinR'],
 ];
 
-interface Built {
-  geometry: THREE.BufferGeometry;
+/** Things a villager can be busy with (overrides the arms, sometimes the whole body). */
+export type Action = 'chop' | 'hammer' | 'hoe' | 'sweep' | 'fish' | 'sit' | 'talk' | 'carry' | 'wave' | 'gather';
+export type Tool = 'axe' | 'hammer' | 'hoe' | 'broom' | 'rod' | 'basket' | 'crate' | null;
+
+/** Geometry for one shape at one detail level in one palette; the shape data is shared. */
+const baseGeos = new Map<string, THREE.BufferGeometry>();
+function geometryFor(r: SculptResult, palette: Record<string, string> | undefined): THREE.BufferGeometry {
+  let base = baseGeos.get(r.key);
+  if (!base) {
+    base = new THREE.BufferGeometry();
+    base.setAttribute('position', new THREE.BufferAttribute(r.positions, 3));
+    base.setAttribute('normal', new THREE.BufferAttribute(r.normals, 3));
+    base.setAttribute('skinIndex', new THREE.Uint16BufferAttribute(r.skinIndex, 4));
+    base.setAttribute('skinWeight', new THREE.BufferAttribute(r.skinWeight, 4));
+    base.setIndex(new THREE.BufferAttribute(r.indices, 1));
+    base.computeBoundingSphere();
+    baseGeos.set(r.key, base);
+  }
+  // dress the shape: every vertex mixes up to three palette colours
+  const cols = r.slots.map((sl) => new THREE.Color('#' + (palette?.[sl] ?? sl)));
+  const n = r.positions.length / 3;
+  const color = new Float32Array(n * 3);
+  for (let v = 0; v < n; v++) {
+    let cr = 0;
+    let cg = 0;
+    let cb = 0;
+    for (let k = 0; k < 3; k++) {
+      const w = r.slotWeight[v * 3 + k];
+      if (!w) continue;
+      const c = cols[r.slotIndex[v * 3 + k]];
+      cr += c.r * w;
+      cg += c.g * w;
+      cb += c.b * w;
+    }
+    color[v * 3] = cr;
+    color[v * 3 + 1] = cg;
+    color[v * 3 + 2] = cb;
+  }
+  const g = new THREE.BufferGeometry();
+  for (const k of ['position', 'normal', 'skinIndex', 'skinWeight']) g.setAttribute(k, base.getAttribute(k));
+  g.setIndex(base.getIndex());
+  g.setAttribute('color', new THREE.BufferAttribute(color, 3));
+  g.boundingSphere = base.boundingSphere;
+  return g;
 }
 
-const cache = new Map<string, Built>();
+export function sculptJob(spec: FigureSpec, cell: number): SculptJob {
+  return { key: (spec.shapeKey ?? spec.name) + '@' + cell, prims: spec.prims, bounds: spec.bounds, cell, bones: BONES.map((b) => b[0]) };
+}
 
-/** Sculpts the figure into a smooth skinned mesh (cached per design). */
-function buildGeometry(spec: FigureSpec, cell: number): Built {
-  const key = spec.name + cell;
-  const hit = cache.get(key);
-  if (hit) return hit;
-  const prims = spec.prims;
-  const solid = prims.filter((p) => !p.subtract);
-  const solidIdx = prims.map((p, i) => [i, p] as [number, Prim]).filter(([, p]) => !p.subtract);
-  const subtracts = prims.map((p, i) => [i, p] as [number, Prim]).filter(([, p]) => p.subtract);
-  const f = (x: number, y: number, z: number) => figureDistance(prims, x, y, z);
-  const { positions, indices } = surfaceNets(f, spec.bounds.min, spec.bounds.max, cell);
-  const n = positions.length / 3;
+const toolMats = new Map<string, THREE.MeshPhongMaterial>();
+function toolMat(hex: number): THREE.MeshPhongMaterial {
+  const k = hex.toString(16);
+  let m = toolMats.get(k);
+  if (!m) toolMats.set(k, (m = new THREE.MeshPhongMaterial({ color: hex, shininess: 30 })));
+  return m;
+}
 
-  const normals = new Float32Array(n * 3);
-  const colors = new Float32Array(n * 3);
-  const skinIndex = new Uint16Array(n * 4);
-  const skinWeight = new Float32Array(n * 4);
-  const boneIdx = new Map(BONES.map(([name], i) => [name, i]));
-  const primColor = solid.map((p) => new THREE.Color('#' + p.color));
-  const e = 0.0015;
-  const tmp = new THREE.Color();
-
-  for (let v = 0; v < n; v++) {
-    const x = positions[v * 3];
-    const y = positions[v * 3 + 1];
-    const z = positions[v * 3 + 2];
-    // normal = gradient of the distance field
-    const gx = f(x + e, y, z) - f(x - e, y, z);
-    const gy = f(x, y + e, z) - f(x, y - e, z);
-    const gz = f(x, y, z + e) - f(x, y, z - e);
-    const gl = Math.hypot(gx, gy, gz) || 1;
-    normals.set([gx / gl, gy / gl, gz / gl], v * 3);
-
-    // colour and bone weights from the nearest primitives
-    // distance to each solid part, with the cuts that come after it applied (so carved-away
-    // hair or cloth does not colour the face underneath)
-    const subDist = subtracts.map(([, p]) => shapeDistance(p.shape, x, y, z));
-    const d = solidIdx.map(([idx, p]) => {
-      let dd = shapeDistance(p.shape, x, y, z);
-      subtracts.forEach(([sIdx], k) => {
-        if (sIdx > idx) dd = Math.max(dd, -subDist[k]);
-      });
-      return dd;
-    });
-    const dmin = Math.min(...d);
-    let wsum = 0;
-    tmp.setRGB(0, 0, 0);
-    const perBone = new Map<string, number>();
-    for (let i = 0; i < solid.length; i++) {
-      const cw = Math.exp(-(d[i] - dmin) / 0.0014);
-      if (cw > 0.01) {
-        tmp.r += primColor[i].r * cw;
-        tmp.g += primColor[i].g * cw;
-        tmp.b += primColor[i].b * cw;
-        wsum += cw;
-      }
-      const b = solid[i].bone;
-      perBone.set(b, Math.min(perBone.get(b) ?? 1e9, d[i]));
-    }
-    colors.set([tmp.r / wsum, tmp.g / wsum, tmp.b / wsum], v * 3);
-    const ranked = [...perBone.entries()]
-      .map(([b, bd]) => [b, Math.exp(-(bd - dmin) / 0.018)] as [string, number])
-      .sort((a, b) => b[1] - a[1])
-      .slice(0, 4);
-    const total = ranked.reduce((s, r) => s + r[1], 0);
-    ranked.forEach(([b, w], k) => {
-      skinIndex[v * 4 + k] = boneIdx.get(b) ?? 0;
-      skinWeight[v * 4 + k] = w / total;
-    });
+/** Simple hand tools, held in the right hand (the hand points down its −y axis). */
+function toolMesh(kind: Exclude<Tool, null>): THREE.Object3D {
+  const g = new THREE.Group();
+  const wood = toolMat(0x6a4a2a);
+  const iron = toolMat(0x5a5a66);
+  const add = (geo: THREE.BufferGeometry, m: THREE.Material, x: number, y: number, z: number, rx = 0) => {
+    const mesh = new THREE.Mesh(geo, m);
+    mesh.position.set(x, y, z);
+    mesh.rotation.x = rx;
+    g.add(mesh);
+  };
+  switch (kind) {
+    case 'axe':
+      add(new THREE.CylinderGeometry(0.018, 0.022, 0.8, 6), wood, 0, -0.1, -0.25, Math.PI / 2);
+      add(new THREE.BoxGeometry(0.03, 0.16, 0.12), iron, 0, -0.1, -0.62);
+      break;
+    case 'hammer':
+      add(new THREE.CylinderGeometry(0.016, 0.018, 0.4, 6), wood, 0, -0.08, -0.15, Math.PI / 2);
+      add(new THREE.BoxGeometry(0.06, 0.06, 0.13), iron, 0, -0.08, -0.34, Math.PI / 2);
+      break;
+    case 'hoe':
+      add(new THREE.CylinderGeometry(0.018, 0.018, 1.4, 6), wood, 0, -0.08, -0.4, Math.PI / 2);
+      add(new THREE.BoxGeometry(0.16, 0.14, 0.02), iron, 0, -0.16, -1.08);
+      break;
+    case 'broom':
+      add(new THREE.CylinderGeometry(0.016, 0.016, 1.3, 6), wood, 0, -0.3, -0.1, 0.4);
+      add(new THREE.ConeGeometry(0.11, 0.35, 8), toolMat(0xb8984a), 0, -0.95, 0.15, 0.4 + Math.PI);
+      break;
+    case 'rod':
+      add(new THREE.CylinderGeometry(0.008, 0.016, 2.6, 5), wood, 0, 0.1, -1.2, Math.PI / 2 - 0.5);
+      break;
+    case 'basket':
+      add(new THREE.CylinderGeometry(0.2, 0.15, 0.2, 10), toolMat(0x9a7a4a), 0, 0, 0);
+      add(new THREE.SphereGeometry(0.14, 8, 6), toolMat(0xb83a2a), 0, 0.08, 0);
+      break;
+    case 'crate':
+      add(new THREE.BoxGeometry(0.42, 0.3, 0.32), toolMat(0x8a6a40), 0, 0, 0);
+      break;
   }
-
-  // make every triangle face outwards
-  for (let t = 0; t < indices.length; t += 3) {
-    const a = indices[t] * 3;
-    const b = indices[t + 1] * 3;
-    const c = indices[t + 2] * 3;
-    const ux = positions[b] - positions[a];
-    const uy = positions[b + 1] - positions[a + 1];
-    const uz = positions[b + 2] - positions[a + 2];
-    const vx = positions[c] - positions[a];
-    const vy = positions[c + 1] - positions[a + 1];
-    const vz = positions[c + 2] - positions[a + 2];
-    const nx = uy * vz - uz * vy;
-    const ny = uz * vx - ux * vz;
-    const nz = ux * vy - uy * vx;
-    if (nx * normals[a] + ny * normals[a + 1] + nz * normals[a + 2] < 0) {
-      const s = indices[t + 1];
-      indices[t + 1] = indices[t + 2];
-      indices[t + 2] = s;
-    }
-  }
-
-  const g = new THREE.BufferGeometry();
-  g.setAttribute('position', new THREE.BufferAttribute(positions, 3));
-  g.setAttribute('normal', new THREE.BufferAttribute(normals, 3));
-  g.setAttribute('color', new THREE.BufferAttribute(colors, 3));
-  g.setAttribute('skinIndex', new THREE.Uint16BufferAttribute(skinIndex, 4));
-  g.setAttribute('skinWeight', new THREE.BufferAttribute(skinWeight, 4));
-  g.setIndex(new THREE.BufferAttribute(indices, 1));
-  g.computeBoundingSphere();
-  const built = { geometry: g };
-  cache.set(key, built);
-  return built;
+  g.traverse((o) => (o.castShadow = true));
+  return g;
 }
 
 function irisTexture(iris: string): THREE.Texture {
@@ -168,7 +158,6 @@ function irisTexture(iris: string): THREE.Texture {
 export class Humanoid {
   readonly root = new THREE.Group();
   private bones = new Map<string, THREE.Bone>();
-  private mesh: THREE.SkinnedMesh;
   private lids: THREE.Mesh[] = [];
   private eyes: THREE.Group[] = [];
   private gaze = new THREE.Vector2();
@@ -178,10 +167,26 @@ export class Humanoid {
   private blinkTimer = 2 + Math.random() * 3;
   private lookYaw = 0;
 
-  constructor(spec: FigureSpec, opts: { scale?: number; lantern?: boolean; cell?: number; ghost?: boolean } = {}) {
+  /** Detail levels: [near mesh, far mesh]; the far one has a quarter of the triangles. */
+  private lodMeshes: (THREE.SkinnedMesh | null)[] = [];
+  private lodLevel = -1;
+  private requested = new Set<number>();
+  private material: THREE.Material;
+  private skeleton: THREE.Skeleton;
+  private spec: FigureSpec;
+  private cells: number[];
+  private lazyNear = false;
+  /** true once at least one detail level has been built */
+  ready = false;
+  private blob: THREE.Mesh | null = null;
+  /** called when the first mesh appears */
+  onReady: (() => void) | null = null;
+  /** false while the figure is too far away to be drawn (skip its animation too). */
+  inView = true;
+
+  constructor(spec: FigureSpec, opts: { scale?: number; lantern?: boolean; cell?: number; lods?: number[]; ghost?: boolean; priority?: number; lazyNear?: boolean } = {}) {
     const scale = opts.scale ?? 1;
-    const cell = opts.cell ?? 0.011;
-    const { geometry } = buildGeometry(spec, cell);
+    const cells = opts.cell ? [opts.cell] : opts.lods ?? [0.017, 0.03];
     const bones: THREE.Bone[] = [];
     for (const [name, joint, parent] of BONES) {
       const b = new THREE.Bone();
@@ -197,22 +202,20 @@ export class Humanoid {
       this.bones.set(name, b);
       bones.push(b);
     }
-    const mat = new THREE.MeshPhongMaterial({ vertexColors: true, shininess: 10, specular: 0x14101a });
-    if (opts.ghost) {
-      // the Faded: see-through and softly glowing
-      mat.transparent = true;
-      mat.opacity = 0.5;
-      mat.depthWrite = false;
-      mat.emissive = new THREE.Color(0x30343c);
+    this.material = Humanoid.material(!!opts.ghost);
+    this.skeleton = new THREE.Skeleton(bones);
+    this.root.add(bones[0]);
+    bones[0].visible = false; // eyes, tools and lantern appear together with the body
+    this.spec = spec;
+    this.cells = cells;
+    this.lodMeshes = cells.map(() => null);
+    const priority = opts.priority ?? 1;
+    // the coarse level first, the fine level right away too unless it may wait until the figure is near
+    for (let i = cells.length - 1; i >= 0; i--) {
+      if (i === 0 && cells.length > 1 && opts.lazyNear) continue;
+      this.requestLevel(i, priority + (i === 0 && cells.length > 1 ? 1 : 0));
     }
-    this.mesh = new THREE.SkinnedMesh(geometry, mat);
-    this.mesh.add(bones[0]);
-    this.mesh.updateMatrixWorld(true);
-    this.mesh.bind(new THREE.Skeleton(bones));
-    this.mesh.castShadow = true;
-    this.mesh.frustumCulled = false;
-    this.root.add(this.mesh);
-
+    this.lazyNear = !!opts.lazyNear && cells.length > 1;
     // eyes with glossy irises (and lids for blinking), attached to the head bone
     const head = this.bones.get('head')!;
     const hp = spec.joints.head;
@@ -255,6 +258,8 @@ export class Humanoid {
     );
     shadow.rotation.x = -Math.PI / 2;
     shadow.position.y = 0.03;
+    shadow.visible = this.ready;
+    this.blob = shadow;
     this.root.add(shadow);
     this.root.scale.setScalar(scale);
   }
@@ -288,6 +293,78 @@ export class Humanoid {
   }
 
   lanternLight: THREE.PointLight | null = null;
+
+  private static mats = new Map<boolean, THREE.MeshPhongMaterial>();
+  /** One shared material for all figures (fewer shader switches). */
+  private static material(ghost: boolean): THREE.MeshPhongMaterial {
+    let m = Humanoid.mats.get(ghost);
+    if (!m) {
+      m = new THREE.MeshPhongMaterial({ vertexColors: true, shininess: 10, specular: 0x14101a });
+      if (ghost) {
+        // the Faded: see-through and softly glowing
+        m.transparent = true;
+        m.opacity = 0.5;
+        m.depthWrite = false;
+        m.emissive = new THREE.Color(0x30343c);
+      }
+      Humanoid.mats.set(ghost, m);
+    }
+    return m;
+  }
+
+  private requestLevel(i: number, priority: number): void {
+    if (this.requested.has(i)) return;
+    this.requested.add(i);
+    sculptService.request(sculptJob(this.spec, this.cells[i]), priority, (r) => {
+      const m = new THREE.SkinnedMesh(geometryFor(r, this.spec.palette), this.material);
+      m.castShadow = i === 0;
+      m.frustumCulled = false;
+      m.visible = false;
+      this.root.add(m);
+      this.root.updateMatrixWorld(true);
+      m.bind(this.skeleton);
+      this.lodMeshes[i] = m;
+      this.lodLevel = -1; // re-pick on the next update
+      this.setLod(this.wantLevel);
+      if (!this.ready) {
+        this.ready = true;
+        this.bones.get('hips')!.visible = true;
+        if (this.blob) this.blob.visible = true;
+        this.root.visible = this.inView;
+        this.onReady?.();
+      }
+    });
+  }
+
+  private wantLevel = 0;
+
+  private setLod(level: number): void {
+    this.wantLevel = level;
+    // use the wanted level if it is built, otherwise any level that is
+    let use = this.lodMeshes[level] ? level : this.lodMeshes.findIndex((m) => m);
+    if (use < 0) use = -1;
+    // the eyes are too small to see from afar – save their draw calls
+    for (const e of this.eyes) e.visible = level === 0;
+    if (use === this.lodLevel) return;
+    this.lodLevel = use;
+    this.lodMeshes.forEach((m, i) => m && (m.visible = i === use));
+  }
+
+  /**
+   * Picks the detail level from the camera distance; hides the figure entirely
+   * beyond maxDist. Returns whether the figure is drawn.
+   */
+  updateLod(camera: THREE.Vector3, maxDist = 75, nearDist = 16): boolean {
+    const d = camera.distanceTo(this.root.position);
+    this.inView = d < maxDist;
+    this.root.visible = this.inView && this.ready;
+    if (!this.inView) return false;
+    const level = d < nearDist || this.cells.length === 1 ? 0 : 1;
+    // fine detail is only sculpted once somebody comes close
+    if (this.lazyNear && d < nearDist * 1.6) this.requestLevel(0, 0);
+    this.setLod(level);
+    return this.ready;
+  }
 
   private bone(n: string): THREE.Bone {
     return this.bones.get(n)!;
@@ -362,6 +439,12 @@ export class Humanoid {
     set(B('neck'), -0.03 - 0.1 * run, this.lookYaw * 0.4 + sw * 0.05 * a, -idleSway * 0.5);
     set(B('head'), 0.02 - 0.08 * run, this.lookYaw * 0.6 + sw * 0.06 * a, -sw * 0.03 * a);
 
+    if (this.action) {
+      // the action wins over the walk / idle pose (it is a smooth cycle itself)
+      const hard = (b: THREE.Bone, x: number, y = 0, z = 0) => b.rotation.set(x, y, z);
+      this.applyAction(this.action, t + this.actionPhase, hard);
+    }
+
     // the eyes dart around like a living person's
     this.gazeTimer -= dt;
     if (this.gazeTimer < 0) {
@@ -376,6 +459,129 @@ export class Humanoid {
     const closed = this.blinkTimer < 0.12;
     for (const lid of this.lids) lid.visible = closed;
     if (this.blinkTimer < 0) this.blinkTimer = 2.5 + Math.random() * 4;
+  }
+
+  action: Action | null = null;
+  private actionPhase = Math.random() * 10;
+  private tool: THREE.Object3D | null = null;
+
+  /** Put a tool (or nothing) into the right hand. */
+  setTool(kind: Tool): void {
+    if (this.tool) this.tool.removeFromParent();
+    this.tool = kind ? toolMesh(kind) : null;
+    if (!this.tool) return;
+    if (kind === 'basket' || kind === 'crate') {
+      this.tool.position.set(0, 1.0, -0.32);
+      this.bone('chest').add(this.tool);
+      this.tool.position.set(0, -0.2, -0.3);
+    } else this.bone('handR').add(this.tool);
+  }
+
+  private applyAction(a: Action, t: number, set: (b: THREE.Bone, x: number, y?: number, z?: number) => void): void {
+    const B = (n: string) => this.bone(n);
+    const hips = B('hips');
+    const base = (hips.userData.baseY as number) ?? hips.position.y;
+    switch (a) {
+      case 'chop': {
+        // both hands on the axe: up over the shoulder, then a hard swing down
+        const c = (t % 1.6) / 1.6;
+        const up = c < 0.65 ? c / 0.65 : 1 - (c - 0.65) / 0.35;
+        const k = up * up * (3 - 2 * up);
+        for (const sd of ['L', 'R']) {
+          set(B('upperArm' + sd), 0.7 + k * 2.1, 0, sd === 'L' ? -0.35 : 0.35);
+          set(B('forearm' + sd), 0.5 + k * 0.6);
+        }
+        set(B('spine'), 0.25 - k * 0.3);
+        break;
+      }
+      case 'hammer': {
+        const c = (t % 0.9) / 0.9;
+        const k = c < 0.6 ? c / 0.6 : 1 - (c - 0.6) / 0.4;
+        set(B('upperArmR'), 0.6 + k * 1.3, 0, -0.1);
+        set(B('forearmR'), 0.9 + k * 0.6);
+        set(B('upperArmL'), 0.7, 0, 0.15);
+        set(B('forearmL'), 1.1);
+        set(B('spine'), 0.2);
+        break;
+      }
+      case 'hoe': {
+        const c = (t % 1.8) / 1.8;
+        const k = Math.sin(c * Math.PI * 2) * 0.5 + 0.5;
+        for (const sd of ['L', 'R']) {
+          set(B('upperArm' + sd), 0.6 + k * 0.9, 0, sd === 'L' ? -0.3 : 0.3);
+          set(B('forearm' + sd), 0.3 + k * 0.5);
+        }
+        set(B('spine'), 0.35 - k * 0.15);
+        set(B('chest'), 0.1);
+        break;
+      }
+      case 'sweep': {
+        const k = Math.sin(t * 2.6);
+        for (const sd of ['L', 'R']) {
+          set(B('upperArm' + sd), 0.55, k * 0.35, sd === 'L' ? -0.25 : 0.25);
+          set(B('forearm' + sd), 0.5);
+        }
+        set(B('spine'), 0.22, k * 0.25);
+        break;
+      }
+      case 'fish': {
+        const bob = Math.sin(t * 0.8) * 0.04;
+        set(B('upperArmR'), 0.9 + bob, 0, 0.1);
+        set(B('forearmR'), 0.5);
+        set(B('upperArmL'), 0.7 + bob, 0, -0.25);
+        set(B('forearmL'), 0.9);
+        break;
+      }
+      case 'sit': {
+        hips.position.y = base - 0.44 * (this.root.scale.y || 1);
+        for (const sd of ['L', 'R']) {
+          set(B('thigh' + sd), 1.45, 0, sd === 'L' ? 0.08 : -0.08);
+          set(B('shin' + sd), -1.4);
+          set(B('foot' + sd), 0);
+          set(B('upperArm' + sd), 0.35, 0, sd === 'L' ? -0.1 : 0.1);
+          set(B('forearm' + sd), 0.9);
+        }
+        set(B('spine'), 0.05 + Math.sin(t * 0.4) * 0.03);
+        break;
+      }
+      case 'talk': {
+        // gestures with one hand, nods now and then
+        const g = Math.sin(t * 1.3) * 0.5 + 0.5;
+        set(B('upperArmR'), 0.25 + g * 0.5, 0, 0.15);
+        set(B('forearmR'), 0.9 + g * 0.6);
+        set(B('upperArmL'), 0.1, 0, -0.1);
+        set(B('forearmL'), 0.3);
+        set(B('head'), Math.max(0, Math.sin(t * 2.1)) * 0.12, Math.sin(t * 0.7) * 0.2);
+        break;
+      }
+      case 'carry': {
+        for (const sd of ['L', 'R']) {
+          set(B('upperArm' + sd), 0.5, 0, sd === 'L' ? -0.3 : 0.3);
+          set(B('forearm' + sd), 1.3);
+        }
+        break;
+      }
+      case 'wave': {
+        set(B('upperArmR'), 0.3, 0, -2.4);
+        set(B('forearmR'), 0.3 + Math.sin(t * 7) * 0.4);
+        break;
+      }
+      case 'gather': {
+        // bending down to pick something up from the ground, then standing again
+        const c = (t % 3.2) / 3.2;
+        const k = Math.sin(c * Math.PI) ** 2;
+        set(B('spine'), 0.2 + k * 0.7);
+        set(B('chest'), k * 0.3);
+        for (const sd of ['L', 'R']) {
+          set(B('upperArm' + sd), k * 1.0, 0, sd === 'L' ? -0.1 : 0.1);
+          set(B('forearm' + sd), 0.3);
+          set(B('thigh' + sd), k * 0.5);
+          set(B('shin' + sd), -k * 0.8);
+        }
+        hips.position.y = base - k * 0.12;
+        break;
+      }
+    }
   }
 
   /** Turn the head towards a world position (used in conversations). */

@@ -35,19 +35,27 @@ await page.getByRole('button', { name: 'New Game' }).click();
     await new Promise((r) => setTimeout(r, 300));
   }
 
-const views = [
-  ['water-lake', [-8, -24, Math.PI + 0.3], 21],
-  ['water-river', [8, -32, -Math.PI * 0.62], 21],
-  ['water-marsh', [-205, 190, Math.PI * 0.2], 21],
-  ['ground', [30, -14, -Math.PI / 2], 21],
-];
-for (const [name, tp, hour] of views) {
-  await page.evaluate(([tp, hour]) => {
+// [name, [x, z, yaw], hour, camera distance, pitch]; override with VIEWS='[...]'
+const views = process.env.VIEWS
+  ? JSON.parse(process.env.VIEWS)
+  : [
+      ['village-day', [48, 8, Math.PI * 0.75], 15, 16, 0.5],
+      ['village-night', [48, 8, Math.PI * 0.75], 21.5, 16, 0.5],
+      ['reedwater', [-14, 48, Math.PI * 0.6], 17, 18, 0.55],
+      ['fellstead', [186, -118, Math.PI], 14, 18, 0.5],
+      ['cairnfold', [-190, -82, Math.PI * 0.9], 12, 20, 0.55],
+      ['stiltwick', [-156, 150, Math.PI], 19, 18, 0.55],
+      ['farm', [92, 30, Math.PI * 0.9], 10, 22, 0.55],
+    ];
+// let the background workers finish the characters
+await new Promise((r) => setTimeout(r, 6000));
+for (const [name, tp, hour, dist = 10, pitch = 0.6] of views) {
+  await page.evaluate(([tp, hour, dist, pitch]) => {
     if (tp) window.__threnod.teleport(tp[0], tp[1], tp[2]);
-    window.__threnod.setCamera(10, 0.6, Math.PI);
+    window.__threnod.setCamera(dist, pitch, Math.PI);
     window.__threnod.setHour(hour);
-  }, [tp, hour]);
-  await new Promise((r) => setTimeout(r, 2500));
+  }, [tp, hour, dist, pitch]);
+  await new Promise((r) => setTimeout(r, 4000));
   await page.screenshot({ path: `${OUT}/view-${name}.png`, timeout: 120000 });
   console.log('shot', name);
 }

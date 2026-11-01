@@ -58,9 +58,33 @@ export function build(parts: Part[], shear = 0): Prop {
     groups.set(part.mat, list);
   }
   const out: Prop = {};
+  // baked ambient occlusion over the whole prop: darker towards the ground and
+  // on faces that look down – buildings and trees sit in the world instead of on it
+  let minY = Infinity;
+  let maxY = -Infinity;
+  for (const list of groups.values()) for (const g of list) {
+    g.computeBoundingBox();
+    minY = Math.min(minY, g.boundingBox!.min.y);
+    maxY = Math.max(maxY, g.boundingBox!.max.y);
+  }
+  const span = Math.max(0.5, maxY - Math.max(minY, -0.2));
   for (const [k, list] of groups) {
+    const glow = k.startsWith('glow') || k === 'void';
     const m = mergeGeometries(list, false);
     if (!m) throw new Error('merge failed for ' + k);
+    if (!glow) {
+      if (!m.getAttribute('normal')) m.computeVertexNormals();
+      const pos = m.getAttribute('position');
+      const nor = m.getAttribute('normal');
+      const col = m.getAttribute('color');
+      for (let i = 0; i < pos.count; i++) {
+        const t = Math.min(1, Math.max(0, (pos.getY(i) - Math.max(minY, -0.2)) / span));
+        const ground = 0.55 + 0.45 * Math.sqrt(t);
+        const down = 0.72 + 0.28 * (nor.getY(i) * 0.5 + 0.5);
+        const f = ground * down;
+        col.setXYZ(i, col.getX(i) * f, col.getY(i) * f, col.getZ(i) * f);
+      }
+    }
     out[k] = m;
   }
   return out;
@@ -78,21 +102,32 @@ export function place(prop: Prop, x: number, y: number, z: number, ry = 0, scale
   return out;
 }
 
-/** Collects many placed props, then merges them per material. */
+/**
+ * Collects many placed props, then merges them per material and per 128 m
+ * tile – few draw calls, and tiles outside the view are skipped.
+ */
 export class PropBatch {
-  private lists = new Map<MatKey, THREE.BufferGeometry[]>();
+  private lists = new Map<string, THREE.BufferGeometry[]>();
+  private static TILE = 128;
   add(prop: Prop): void {
     for (const k of Object.keys(prop) as MatKey[]) {
-      const l = this.lists.get(k) ?? [];
-      l.push(prop[k]!);
-      this.lists.set(k, l);
+      const g = prop[k]!;
+      g.computeBoundingBox();
+      const c = g.boundingBox!.getCenter(new THREE.Vector3());
+      const key = `${k}|${Math.floor(c.x / PropBatch.TILE)}|${Math.floor(c.z / PropBatch.TILE)}`;
+      const l = this.lists.get(key) ?? [];
+      l.push(g);
+      this.lists.set(key, l);
     }
   }
   merged(): [MatKey, THREE.BufferGeometry][] {
     const out: [MatKey, THREE.BufferGeometry][] = [];
-    for (const [k, l] of this.lists) {
+    for (const [key, l] of this.lists) {
       const m = mergeGeometries(l, false);
-      if (m) out.push([k, m]);
+      if (m) {
+        m.computeBoundingSphere();
+        out.push([key.split('|')[0] as MatKey, m]);
+      }
     }
     return out;
   }
@@ -127,13 +162,54 @@ export function applyBoxUV(geo: THREE.BufferGeometry, scale: number): void {
 }
 
 // ================================================================== nature
+/** Displace the vertices of a geometry a little (seeded) – shaggy, hand-made shapes instead of perfect cones. */
+function rough(geo: THREE.BufferGeometry, amount: number, seed: number, keepBottom = false): THREE.BufferGeometry {
+  const g = geo.index ? geo.toNonIndexed() : geo;
+  const pos = g.getAttribute('position');
+  // the same corner must move the same way in every triangle, so hash the position
+  const h = (x: number, y: number, z: number, k: number) => {
+    const v = Math.sin(x * 12.9898 + y * 78.233 + z * 37.719 + seed * 4.13 + k * 1.7) * 43758.5453;
+    return (v - Math.floor(v)) * 2 - 1;
+  };
+  g.computeBoundingBox();
+  const minY = g.boundingBox!.min.y;
+  for (let i = 0; i < pos.count; i++) {
+    const x = pos.getX(i);
+    const y = pos.getY(i);
+    const z = pos.getZ(i);
+    if (keepBottom && y - minY < 0.01) continue;
+    const kx = Math.round(x * 1000) / 1000;
+    const ky = Math.round(y * 1000) / 1000;
+    const kz = Math.round(z * 1000) / 1000;
+    pos.setXYZ(i, x + h(kx, ky, kz, 1) * amount, y + h(kx, ky, kz, 2) * amount * 0.6, z + h(kx, ky, kz, 3) * amount);
+  }
+  g.computeVertexNormals();
+  return g;
+}
+
+/** A layered fir: five shaggy tiers with drooping, jagged edges. */
 export function pineGeometry(): Prop {
-  return build([
-    p(at(new THREE.CylinderGeometry(0.16, 0.3, 2.2, 6), 0, 1.1, 0), 'organic', '4a3020'),
-    p(at(new THREE.ConeGeometry(2.0, 3.0, 7), 0, 2.7, 0), 'foliage', '1e6a52'),
-    p(at(new THREE.ConeGeometry(1.55, 2.6, 7), 0, 4.0, 0, 0.45), 'foliage', '2a8a5e'),
-    p(at(new THREE.ConeGeometry(1.0, 2.2, 7), 0, 5.3, 0), 'foliage', '3aa070'),
-  ]);
+  const parts: Part[] = [p(at(new THREE.CylinderGeometry(0.14, 0.3, 2.6, 6), 0, 1.3, 0), 'organic', '4a3020')];
+  const tiers = 5;
+  for (let i = 0; i < tiers; i++) {
+    const t = i / (tiers - 1);
+    const r = 2.2 - t * 1.55;
+    const hgt = 2.0 - t * 0.6;
+    const y = 2.0 + i * 1.0;
+    const cone = new THREE.ConeGeometry(r, hgt, 9, 2, true);
+    // the lowest ring droops outwards like heavy branches
+    const pos = cone.getAttribute('position');
+    for (let k = 0; k < pos.count; k++) {
+      if (pos.getY(k) < -hgt / 2 + 0.01) {
+        const a = Math.atan2(pos.getZ(k), pos.getX(k));
+        const jag = 1 + 0.18 * Math.sin(a * 9 + i * 1.3);
+        pos.setXYZ(k, pos.getX(k) * jag, pos.getY(k) - 0.25 * jag, pos.getZ(k) * jag);
+      }
+    }
+    const greens = ['1c4426', '22502c', '2a5c32', '326838', '3c7440'];
+    parts.push(p(at(rough(cone, 0.09, i + 3), 0, y, 0, i * 0.4), 'foliage', greens[i]));
+  }
+  return build(parts);
 }
 
 export function deadTreeGeometry(): Prop {
@@ -371,7 +447,7 @@ export function oakGeometry(variant: number): Prop {
   ];
   const blobs: [number, number, number, number][] = [[0, 4.4, 0, 2.1], [1.2, 4.0, 0.6, 1.5], [-1.1, 4.1, -0.5, 1.6], [0.3, 5.3, -0.4, 1.4], [-0.4, 3.8, 1.1, 1.3]];
   const greens = ['2a5a34', '30683a', '3a7440'];
-  blobs.forEach(([x, y, z, r], i) => parts.push(p(at(new THREE.IcosahedronGeometry(r, 1), x, y, z), 'foliage', greens[(i + variant) % 3])));
+  blobs.forEach(([x, y, z, r], i) => parts.push(p(at(rough(new THREE.IcosahedronGeometry(r, 1), r * 0.12, i + variant * 7), x, y, z), 'foliage', greens[(i + variant) % 3])));
   return build(parts);
 }
 
@@ -534,4 +610,153 @@ export function stiltHutGeometry(): Prop {
     p(at(new THREE.BoxGeometry(1.0, 0.15, 2.6), -0.9, 1.1, 2.6, 0, 0.6), 'wood', '6a4a30'),
   ];
   return build(parts);
+}
+
+// ================================================================== settlements
+/** A woodcutter's log cabin, door at +z. Footprint 2.6 × 2.2 half extents. */
+export function logCabinGeometry(variant: number): Prop {
+  const W = 5.2;
+  const D = 4.4;
+  const H = 2.8;
+  const parts: Part[] = [p(at(new THREE.BoxGeometry(W + 0.3, 1.6, D + 0.3), 0, -0.4, 0), 'stone', '7a7080')];
+  // stacked logs, alternating so the corners interlock
+  for (let i = 0; i < 9; i++) {
+    const y = 0.45 + i * 0.3;
+    const tint = i % 2 ? '6a4a2e' : '5a3e26';
+    parts.push(p(at(new THREE.CylinderGeometry(0.17, 0.17, W + 0.5, 7), 0, y, D / 2, 0, 0, Math.PI / 2), 'organic', tint));
+    parts.push(p(at(new THREE.CylinderGeometry(0.17, 0.17, W + 0.5, 7), 0, y, -D / 2, 0, 0, Math.PI / 2), 'organic', tint));
+    parts.push(p(at(new THREE.CylinderGeometry(0.17, 0.17, D + 0.5, 7), W / 2, y + 0.15, 0, 0, Math.PI / 2, Math.PI / 2), 'organic', tint));
+    parts.push(p(at(new THREE.CylinderGeometry(0.17, 0.17, D + 0.5, 7), -W / 2, y + 0.15, 0, 0, Math.PI / 2, Math.PI / 2), 'organic', tint));
+  }
+  parts.push(p(at(new THREE.BoxGeometry(W - 0.2, H, D - 0.2), 0, 0.3 + H / 2, 0), 'wood', '5a4028'));
+  parts.push(p(at(gableRoofGeometry(W + 0.2, D + 0.2, 2.2 + (variant % 2) * 0.4, 0.5), 0, 0.3 + H + 0.1, 0), 'shingle', variant % 2 ? '4a5a3a' : '5a4a3a'));
+  parts.push(p(at(new THREE.BoxGeometry(1.0, 2.0, 0.14), 0.8, 1.3, D / 2 + 0.12), 'darkwood', '2a1a12'));
+  parts.push(p(at(new THREE.BoxGeometry(0.8, 0.7, 0.06), -1.3, 1.8, D / 2 + 0.14), 'glowWarm', 'ff9a1a'));
+  parts.push(p(at(new THREE.BoxGeometry(0.7, 3.4, 0.7), -W / 2 + 0.8, 3.6, -0.8), 'stone', '6a6070'));
+  return build(parts);
+}
+export const CABIN_HALF = { hx: 2.75, hz: 2.35 };
+
+/** A low shepherd's cottage of grey field stone with a heavy thatch, door at +z. */
+export function stoneCottageGeometry(variant: number): Prop {
+  const W = 6;
+  const D = 4.4;
+  const H = 2.6;
+  const parts: Part[] = [
+    p(at(new THREE.BoxGeometry(W + 0.3, 2, D + 0.3), 0, -0.6, 0), 'stone', '6a6478'),
+    p(at(new THREE.BoxGeometry(W, H, D), 0, H / 2 + 0.3, 0), 'stone', variant % 2 ? '8a8494' : '7a7488'),
+    p(at(gableRoofGeometry(W + 0.2, D + 0.2, 2.6, 0.6), 0, H + 0.3, 0), 'organic', 'a8884a'),
+    p(at(new THREE.BoxGeometry(1.0, 1.9, 0.14), -1.4, 1.25, D / 2 + 0.05), 'darkwood', '2a1a12'),
+    p(at(new THREE.BoxGeometry(0.7, 0.6, 0.06), 1.4, 1.7, D / 2 + 0.04), 'glowWarm', 'ff9a1a'),
+    p(at(new THREE.BoxGeometry(0.9, 2.8, 0.9), W / 2 - 0.6, 3.6, 0), 'stone', '6a6478'),
+  ];
+  // field stones sticking out of the walls give them texture
+  for (let i = 0; i < 14; i++) {
+    const side = i % 2 ? 1 : -1;
+    parts.push(p(at(new THREE.DodecahedronGeometry(0.22, 0), ((i * 0.83) % W) - W / 2 + 0.3, 0.6 + ((i * 0.57) % 2), side * (D / 2 + 0.02)), 'stone', '6a6478'));
+  }
+  return build(parts);
+}
+export const COTTAGE_HALF = { hx: 3.1, hz: 2.3 };
+
+/** Market stall with a striped awning, open towards −z. */
+export function marketStallGeometry(color: string): Prop {
+  const parts: Part[] = [
+    p(at(new THREE.BoxGeometry(2.6, 0.12, 1.2), 0, 0.95, 0), 'wood', '8a6a44'),
+    p(at(new THREE.BoxGeometry(2.6, 0.9, 0.1), 0, 0.45, 0.55), 'wood', '6a4a30'),
+  ];
+  for (const [x, z] of [[-1.25, -0.55], [1.25, -0.55], [-1.25, 0.55], [1.25, 0.55]]) parts.push(p(at(new THREE.BoxGeometry(0.12, 2.4, 0.12), x, 1.2, z), 'darkwood', '3a2418'));
+  for (let i = 0; i < 5; i++) parts.push(p(at(new THREE.BoxGeometry(0.56, 0.05, 1.7), -1.12 + i * 0.56, 2.45 - 0.0, -0.1, 0, 0.28, 0), 'plaster', i % 2 ? 'e8dcc0' : color));
+  // goods on the table: apples, loaves, jars
+  for (let i = 0; i < 7; i++) parts.push(p(at(new THREE.SphereGeometry(0.11, 6, 5), -1 + i * 0.32, 1.1, -0.2 + (i % 2) * 0.25), 'organic', ['b83a2a', 'c8a050', '8a5a2a', '5a8a3a'][i % 4]));
+  parts.push(p(at(new THREE.BoxGeometry(0.5, 0.35, 0.4), 0.9, 1.2, 0.2), 'wood', '9a7a4a'));
+  return build(parts);
+}
+
+/** The smith's forge (glowing) and anvil. */
+export function forgeGeometry(): Prop {
+  return build([
+    p(at(new THREE.BoxGeometry(1.8, 1.0, 1.4), 0, 0.5, 0), 'stone', '6a6070'),
+    p(at(new THREE.BoxGeometry(1.2, 0.12, 0.9), 0, 1.03, 0), 'glowWarm', 'ff6a10'),
+    p(at(new THREE.BoxGeometry(0.9, 2.6, 0.9), 0, 2.1, 0.4), 'stone', '5a5464'),
+    p(at(new THREE.BoxGeometry(0.4, 0.6, 0.3), 1.8, 0.3, -0.4), 'darkwood', '3a2418'),
+    p(at(new THREE.BoxGeometry(0.7, 0.22, 0.28), 1.8, 0.72, -0.4), 'metal', '3a3a44'),
+    p(at(new THREE.ConeGeometry(0.12, 0.35, 4), 2.2, 0.75, -0.4, 0, 0, Math.PI / 2), 'metal', '3a3a44'),
+  ]);
+}
+
+/** A wooden jetty, length along −z from the origin, deck at y = deckY. */
+export function jettyGeometry(length: number, deckY: number): Prop {
+  const parts: Part[] = [];
+  for (let z = 0; z < length; z += 0.5) parts.push(p(at(new THREE.BoxGeometry(2.2, 0.1, 0.44), 0, deckY - 0.05, -z - 0.25), 'wood', z % 1 ? '8a6a44' : '7a5a3a'));
+  for (let z = 1; z < length; z += 2.4) for (const x of [-1, 1]) parts.push(p(at(new THREE.CylinderGeometry(0.12, 0.14, deckY + 3, 6), x, (deckY - 3) / 2, -z), 'darkwood', '3a2418'));
+  return build(parts);
+}
+
+export function boatGeometry(): Prop {
+  return build([
+    p(at(new THREE.CylinderGeometry(0.8, 0.5, 3.4, 8, 1, false, 0, Math.PI), 0, 0.3, 0, 0, Math.PI / 2, Math.PI / 2, 1, 1, 0.55), 'wood', '6a4a30'),
+    p(at(new THREE.BoxGeometry(1.4, 0.06, 0.3), 0, 0.3, 0), 'darkwood', '4a3020'),
+    p(at(new THREE.CylinderGeometry(0.03, 0.03, 2.2, 4), 0.3, 0.45, 0.4, 0, 0.2, Math.PI / 2 - 0.1), 'darkwood', '4a3020'),
+  ]);
+}
+
+export function dryingRackGeometry(): Prop {
+  const parts: Part[] = [
+    p(at(new THREE.BoxGeometry(0.1, 1.8, 0.1), -1.3, 0.9, 0), 'darkwood', '3a2418'),
+    p(at(new THREE.BoxGeometry(0.1, 1.8, 0.1), 1.3, 0.9, 0), 'darkwood', '3a2418'),
+    p(at(new THREE.BoxGeometry(2.8, 0.06, 0.06), 0, 1.75, 0), 'darkwood', '3a2418'),
+  ];
+  for (let i = 0; i < 7; i++) parts.push(p(at(new THREE.SphereGeometry(0.09, 6, 4), -1.1 + i * 0.36, 1.45, 0, 0, 0, 0, 0.6, 2.4, 0.4), 'metal', i % 2 ? '9aa0a8' : '8a9098'));
+  return build(parts);
+}
+
+export function logPileGeometry(): Prop {
+  const parts: Part[] = [];
+  let k = 0;
+  for (let row = 0; row < 3; row++) {
+    for (let i = 0; i < 4 - row; i++) {
+      parts.push(p(at(new THREE.CylinderGeometry(0.22, 0.22, 3, 8), -0.66 + row * 0.22 + i * 0.44, 0.22 + row * 0.38, 0, 0, Math.PI / 2, Math.PI / 2), 'organic', k++ % 2 ? '6a4a2e' : '7a5a36'));
+    }
+  }
+  return build(parts);
+}
+
+export function sawhorseGeometry(): Prop {
+  return build([
+    p(at(new THREE.BoxGeometry(1.6, 0.12, 0.12), 0, 0.8, 0), 'wood', '8a6a44'),
+    ...[-0.6, 0.6].flatMap((x) => [-1, 1].map((s) => p(at(new THREE.BoxGeometry(0.08, 0.9, 0.08), x, 0.42, s * 0.18, 0, s * 0.35, 0), 'wood', '7a5a3a'))),
+    p(at(new THREE.CylinderGeometry(0.18, 0.18, 1.8, 8), 0, 1.02, 0, 0, 0, Math.PI / 2), 'organic', '7a5a36'),
+  ]);
+}
+
+export function chopBlockGeometry(): Prop {
+  return build([
+    p(at(new THREE.CylinderGeometry(0.4, 0.45, 0.6, 10), 0, 0.3, 0), 'organic', '6a4a2e'),
+    p(at(new THREE.CylinderGeometry(0.36, 0.36, 0.02, 10), 0, 0.61, 0), 'wood', 'b89a6a'),
+    ...[0, 1, 2, 3].map((i) => p(at(new THREE.BoxGeometry(0.12, 0.4, 0.12), Math.cos(i * 1.7) * 0.8, 0.06, Math.sin(i * 1.7) * 0.8, i, Math.PI / 2, 0), 'wood', 'b89a6a')),
+  ]);
+}
+
+export function reedBundleGeometry(): Prop {
+  return build([
+    p(at(new THREE.ConeGeometry(0.35, 2.0, 7), 0, 1.0, 0), 'organic', 'a8945a'),
+    p(at(new THREE.CylinderGeometry(0.2, 0.2, 0.1, 7), 0, 0.9, 0), 'darkwood', '4a3020'),
+  ]);
+}
+
+/** A cairn of piled field stones. */
+export function cairnGeometry(): Prop {
+  const parts: Part[] = [];
+  for (let i = 0; i < 7; i++) parts.push(p(at(new THREE.DodecahedronGeometry(0.55 - i * 0.06, 0), Math.sin(i * 2.4) * 0.2, 0.3 + i * 0.42, Math.cos(i * 2.4) * 0.2, i), 'stone', i % 2 ? '7a7488' : '8a8494'));
+  return build(parts);
+}
+
+/** A lantern on a post (the light itself is added by the world). */
+export function lanternPostGeometry(): Prop {
+  return build([
+    p(at(new THREE.BoxGeometry(0.14, 2.6, 0.14), 0, 1.3, 0), 'darkwood', '3a2418'),
+    p(at(new THREE.BoxGeometry(0.6, 0.08, 0.08), 0.25, 2.55, 0), 'darkwood', '3a2418'),
+    p(at(new THREE.BoxGeometry(0.22, 0.3, 0.22), 0.5, 2.3, 0), 'glowWarm', 'ffb040'),
+  ]);
 }

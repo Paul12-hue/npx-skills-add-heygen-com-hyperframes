@@ -126,8 +126,11 @@ export class World {
   readonly physics: PhysicsWorld;
   private mats = new Map<P.MatKey, THREE.Material>();
   private glowMats: [THREE.MeshBasicMaterial, number][] = [];
-  private flickerLights: { light: THREE.PointLight; base: number; phase: number }[] = [];
-  private lakeGlow!: THREE.PointLight;
+  private flickerLights: { light: LightSource; base: number; phase: number }[] = [];
+  private lakeGlow!: LightSource;
+  /** Every lamp, fire and glow in the world; only the nearest few get a real light. */
+  private lightSources: LightSource[] = [];
+  private lightPool: THREE.PointLight[] = [];
   private lakeGlowMesh!: THREE.Mesh;
   private fireflies!: THREE.Points;
   private fireflyOffsets!: Float32Array;
@@ -137,13 +140,13 @@ export class World {
   private water!: THREE.Mesh;
   private waterMat!: THREE.ShaderMaterial;
   private time = 0;
-  private bellLights = new Map<string, { light: THREE.PointLight; glow: THREE.Mesh }>();
+  private bellLights = new Map<string, { light: LightSource; glow: THREE.Mesh }>();
   private baseFog = new THREE.Color();
 
   constructor() {
     this.textures = createTextures();
     this.scene.fog = this.fog;
-    this.terrain = new Terrain(this.textured(this.textures.ground, { shininess: 6, bump: 3.2, repeat: 1 }));
+    this.terrain = new Terrain(this.groundMaterial());
     this.scene.add(this.terrain.mesh, this.sky.group);
     this.sky.addLightsTo(this.scene);
     this.physics = { colliders: this.colliders, platforms: this.platforms, terrain: (x, z) => this.terrain.getHeight(x, z) };
@@ -157,8 +160,10 @@ export class World {
     this.buildOldSites(batch);
     this.buildMine(batch);
     this.buildOuterLands(batch);
+    this.buildSettlements(batch);
     this.buildForest(batch); // last: trees avoid everything placed before
     this.flush(batch);
+    this.terrain.bakeOcclusion((x, z) => this.groundOcclusion(x, z));
     this.buildAtmosphere();
     this.buildGrass();
     this.spawn.y = this.terrain.getHeight(this.spawn.x, this.spawn.z);
@@ -226,6 +231,39 @@ export class World {
     return [...out];
   }
 
+  /** How much the things standing around darken the ground at (x, z) – soft contact shadows. */
+  private groundOcclusion(x: number, z: number): number {
+    let f = 1;
+    for (const c of this.nearby(x, z)) {
+      let d: number;
+      let reach: number;
+      if (c.r !== undefined) {
+        d = Math.hypot(x - c.x, z - c.z) - c.r;
+        reach = 1.2 + c.r * 2.2; // tree trunks shade a canopy-sized patch
+      } else {
+        const cs = Math.cos(c.rot);
+        const sn = Math.sin(c.rot);
+        // same local frame as the physics (movement.ts toLocal)
+        const lx = (x - c.x) * cs + (z - c.z) * sn;
+        const lz = -(x - c.x) * sn + (z - c.z) * cs;
+        const qx = Math.abs(lx) - c.hx;
+        const qz = Math.abs(lz) - c.hz;
+        d = Math.hypot(Math.max(qx, 0), Math.max(qz, 0)) + Math.min(Math.max(qx, qz), 0);
+        reach = 1.6 + Math.min(c.hx, c.hz) * 0.6;
+      }
+      if (d < reach) {
+        const t = Math.max(0, d) / reach;
+        f *= 1 - 0.42 * (1 - t) * (1 - t);
+      }
+    }
+    return Math.max(0.42, f);
+  }
+
+  /** Is the spot free of obstacles (public: animals and villagers choose where to go with it). */
+  isFree(x: number, z: number, margin: number): boolean {
+    return this.free(x, z, margin);
+  }
+
   /** Is the spot free of obstacles (for scattering trees and clutter)? */
   private free(x: number, z: number, margin: number): boolean {
     for (const c of this.nearby(x, z)) {
@@ -254,6 +292,35 @@ export class World {
       emissive: new THREE.Color(o.emissive ?? 0x000000),
       emissiveIntensity: o.emissiveIntensity ?? 1,
     });
+  }
+
+  /**
+   * The ground: earth texture plus a finer second layer (so it never looks
+   * smooth up close or tiled from afar) and rock on steep slopes.
+   */
+  private groundMaterial(): THREE.MeshPhongMaterial {
+    const m = this.textured(this.textures.ground, { shininess: 6, bump: 3.2, repeat: 1 });
+    const rock = this.textures.stone.map.clone();
+    rock.needsUpdate = true;
+    m.onBeforeCompile = (sh) => {
+      sh.uniforms.uRock = { value: rock };
+      sh.vertexShader = sh.vertexShader
+        .replace('#include <common>', '#include <common>\nvarying float vSlope;')
+        .replace('#include <begin_vertex>', '#include <begin_vertex>\nvSlope = 1.0 - normal.y;');
+      sh.fragmentShader = sh.fragmentShader
+        .replace('#include <common>', '#include <common>\nvarying float vSlope;\nuniform sampler2D uRock;')
+        .replace(
+          '#include <map_fragment>',
+          `#include <map_fragment>
+          float detail = texture2D(map, vMapUv * 5.3 + 0.37).g;
+          float broad = texture2D(map, vMapUv * 0.21).g;
+          diffuseColor.rgb *= (0.62 + 0.7 * detail) * (0.8 + 0.4 * broad);
+          float rk = smoothstep(0.12, 0.3, vSlope);
+          vec3 rockCol = texture2D(uRock, vMapUv * 0.9).rgb * 1.25;
+          diffuseColor.rgb = mix(diffuseColor.rgb, rockCol, rk * 0.85);`,
+        );
+    };
+    return m;
   }
 
   private buildMaterials(): void {
@@ -301,10 +368,9 @@ export class World {
     }
   }
 
-  private light(color: number, intensity: number, distance: number, x: number, y: number, z: number, flicker = true): THREE.PointLight {
-    const l = new THREE.PointLight(color, intensity, distance, 1.6);
-    l.position.set(x, y, z);
-    this.scene.add(l);
+  private light(color: number, intensity: number, distance: number, x: number, y: number, z: number, flicker = true): LightSource {
+    const l: LightSource = { position: new THREE.Vector3(x, y, z), color: new THREE.Color(color), intensity, distance };
+    this.lightSources.push(l);
     if (flicker) this.flickerLights.push({ light: l, base: intensity, phase: Math.random() * 10 });
     return l;
   }
@@ -414,7 +480,7 @@ export class World {
           const ly = this.y(lx, lz);
           batch.add(P.place(lantern, lx, ly, lz, Math.atan2(nx * side, nz * side) - Math.PI / 2));
           this.circle(lx, lz, 0.22);
-          if (lit < 6 && lamp % 2 === 1) {
+          if (lamp % 2 === 1) {
             this.light(0xffb040, 4, 13, lx, ly + 2.6, lz);
             lit++;
           }
@@ -573,6 +639,190 @@ export class World {
       batch.add(P.place(fence, x, this.y(x, z), z, ry));
       this.box(x, z, 1.55, 0.1, -ry);
     }
+  }
+
+  /** Named spots where villagers work, sit or stand (filled while building). */
+  readonly spots = new Map<string, { x: number; z: number; yaw: number }>();
+
+  private spot(name: string, x: number, z: number, faceX?: number, faceZ?: number, yaw = 0): void {
+    const y = faceX !== undefined && faceZ !== undefined ? Math.atan2(-(faceX - x), -(faceZ - z)) : yaw;
+    this.spots.set(name, { x, z, yaw: y });
+  }
+
+  /** A building turned with its door (+z) towards (cx, cz), snapped to 45°. */
+  private building(make: P.Prop, half: { hx: number; hz: number }, x: number, z: number, cx: number, cz: number): number {
+    const ry = Math.round(Math.atan2(cx - x, cz - z) / (Math.PI / 4)) * (Math.PI / 4);
+    const y = this.footY(x, z, half.hx, half.hz, -ry);
+    this.batchRef!.add(P.place(make, x, y, z, ry));
+    this.box(x, z, half.hx, half.hz, -ry);
+    return ry;
+  }
+  private batchRef: P.PropBatch | null = null;
+
+  private prop(make: P.Prop, x: number, z: number, ry: number, col: { r?: number; hx?: number; hz?: number }): void {
+    this.batchRef!.add(P.place(make, x, this.y(x, z), z, ry));
+    if (col.r) this.circle(x, z, col.r);
+    else if (col.hx) this.box(x, z, col.hx, col.hz!, -ry);
+  }
+
+  private lamp(x: number, z: number, ry = 0): void {
+    this.prop(P.lanternPostGeometry(), x, z, ry, { r: 0.2 });
+    const c = Math.cos(ry);
+    const s = Math.sin(ry);
+    this.light(0xffb040, 4, 14, x + 0.5 * c, this.y(x, z) + 2.3, z - 0.5 * s);
+  }
+
+  // ---------------------------------------------------------------- the smaller settlements
+  private buildSettlements(batch: P.PropBatch): void {
+    this.batchRef = batch;
+    const L = LAYOUT;
+    const r = rng(77);
+
+    // --- Candlewick: market stalls on the square and a smithy
+    const v = L.village;
+    const stallCols = ['8a2c18', '3a5a8a', '5a7a3a'];
+    [[-8, 4, 0.3], [-6, 8.5, 0.9], [0, 9.5, 1.6]].forEach(([dx, dz, ry], i) => {
+      const x = v.x + dx;
+      const z = v.z + dz;
+      this.prop(P.marketStallGeometry(stallCols[i]), x, z, ry, { hx: 1.35, hz: 0.65 });
+      const l = (lx: number, lz: number): [number, number] => [x + lx * Math.cos(ry) + lz * Math.sin(ry), z - lx * Math.sin(ry) + lz * Math.cos(ry)];
+      const [sx2, sz2] = l(1.9, -0.2);
+      const [lookX, lookZ] = l(1.9, -4);
+      this.spot('stall' + i, sx2, sz2, lookX, lookZ);
+      const [bx2, bz2] = l(-0.3, -1.75);
+      this.spot('buyer' + i, bx2, bz2, x, z);
+    });
+    const fx = v.x + 17;
+    const fz = v.z + 12;
+    const fry = -0.6;
+    // local (prop) coordinates → world, matching P.place's rotation about y
+    const loc = (lx: number, lz: number): [number, number] => [fx + lx * Math.cos(fry) + lz * Math.sin(fry), fz - lx * Math.sin(fry) + lz * Math.cos(fry)];
+    this.prop(P.forgeGeometry(), fx, fz, fry, { hx: 0.95, hz: 0.75 });
+    const [ax, az] = loc(1.8, -0.4);
+    this.box(ax, az, 0.4, 0.3, -fry);
+    this.light(0xff6a20, 6, 12, fx, this.y(fx, fz) + 1.6, fz);
+    const [smx, smz] = loc(1.8, -1.25);
+    this.spot('smith', smx, smz, ax, az);
+    this.spot('square', v.x + 1, v.z + 4);
+
+    // --- Reedwater: a fishing hamlet on the western shore of Hollowmere
+    const rw = L.reedwater;
+    [[-9, 3], [-4, -8], [6, 9], [-10, -5]].forEach(([dx, dz], i) => this.building(P.houseGeometry(i + 2), P.HOUSE_HALF, rw.x + dx, rw.z + dz, rw.x, rw.z));
+    // the jetty runs from the shore out into the lake
+    const dir = new THREE.Vector2(L.lake.x - rw.x, L.lake.z - rw.z).normalize();
+    let sx = rw.x;
+    let sz = rw.z;
+    for (let k = 0; k < 60 && this.y(sx, sz) > 0.6; k++) {
+      sx += dir.x;
+      sz += dir.y;
+    }
+    const jLen = 12;
+    const jry = Math.atan2(-dir.x, -dir.y);
+    const deck = 0.9;
+    batch.add(P.place(P.jettyGeometry(jLen, deck), sx - dir.x * 1.5, 0, sz - dir.y * 1.5, jry));
+    const jcx = sx + dir.x * (jLen / 2 - 1.5);
+    const jcz = sz + dir.y * (jLen / 2 - 1.5);
+    this.platforms.push({ x: jcx, z: jcz, hx: 1.1, hz: jLen / 2, rot: -jry, y: deck });
+    const endX = sx + dir.x * (jLen - 2.5);
+    const endZ = sz + dir.y * (jLen - 2.5);
+    this.spot('fisher0', endX, endZ, endX + dir.x * 5, endZ + dir.y * 5);
+    this.spot('fisher1', sx + dir.x * 5 + dir.y * 0.7, sz + dir.y * 5 - dir.x * 0.7, sx + dir.x * 5 + dir.y * 6, sz + dir.y * 5 - dir.x * 6);
+    this.light(0xffb040, 4, 12, endX, deck + 2, endZ);
+    for (let i = 0; i < 2; i++) {
+      const bx = sx + dir.x * (4 + i * 4) + dir.y * (2.6 + i * 0.4);
+      const bz = sz + dir.y * (4 + i * 4) - dir.x * (2.6 + i * 0.4);
+      batch.add(P.place(P.boatGeometry(), bx, -0.15, bz, jry + 0.2 * i));
+    }
+    this.prop(P.boatGeometry(), rw.x + 3, rw.z - 3, 1.1, { hx: 0.6, hz: 1.7 });
+    this.prop(P.dryingRackGeometry(), rw.x - 2, rw.z + 5, 0.4, { hx: 1.4, hz: 0.2 });
+    this.prop(P.dryingRackGeometry(), rw.x + 4, rw.z + 2, -0.5, { hx: 1.4, hz: 0.2 });
+    this.prop(P.barrelGeometry(), rw.x + 1.5, rw.z - 6, 0, { r: 0.45 });
+    this.prop(P.crateGeometry(), rw.x + 2.6, rw.z - 6.4, 0.4, { hx: 0.55, hz: 0.55 });
+    this.prop(P.campfireGeometry(), rw.x - 3, rw.z - 1, 0, { r: 1.1 });
+    this.light(0xff9030, 7, 14, rw.x - 3, this.y(rw.x - 3, rw.z - 1) + 1.2, rw.z - 1);
+    this.spot('rw_fire0', rw.x - 3, rw.z + 1.2, rw.x - 3, rw.z - 1);
+    this.spot('rw_fire1', rw.x - 5.1, rw.z - 1.6, rw.x - 3, rw.z - 1);
+    this.spot('rw_rack', rw.x - 2, rw.z + 6.2, rw.x - 2, rw.z + 5);
+    this.lamp(rw.x + 7, rw.z - 2, 0.5);
+
+    // --- Fellstead: woodcutters at the edge of the Whisperwood
+    const fs = L.fellstead;
+    [[-10, -4], [-3, 10], [9, 6]].forEach(([dx, dz], i) => this.building(P.logCabinGeometry(i), P.CABIN_HALF, fs.x + dx, fs.z + dz, fs.x, fs.z));
+    this.prop(P.logPileGeometry(), fs.x + 6, fs.z - 7, 0.3, { hx: 1.6, hz: 0.9 });
+    this.prop(P.logPileGeometry(), fs.x + 9, fs.z - 3, 1.2, { hx: 1.6, hz: 0.9 });
+    this.prop(P.sawhorseGeometry(), fs.x - 2, fs.z - 6, 0.8, { hx: 0.9, hz: 0.3 });
+    for (let i = 0; i < 3; i++) {
+      const cx = fs.x + [2, -5, 5][i];
+      const cz = fs.z + [-3, 3, 2][i];
+      this.prop(P.chopBlockGeometry(), cx, cz, i, { r: 0.45 });
+      this.spot('chop' + i, cx + 0.9, cz + 0.4, cx, cz);
+    }
+    this.prop(P.campfireGeometry(), fs.x, fs.z + 4, 0, { r: 1.1 });
+    this.light(0xff9030, 7, 14, fs.x, this.y(fs.x, fs.z + 4) + 1.2, fs.z + 4);
+    this.spot('fs_fire0', fs.x, fs.z + 6.2, fs.x, fs.z + 4);
+    this.spot('fs_fire1', fs.x - 2.1, fs.z + 3.4, fs.x, fs.z + 4);
+    this.spot('saw', fs.x - 2, fs.z - 7.1, fs.x - 2, fs.z - 6);
+    this.lamp(fs.x - 7, fs.z + 3);
+    // tree stumps all around
+    for (let i = 0; i < 14; i++) {
+      const a = r() * Math.PI * 2;
+      const d = 12 + r() * 10;
+      const x = fs.x + Math.cos(a) * d;
+      const z = fs.z + Math.sin(a) * d;
+      if (distToPath(x, z) < 3 || !this.free(x, z, 1)) continue;
+      this.prop(P.chopBlockGeometry(), x, z, a, { r: 0.45 });
+    }
+
+    // --- Stiltwick: marsh folk in huts on stilts, reeds drying in bundles
+    const sw = L.stiltwick;
+    [[-9, -2], [-2, 9], [8, 5], [6, -8]].forEach(([dx, dz]) => {
+      const x = sw.x + dx;
+      const z = sw.z + dz;
+      const ry = Math.atan2(sw.x - x, sw.z - z);
+      batch.add(P.place(P.stiltHutGeometry(), x, this.y(x, z), z, ry));
+      this.box(x, z, 2.2, 1.9, -ry);
+    });
+    for (let i = 0; i < 9; i++) {
+      const a = (i / 9) * Math.PI * 2 + 0.3;
+      const x = sw.x + Math.cos(a) * 4.5;
+      const z = sw.z + Math.sin(a) * 4.5;
+      if (distToPath(x, z) < 2.2) continue;
+      this.prop(P.reedBundleGeometry(), x, z, a, { r: 0.35 });
+    }
+    this.prop(P.dryingRackGeometry(), sw.x + 1, sw.z - 2, 1.2, { hx: 1.4, hz: 0.2 });
+    this.spot('reeds0', sw.x + 12, sw.z - 2, sw.x + 18, sw.z - 4);
+    this.spot('reeds1', sw.x - 13, sw.z + 6, sw.x - 18, sw.z + 9);
+    this.spot('sw_rack', sw.x + 1 - Math.sin(1.2) * 1.2, sw.z - 2 - Math.cos(1.2) * 1.2, sw.x + 1, sw.z - 2);
+    this.lamp(sw.x - 3, sw.z - 6, 1);
+    this.lamp(sw.x + 4, sw.z + 3);
+
+    // --- Cairnfold: shepherds on the High Moor
+    const cf = L.cairnfold;
+    [[-8, -3], [6, -7]].forEach(([dx, dz], i) => this.building(P.stoneCottageGeometry(i), P.COTTAGE_HALF, cf.x + dx, cf.z + dz, cf.x, cf.z));
+    // the sheep pen
+    const pen = { x: cf.x + 4, z: cf.z + 9 };
+    const fence = P.fenceGeometry();
+    for (let a = 0; a < Math.PI * 2; a += Math.PI / 6) {
+      if (Math.abs(a - Math.PI * 1.5) < 0.1) continue; // the gate
+      const x = pen.x + Math.cos(a) * 6;
+      const z = pen.z + Math.sin(a) * 6;
+      const ry = -a + Math.PI / 2;
+      batch.add(P.place(fence, x, this.y(x, z), z, ry));
+      this.box(x, z, 1.55, 0.1, -ry);
+    }
+    this.spots.set('pen', { x: pen.x, z: pen.z, yaw: 0 });
+    for (let i = 0; i < 5; i++) {
+      const a = r() * Math.PI * 2;
+      const x = cf.x + Math.cos(a) * (16 + r() * 8);
+      const z = cf.z + Math.sin(a) * (16 + r() * 8);
+      if (distToPath(x, z) < 3 || !this.free(x, z, 1.5)) continue;
+      this.prop(P.cairnGeometry(), x, z, a, { r: 0.7 });
+    }
+    this.prop(P.wellGeometry(), cf.x - 1, cf.z + 1, 0, { r: 1.35 });
+    this.spot('shepherd', pen.x - 7.5, pen.z - 2, pen.x, pen.z);
+    this.spot('cf_well', cf.x - 1, cf.z + 3, cf.x - 1, cf.z + 1);
+    this.lamp(cf.x + 2, cf.z - 2);
+    this.batchRef = null;
   }
 
   // ---------------------------------------------------------------- farm & windmill
@@ -762,8 +1012,8 @@ export class World {
 
   // ---------------------------------------------------------------- forest
   private sitesClear(x: number, z: number, m: number): boolean {
-    for (const s of [LAYOUT.village, LAYOUT.cemetery, LAYOUT.farm, LAYOUT.stones, LAYOUT.ruin, LAYOUT.aldersey]) {
-      if (Math.hypot(x - s.x, z - s.z) < s.radius + m) return false;
+    for (const s of [LAYOUT.village, LAYOUT.cemetery, LAYOUT.farm, LAYOUT.stones, LAYOUT.ruin, LAYOUT.aldersey, LAYOUT.reedwater, LAYOUT.fellstead, LAYOUT.stiltwick, LAYOUT.cairnfold]) {
+      if (Math.hypot(x - s.x, z - s.z) < s.radius + 6 + m) return false;
     }
     for (const b of LAYOUT.bells) if (Math.hypot(x - b.x, z - b.z) < 6 + m) return false;
     for (const p of [LAYOUT.mine, LAYOUT.camp, LAYOUT.windmill]) if (Math.hypot(x - p.x, z - p.z) < 8 + m) return false;
@@ -990,8 +1240,51 @@ export class World {
       s.position.x = base.x + Math.sin(t * 0.05 + s.userData.phase) * 6;
       s.position.z = base.z + Math.cos(t * 0.04 + s.userData.phase) * 4;
     }
+    this.assignLights(focus);
+  }
+
+  /**
+   * A fixed number of real point lights (so the shaders never change and every
+   * pixel only pays for a few lights) is handed to the nearest light sources.
+   */
+  private assignLights(focus: THREE.Vector3): void {
+    if (!this.lightPool.length) {
+      for (let i = 0; i < LIGHT_POOL; i++) {
+        const l = new THREE.PointLight(0xffffff, 0, 10, 1.6);
+        this.lightPool.push(l);
+        this.scene.add(l);
+      }
+    }
+    const ranked = this.lightSources
+      .filter((l) => l.intensity > 0.01)
+      .map((l) => ({ l, d: l.position.distanceTo(focus) - l.distance }))
+      .filter((r) => r.d < 30)
+      .sort((a, b) => a.d - b.d);
+    for (let i = 0; i < LIGHT_POOL; i++) {
+      const p = this.lightPool[i];
+      const r = ranked[i];
+      if (!r) {
+        p.intensity = 0;
+        continue;
+      }
+      // fade in/out near the edge of the pool's reach so lights do not pop
+      const fade = Math.min(1, Math.max(0, (30 - r.d) / 10));
+      p.position.copy(r.l.position);
+      p.color.copy(r.l.color);
+      p.distance = r.l.distance;
+      p.intensity = r.l.intensity * fade;
+    }
   }
 }
+
+/** A lamp or fire. Not a real light – see World.assignLights. */
+export interface LightSource {
+  position: THREE.Vector3;
+  color: THREE.Color;
+  intensity: number;
+  distance: number;
+}
+const LIGHT_POOL = 6;
 
 /** Intersection point of two 2D segments, or null. */
 function segmentIntersection(a: number[], b: number[], c: number[], d: number[]): [number, number] | null {

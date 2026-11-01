@@ -149,6 +149,39 @@ const browser = await chromium.launch({ args: ['--use-angle=swiftshader', '--ena
     check('F returns the camera to the player', back);
   }
 
+  // the people and animals of the vale; talk to the smith
+  {
+    let s = await st();
+    check('the vale is populated', s.people >= 30 && s.animals >= 150, `${s.people} people, ${s.animals} animals`);
+    for (let i = 0; i < 40 && s.sculptPending > 0; i++) {
+      await sleep(500);
+      s = await st();
+    }
+    check('characters are sculpted in the background', s.sculptPending === 0 && s.sculpted > 10, `${s.sculpted} shapes built, ${s.sculptPending} pending`);
+    const v = s.villager0;
+    await page.evaluate(([x, z]) => window.__threnod.teleport(x - 1.6, z - 1.6, Math.atan2(1.6, 1.6) + Math.PI), [v.x, v.z]);
+    let t = await st();
+    for (let i = 0; i < 10 && t.target !== 'villager0'; i++) {
+      await sleep(400);
+      t = await st();
+    }
+    check('a villager can be targeted', t.target === 'villager0', `target=${t.target}`);
+    for (let i = 0; i < 6 && t.mode !== 'dialogue'; i++) {
+      await page.keyboard.press('e');
+      for (let j = 0; j < 5 && t.mode !== 'dialogue'; j++) {
+        await sleep(400);
+        t = await st();
+      }
+    }
+    check('talking to a villager opens a line', t.mode === 'dialogue' && !!t.dialogue?.text, t.dialogue?.text?.slice(0, 50) ?? 'mode=' + t.mode);
+    await page.screenshot({ path: `${OUT}/03b-villager.png`, timeout: 120000 });
+    for (let i = 0; i < 10 && (await st()).mode === 'dialogue'; i++) {
+      await page.keyboard.press('e');
+      await sleep(600);
+    }
+    check('villager conversation closes', (await st()).mode === 'playing');
+  }
+
   // night & the village
   await page.evaluate(() => {
     window.__threnod.setHour(22.5);

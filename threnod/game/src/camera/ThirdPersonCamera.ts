@@ -46,6 +46,11 @@ export class ThirdPersonCamera {
   }
 
   /** Switch between following the player and a free camera. */
+  /** The point the camera looks at (the player, or the free camera's spot). */
+  get focusPoint(): THREE.Vector3 {
+    return this.focus;
+  }
+
   setFree(on: boolean, from: THREE.Vector3): void {
     this.free = on;
     this.freeFocus.copy(from);

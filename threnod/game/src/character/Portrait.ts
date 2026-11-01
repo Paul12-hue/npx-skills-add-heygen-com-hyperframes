@@ -66,23 +66,43 @@ export class PortraitRenderer {
     return this.renderer;
   }
 
+  private extra = new Map<string, FigureSpec>();
+
+  /** Make a villager available as a portrait (built at a slightly lower detail on first use). */
+  register(name: string, spec: FigureSpec): void {
+    this.extra.set(name, spec);
+  }
+
   has(name: string): boolean {
-    return name in SPECS;
+    return name in SPECS || this.extra.has(name);
+  }
+
+  private ensureFigure(name: string): { h: Humanoid; face: THREE.Vector3 } {
+    let f = this.figures.get(name);
+    if (!f) {
+      const extra = this.extra.get(name);
+      const spec = extra ?? SPECS[name]();
+      const h = new Humanoid(spec, { cell: extra ? 0.013 : 0.011, priority: -1 }); // full detail for the close-up (sculpted in the background)
+      const head = spec.joints.head;
+      f = { h, face: new THREE.Vector3(head[0], head[1] + 0.07, head[2] - 0.02) };
+      h.root.visible = false;
+      this.scene.add(h.root);
+      this.figures.set(name, f);
+    }
+    return f;
+  }
+
+  /** Start sculpting someone's close-up before the conversation begins. */
+  prepare(name: string): void {
+    if (this.has(name)) this.ensureFigure(name);
   }
 
   /** Show a character (or nothing). Characters are built on first use. */
   show(name: string | null): void {
     this.current = name && this.has(name) ? name : null;
     if (!this.current) return;
-    if (!this.figures.has(this.current)) {
-      const spec = SPECS[this.current]();
-      const h = new Humanoid(spec); // reuses the sculpt already built for the world – opens instantly
-      const head = spec.joints.head;
-      const face = new THREE.Vector3(head[0], head[1] + 0.07, head[2] - 0.02);
-      this.scene.add(h.root);
-      this.figures.set(this.current, { h, face });
-    }
-    for (const [k, f] of this.figures) f.h.root.visible = k === this.current;
+    this.ensureFigure(this.current);
+    for (const [k, fig] of this.figures) fig.h.root.visible = k === this.current;
     const f = this.figures.get(this.current)!;
     // a slight three-quarter view of the face
     this.camera.position.set(f.face.x - 0.2, f.face.y + 0.03, f.face.z - 0.85);

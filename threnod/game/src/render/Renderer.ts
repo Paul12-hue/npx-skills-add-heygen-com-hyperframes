@@ -83,6 +83,7 @@ export class Renderer {
     this.renderer.toneMappingExposure = 1.7;
     this.renderer.outputColorSpace = THREE.SRGBColorSpace;
     this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    this.renderer.info.autoReset = false;
 
     this.composer = new EffectComposer(this.renderer);
     this.renderPass = new RenderPass(scene, camera);
@@ -129,6 +130,7 @@ export class Renderer {
 
   render(dt: number): void {
     this.grade.uniforms.uTime.value = (this.grade.uniforms.uTime.value + dt) % 100;
+    this.renderer.info.reset();
     this.composer.render(dt);
   }
 }

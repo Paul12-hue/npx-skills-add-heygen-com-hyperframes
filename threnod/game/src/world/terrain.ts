@@ -15,6 +15,11 @@ export const LAYOUT = {
   stones: { x: -112, z: -64, radius: 12, height: 9 },
   ruin: { x: -18, z: -142, radius: 10, height: 7 },
   camp: { x: 132, z: -30 },
+  /** smaller settlements: fishers, woodcutters, marsh folk, shepherds */
+  reedwater: { x: -22, z: 42, radius: 14, height: 1.8 },
+  fellstead: { x: 184, z: -128, radius: 16, height: 2.3 },
+  stiltwick: { x: -160, z: 140, radius: 14, height: 1.1 },
+  cairnfold: { x: -196, z: -92, radius: 15, height: 14.4 },
   /** the four outer lands */
   whisperwood: { x: 210, z: -200, radius: 120 },
   marsh: { x: -215, z: 190, radius: 105 },
@@ -40,6 +45,8 @@ export const LAYOUT = {
     [[118, 62], [200, 80], [262, 72], [318, 70]],
     [[-52, 60], [-120, 120], [-190, 160]],
     [[-106, -58], [-170, -100], [-226, -126]],
+    [[-40, 20], [-30, 34], [-22, 42]],
+    [[-170, -100], [-186, -96], [-196, -92]],
   ] as [number, number][][],
   /** Rivers as polylines: one flows into the lake, one out of it to the west. */
   rivers: [
@@ -116,7 +123,7 @@ export function heightAt(x: number, z: number): number {
   const sd = Math.hypot(x - LAYOUT.marsh.x, z - LAYOUT.marsh.z);
   h = lerp(h, -0.9 + fbm(x * 0.06, z * 0.06, 3, 33) * 2.6, 1 - smoothstep(LAYOUT.marsh.radius * 0.6, LAYOUT.marsh.radius * 1.2, sd));
   // flattened ground for the settlements, raised hill tops for the old sites
-  for (const s of [LAYOUT.village, LAYOUT.cemetery, LAYOUT.farm, LAYOUT.stones, LAYOUT.ruin, LAYOUT.aldersey]) {
+  for (const s of [LAYOUT.village, LAYOUT.cemetery, LAYOUT.farm, LAYOUT.stones, LAYOUT.ruin, LAYOUT.aldersey, LAYOUT.reedwater, LAYOUT.fellstead, LAYOUT.stiltwick, LAYOUT.cairnfold]) {
     const d = Math.hypot(x - s.x, z - s.z);
     h = lerp(s.height, h, smoothstep(s.radius * 0.6, s.radius * 1.5, d));
   }
@@ -143,7 +150,8 @@ const COLORS = {
 };
 
 export class Terrain {
-  readonly mesh: THREE.Mesh;
+  /** The ground, split into tiles so only what the camera sees is drawn. */
+  readonly mesh = new THREE.Group();
   private heights: Float32Array;
   private n: number;
   private cell: number;
@@ -160,9 +168,70 @@ export class Terrain {
         this.heights[j * this.n + i] = heightAt(i * this.cell - this.half, j * this.cell - this.half);
       }
     }
-    this.mesh = new THREE.Mesh(this.buildGeometry(), material ?? new THREE.MeshLambertMaterial({ vertexColors: true }));
-    this.mesh.name = 'terrain';
-    this.mesh.receiveShadow = true;
+    const mat = material ?? new THREE.MeshLambertMaterial({ vertexColors: true });
+    for (const g of this.buildChunks(10)) {
+      const m = new THREE.Mesh(g, mat);
+      m.name = 'terrain';
+      m.receiveShadow = true;
+      this.mesh.add(m);
+    }
+  }
+
+  /** The grid cut into chunks × chunks tiles; normals come from the whole grid so the seams are invisible. */
+  private buildChunks(chunks: number): THREE.BufferGeometry[] {
+    const full = this.buildGeometry();
+    const n = this.n;
+    const pos = full.getAttribute('position').array as Float32Array;
+    const col = full.getAttribute('color').array as Float32Array;
+    const uv = full.getAttribute('uv').array as Float32Array;
+    const h = (i: number, j: number) => this.heights[Math.min(n - 1, Math.max(0, j)) * n + Math.min(n - 1, Math.max(0, i))];
+    const out: THREE.BufferGeometry[] = [];
+    const step = Math.ceil((n - 1) / chunks);
+    for (let cj = 0; cj < n - 1; cj += step) {
+      for (let ci = 0; ci < n - 1; ci += step) {
+        const w = Math.min(step, n - 1 - ci) + 1;
+        const d = Math.min(step, n - 1 - cj) + 1;
+        const P = new Float32Array(w * d * 3);
+        const Cc = new Float32Array(w * d * 3);
+        const U = new Float32Array(w * d * 2);
+        const N = new Float32Array(w * d * 3);
+        for (let j = 0; j < d; j++) {
+          for (let i = 0; i < w; i++) {
+            const gi = ci + i;
+            const gj = cj + j;
+            const src = gj * n + gi;
+            const dst = j * w + i;
+            P.set(pos.subarray(src * 3, src * 3 + 3), dst * 3);
+            Cc.set(col.subarray(src * 3, src * 3 + 3), dst * 3);
+            U.set(uv.subarray(src * 2, src * 2 + 2), dst * 2);
+            const nx = -(h(gi + 1, gj) - h(gi - 1, gj)) / (2 * this.cell);
+            const nz = -(h(gi, gj + 1) - h(gi, gj - 1)) / (2 * this.cell);
+            const l = Math.hypot(nx, 1, nz);
+            N.set([nx / l, 1 / l, nz / l], dst * 3);
+          }
+        }
+        const idx: number[] = [];
+        for (let j = 0; j < d - 1; j++) {
+          for (let i = 0; i < w - 1; i++) {
+            const a = j * w + i;
+            const b = (j + 1) * w + i;
+            const c = (j + 1) * w + i + 1;
+            const dd = j * w + i + 1;
+            idx.push(a, b, dd, b, c, dd);
+          }
+        }
+        const g = new THREE.BufferGeometry();
+        g.setAttribute('position', new THREE.BufferAttribute(P, 3));
+        g.setAttribute('color', new THREE.BufferAttribute(Cc, 3));
+        g.setAttribute('uv', new THREE.BufferAttribute(U, 2));
+        g.setAttribute('normal', new THREE.BufferAttribute(N, 3));
+        g.setIndex(idx);
+        g.computeBoundingSphere();
+        out.push(g);
+      }
+    }
+    full.dispose();
+    return out;
   }
 
   /** Smooth indexed grid with per-vertex colours and world-space UVs. */
@@ -199,7 +268,6 @@ export class Terrain {
     g.setAttribute('color', new THREE.BufferAttribute(col, 3));
     g.setAttribute('uv', new THREE.BufferAttribute(uv, 2));
     g.setIndex(idx);
-    g.computeVertexNormals();
     return g;
   }
 
@@ -221,6 +289,33 @@ export class Terrain {
     if (hf > 0) {
       const l = out.r * 0.3 + out.g * 0.59 + out.b * 0.11;
       out.lerp(new THREE.Color(l * 1.4 + 0.12, l * 1.4 + 0.12, l * 1.45 + 0.14), hf);
+    }
+  }
+
+  /**
+   * Bakes depth into the ground colours: hollows get darker, ridges a touch
+   * lighter, and occlude(x, z) darkens the ground around houses, trees and rocks.
+   */
+  bakeOcclusion(occlude: (x: number, z: number) => number): void {
+    const n = this.n;
+    const h = (i: number, j: number) => this.heights[Math.min(n - 1, Math.max(0, j)) * n + Math.min(n - 1, Math.max(0, i))];
+    for (const child of this.mesh.children) {
+      const g = (child as THREE.Mesh).geometry;
+      const pos = g.getAttribute('position');
+      const col = g.getAttribute('color');
+      for (let v = 0; v < pos.count; v++) {
+        const x = pos.getX(v);
+        const z = pos.getZ(v);
+        const i = Math.round((x + this.half) / this.cell);
+        const j = Math.round((z + this.half) / this.cell);
+        const c = h(i, j);
+        let ring = 0;
+        for (const [di, dj] of [[3, 0], [-3, 0], [0, 3], [0, -3], [2, 2], [-2, 2], [2, -2], [-2, -2]]) ring += h(i + di, j + dj);
+        const cavity = ring / 8 - c; // > 0 in hollows
+        const f = Math.min(1.12, Math.max(0.55, 1 - cavity * 0.09)) * occlude(x, z);
+        col.setXYZ(v, col.getX(v) * f, col.getY(v) * f, col.getZ(v) * f);
+      }
+      col.needsUpdate = true;
     }
   }
 

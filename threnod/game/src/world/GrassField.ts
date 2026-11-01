@@ -106,7 +106,8 @@ export class GrassField {
           vec3 transformed = vec3(position.x * cr - position.z * sr, position.y, position.x * sr + position.z * cr) * s;
           transformed.x += sin(uTime * 1.7 + wp.x * 0.7 + wp.y * 0.4) * 0.08 * position.y * s;
           transformed += vec3(wp.x, ground - 0.04, wp.y);
-          vTint = aTint;`,
+          // dark roots, light tips: the meadow gets depth
+          vTint = aTint * (0.32 + 0.68 * smoothstep(0.0, 0.6, position.y));`,
         );
       shader.fragmentShader = shader.fragmentShader
         .replace('#include <common>', '#include <common>\nvarying vec3 vTint;')

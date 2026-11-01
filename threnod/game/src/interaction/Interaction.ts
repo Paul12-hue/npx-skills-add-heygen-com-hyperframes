@@ -53,6 +53,10 @@ export function placeName(x: number, z: number): string {
   if (near(L.ruin, 16)) return 'The Old Watch';
   if (near(L.farm, 34) || near(L.windmill, 14)) return 'Millfield';
   if (near(L.camp, 14)) return "Hunter's Camp";
+  if (near(L.reedwater, 22)) return 'Reedwater';
+  if (near(L.fellstead, 24)) return 'Fellstead';
+  if (near(L.stiltwick, 22)) return 'Stiltwick';
+  if (near(L.cairnfold, 22)) return 'Cairnfold';
   if (near(L.marsh, L.marsh.radius)) return 'The Sallow Marsh';
   if (near(L.moor, L.moor.radius)) return 'The High Moor';
   if (near(L.whisperwood, L.whisperwood.radius)) return 'The Whisperwood';

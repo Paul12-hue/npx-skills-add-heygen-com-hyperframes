@@ -3,6 +3,8 @@ import { Renderer } from '../render/Renderer';
 import { World } from '../world/World';
 import { Player } from '../player/Player';
 import { Humanoid } from '../character/Humanoid';
+import { Population } from '../world/Population';
+import { sculptService } from '../character/SculptService';
 import { fadedSpec, odileSpec, tildeSpec } from '../character/figures';
 import { LAYOUT } from '../world/terrain';
 import { PortraitRenderer } from '../character/Portrait';
@@ -58,6 +60,7 @@ export class Game {
   private fps = 0;
   private titleAngle = 0;
   private portrait = new PortraitRenderer();
+  private population: Population;
 
   constructor(canvas: HTMLCanvasElement, uiRoot: HTMLElement) {
     this.settings = Storage.loadSettings();
@@ -65,9 +68,6 @@ export class Game {
     this.player = new Player(this.world);
     this.world.scene.add(this.player.mesh.root);
     this.cam = new ThirdPersonCamera(1);
-    // soft fill light that follows the camera so faces stay readable at night
-    const fill = new THREE.PointLight(0xffd4b4, 0.0, 9, 1.4); // top-down camera: no face fill needed
-    this.cam.camera.add(fill);
     this.world.scene.add(this.cam.camera);
     this.renderer = new Renderer(canvas, this.world.scene, this.cam.camera, {
       quality: this.settings.quality,
@@ -79,6 +79,8 @@ export class Game {
     this.applySettings();
     this.spawnNpcs();
     this.spawnStoryNpcs();
+    this.population = new Population(this.world);
+    for (const [name, spec] of this.population.portraitSpecs()) this.portrait.register(name, spec);
 
     this.ui = new UI(
       uiRoot,
@@ -137,13 +139,13 @@ export class Game {
   private spawnStoryNpcs(): void {
     // Mother Odile waits at the candle shrine in Candlewick
     const v = LAYOUT.village;
-    this.addNpc(new Humanoid(odileSpec()), v.x - 2.2, v.z - 0.6, Math.PI * 0.85, { id: 'odile', name: 'Mother Odile', radius: 3, verb: 'Talk', dialogue: 'odile' });
+    this.addNpc(new Humanoid(odileSpec(), { priority: 0 }), v.x - 2.2, v.z - 0.6, Math.PI * 0.85, { id: 'odile', name: 'Mother Odile', radius: 3, verb: 'Talk', dialogue: 'odile' });
     // the Faded drift through grey Aldersey
     const al = LAYOUT.aldersey;
     for (let i = 0; i < 4; i++) {
       const woman = i % 2 === 0;
       this.addNpc(
-        new Humanoid(fadedSpec(woman ? 0 : 1 + (i % 2)), { ghost: true }),
+        new Humanoid(fadedSpec(woman ? 0 : 1 + (i % 2)), { ghost: true, priority: 1 }),
         al.x,
         al.z,
         0,
@@ -155,7 +157,7 @@ export class Game {
 
   private spawnNpcs(): void {
     // Tilde, the gravedigger's girl, waits by the open grave.
-    const mesh = new Humanoid(tildeSpec());
+    const mesh = new Humanoid(tildeSpec(), { priority: 0 });
     const x = this.world.spawn.x - 5.5;
     const z = this.world.spawn.z + 3.2;
     mesh.root.position.set(x, this.world.height(x, z), z);
@@ -240,7 +242,7 @@ export class Game {
   // ---------------------------------------------------------------- dialogue
   private startDialogue(t: Target): void {
     if (this.cam.free) this.toggleFreeCam();
-    const graph = (dialogues as Record<string, DialogueGraph>)[t.dialogue];
+    const graph = this.population.dialogue(t.dialogue) ?? (dialogues as Record<string, DialogueGraph>)[t.dialogue];
     if (!graph) {
       console.warn('missing dialogue', t.dialogue);
       return;
@@ -248,6 +250,7 @@ export class Game {
     this.player.faceTowards(t.x, t.z);
     const npc = this.npcs.find((n) => n.target.id === t.id);
     if (npc) npc.mesh.root.rotation.y = Math.atan2(-(this.player.position.x - t.x), -(this.player.position.z - t.z));
+    this.population.hold(t.id, this.player.position.x, this.player.position.z);
     this.dialogue = new DialogueRunner(graph, this.flags);
     this.mode = 'dialogue';
     this.touch.reset();
@@ -321,6 +324,7 @@ export class Game {
   }
 
   private endDialogue(): void {
+    this.population.release();
     this.syncBells(true);
     this.updateGoal();
     this.dialogue = null;
@@ -358,6 +362,9 @@ export class Game {
       this.cam.distance = 15;
     }
 
+    sculptService.tick();
+    const camPos = this.cam.camera.position;
+    this.player.mesh.updateLod(camPos, 400);
     for (const n of this.npcs) {
       if (n.wander && this.mode === 'playing') {
         const w = n.wander;
@@ -368,11 +375,12 @@ export class Game {
         n.mesh.root.rotation.y = Math.atan2(Math.sin(w.a), -Math.cos(w.a)) + Math.PI;
         n.target.x = x;
         n.target.z = z;
-        n.mesh.animate(dt, w.speed, this.clock.elapsedTime);
-      } else n.mesh.animate(dt, 0, this.clock.elapsedTime);
+        if (n.mesh.updateLod(camPos)) n.mesh.animate(dt, w.speed, this.clock.elapsedTime);
+      } else if (n.mesh.updateLod(camPos)) n.mesh.animate(dt, 0, this.clock.elapsedTime);
     }
+    this.population.update(dt, this.clock.elapsedTime, camPos, this.player.position, this.mode === 'playing');
     this.renderer.setHush(this.world.hushHere);
-    this.world.update(dt, this.hour, this.player.position, this.cam.camera);
+    this.world.update(dt, this.hour, this.cam.free ? this.cam.focusPoint : this.player.position, this.cam.camera);
     this.renderer.render(dt);
     if (this.mode === 'dialogue') this.portrait.render(dt);
     this.ui.update(dt);
@@ -406,8 +414,9 @@ export class Game {
     this.cam.update(dt, this.player.position, (x, z) => this.world.height(x, z));
     this.hour = (this.hour + dt / SECONDS_PER_GAME_HOUR) % 24;
 
-    const targets: Target[] = [...this.world.interactables, ...this.npcs.map((n) => n.target)];
+    const targets: Target[] = [...this.world.interactables, ...this.npcs.map((n) => n.target), ...this.population.targets];
     this.target = findTarget(this.player.position.x, this.player.position.z, this.player.yaw, targets);
+    if (this.target?.name) this.portrait.prepare(this.target.name);
     this.ui.setPrompt(this.target ? `${this.target.verb}${this.target.name ? ' · ' + this.target.name : ''}` : null, this.input.touchMode);
 
     const place = placeName(this.player.position.x, this.player.position.z);
@@ -454,8 +463,39 @@ export class Game {
         flags: { ...this.flags },
         internal: [this.renderer.width, this.renderer.height],
         fps: this.fps,
+        people: this.population.villagers.length,
+        animals: this.population.creatures.count,
+        sculpted: sculptService.done,
+        sculptPending: sculptService.pending,
+        villager0: this.population.villagers[0] ? { x: this.population.villagers[0].x, z: this.population.villagers[0].z, ready: this.population.villagers[0].h.ready } : null,
         cam: { distance: this.cam.distance, pitch: this.cam.pitch, yaw: this.cam.yaw, free: this.cam.free, x: this.cam.camera.position.x, z: this.cam.camera.position.z },
       }),
+      stats: () => {
+        const i = this.renderer.renderer.info;
+        let lights = 0;
+        let shadowCasters = 0;
+        let meshes = 0;
+        this.world.scene.traverse((o) => {
+          if ((o as THREE.Light).isLight && o.visible) lights++;
+          if ((o as THREE.Mesh).isMesh) {
+            meshes++;
+            if (o.castShadow) shadowCasters++;
+          }
+        });
+        return { calls: i.render.calls, triangles: i.render.triangles, programs: i.programs?.length ?? 0, textures: i.memory.textures, geometries: i.memory.geometries, lights, meshes, shadowCasters };
+      },
+      heavy: () => {
+        const rows: [string, number, number, boolean][] = [];
+        this.world.scene.traverse((o) => {
+          const m = o as THREE.Mesh & { count?: number; isInstancedMesh?: boolean };
+          if (!m.isMesh || !m.visible) return;
+          const g = m.geometry;
+          const tri = (g.index ? g.index.count : g.attributes.position.count) / 3;
+          const inst = m.isInstancedMesh ? m.count! : ((g as THREE.InstancedBufferGeometry).instanceCount ?? 1);
+          rows.push([m.name || m.parent?.name || m.type, Math.round(tri), Math.round(tri * (Number.isFinite(inst) ? inst : 1)), m.castShadow]);
+        });
+        return rows.sort((a, b) => b[2] - a[2]).slice(0, 25);
+      },
       setHour: (h: number) => (this.hour = h),
       setCamera: (distance: number, pitch: number, yawOffset: number) => {
         this.cam.distance = distance;
