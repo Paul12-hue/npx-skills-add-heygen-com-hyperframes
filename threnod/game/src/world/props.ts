@@ -196,7 +196,7 @@ export function pineGeometry(): Prop {
     const r = 2.2 - t * 1.55;
     const hgt = 2.0 - t * 0.6;
     const y = 2.0 + i * 1.0;
-    const cone = new THREE.ConeGeometry(r, hgt, 9, 2, true);
+    const cone = new THREE.ConeGeometry(r, hgt, 9, 2, false); // closed underneath: open cones look like loose floating sheets from below
     // the lowest ring droops outwards like heavy branches
     const pos = cone.getAttribute('position');
     for (let k = 0; k < pos.count; k++) {

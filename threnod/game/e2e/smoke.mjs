@@ -117,18 +117,18 @@ const browser = await chromium.launch({ args: ['--use-angle=swiftshader', '--ena
   // camera: zoom button, mouse wheel, free camera
   {
     const c0 = (await st()).cam;
-    const zoomOut = page.getByRole('button', { name: 'Zoom out' });
-    await zoomOut.dispatchEvent('pointerdown');
+    check('camera buttons are hidden', !(await page.locator('.cam-panel').isVisible()));
+    await page.keyboard.down('x');
     await sleep(1500);
-    await zoomOut.dispatchEvent('pointerup');
+    await page.keyboard.up('x');
     const c1 = (await st()).cam;
-    check('zoom button zooms out', c1.distance > c0.distance + 1, `distance ${c0.distance.toFixed(1)} → ${c1.distance.toFixed(1)}`);
+    check('X key zooms out', c1.distance > c0.distance + 1, `distance ${c0.distance.toFixed(1)} → ${c1.distance.toFixed(1)}`);
     await page.mouse.move(600, 400);
     for (let i = 0; i < 6; i++) { await page.mouse.wheel(0, -300); await sleep(150); }
     await sleep(500);
     const c2 = (await st()).cam;
     check('mouse wheel zooms in', c2.distance < c1.distance - 1, `distance ${c1.distance.toFixed(1)} → ${c2.distance.toFixed(1)}`);
-    await page.getByRole('button', { name: 'Free camera' }).click();
+    await page.keyboard.press('c');
     await sleep(500);
     const p0 = (await st()).player;
     const f0 = (await st()).cam;

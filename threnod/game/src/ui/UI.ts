@@ -74,7 +74,7 @@ export class UI {
         <h1>Threnod</h1>
         <p class="subtitle">The Last Song of a Forgotten World</p>
         <div class="menu"></div>
-        <p class="footnote">Development build 13 · Phase 5</p>
+        <p class="footnote">Development build 14 · Phase 5</p>
       </div>`;
     const menu = this.title.querySelector('.menu')!;
     this.continueBtn = this.button('Continue', () => h.onContinue());
@@ -141,6 +141,8 @@ export class UI {
       hold('▼', 'Tilt down', 'tilt', 1),
       this.freeBtn,
     );
+    // the buttons stay available to code but are not shown: the camera is set with fingers, mouse, keys or a controller
+    cam.classList.add('hidden');
     this.hud.append(cam);
     this.place = el('div', 'place-name');
     this.fps = el('div', 'fps hidden');
