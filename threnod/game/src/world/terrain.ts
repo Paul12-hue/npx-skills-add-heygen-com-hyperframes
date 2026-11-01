@@ -1,21 +1,36 @@
 import * as THREE from 'three';
 import { fbm } from './noise';
 
-/** Layout of the test slice of Hollowmere Vale (world units ≈ metres). */
+/** Layout of Hollowmere Vale (world units ≈ metres). */
 export const LAYOUT = {
-  size: 240,
-  segments: 120,
+  size: 440,
+  segments: 200,
   waterLevel: 0,
   lake: { x: 0, z: 6, radius: 27 },
-  village: { x: 54, z: 0, radius: 22, height: 2.2 },
+  village: { x: 54, z: 0, radius: 24, height: 2.2 },
   cemetery: { x: -44, z: -40, radius: 16, height: 3.4 },
   mine: { x: 36, z: 58 },
+  farm: { x: 98, z: 44, radius: 26, height: 3.0 },
+  windmill: { x: 122, z: 70 },
+  stones: { x: -112, z: -64, radius: 12, height: 9 },
+  ruin: { x: -18, z: -142, radius: 10, height: 7 },
+  camp: { x: 132, z: -30 },
   /** Old roads as polylines (x, z). */
   paths: [
     [[-44, -40], [-24, -32], [0, -30], [26, -18], [54, 0]],
     [[54, 0], [46, 26], [36, 52]],
-    [[-24, -32], [-46, -6], [-40, 20]],
+    [[-24, -32], [-46, -6], [-40, 20], [-52, 60]],
+    [[54, 0], [90, 30], [118, 62]],
+    [[54, 0], [96, -8], [128, -26]],
+    [[-46, -6], [-84, -36], [-106, -58]],
+    [[-24, -32], [-30, -90], [-20, -134]],
   ] as [number, number][][],
+  /** Rivers as polylines: one flows into the lake, one out of it to the west. */
+  rivers: [
+    [[176, -160], [124, -108], [76, -72], [40, -46], [14, -24], [4, -12]],
+    [[-24, 10], [-60, 20], [-110, 8], [-160, 28], [-215, 20]],
+  ] as [number, number][][],
+  riverWidth: 4.2,
 };
 
 const smoothstep = (a: number, b: number, x: number) => {
@@ -42,6 +57,17 @@ export function distToPath(x: number, z: number): number {
   return best;
 }
 
+/** Distance from a point to the nearest river centre line. */
+export function distToRiver(x: number, z: number): number {
+  let best = Infinity;
+  for (const p of LAYOUT.rivers) {
+    for (let i = 0; i < p.length - 1; i++) {
+      best = Math.min(best, distToSegment(x, z, p[i][0], p[i][1], p[i + 1][0], p[i + 1][1]));
+    }
+  }
+  return best;
+}
+
 /** Normalised distance to the lake shore: < 1 inside the lake. */
 export function lakeFactor(x: number, z: number): number {
   const { lake } = LAYOUT;
@@ -52,21 +78,25 @@ export function lakeFactor(x: number, z: number): number {
 
 /** The analytic height function the terrain mesh is built from. */
 export function heightAt(x: number, z: number): number {
-  let h = 1.2 + fbm(x * 0.02, z * 0.02, 4, 11) * 3.2;
+  // gentle rolling meadows with a few broad hills
+  let h = 1.2 + fbm(x * 0.02, z * 0.02, 4, 11) * 3.2 + Math.max(0, fbm(x * 0.007, z * 0.007, 3, 21) - 0.45) * 22;
   // valley walls – the vale is enclosed by hills
   const r = Math.hypot(x, z);
-  h += smoothstep(70, 118, r) * (22 + fbm(x * 0.03, z * 0.03, 3, 5) * 16);
-  // the lake basin
-  const lf = lakeFactor(x, z);
-  if (lf < 1.4) h = lerp(-3.2, h, smoothstep(0.55, 1.35, lf));
-  // flattened ground for the village and the cemetery
-  for (const s of [LAYOUT.village, LAYOUT.cemetery]) {
+  h += smoothstep(150, 214, r) * (26 + fbm(x * 0.02, z * 0.02, 3, 5) * 18);
+  // flattened ground for the settlements, raised hill tops for the old sites
+  for (const s of [LAYOUT.village, LAYOUT.cemetery, LAYOUT.farm, LAYOUT.stones, LAYOUT.ruin]) {
     const d = Math.hypot(x - s.x, z - s.z);
-    h = lerp(s.height, h, smoothstep(s.radius * 0.6, s.radius * 1.4, d));
+    h = lerp(s.height, h, smoothstep(s.radius * 0.6, s.radius * 1.5, d));
   }
   // roads are smoother
   const pd = distToPath(x, z);
   if (pd < 4) h = lerp(1.2 + fbm(x * 0.02, z * 0.02, 2, 11) * 3.2, h, smoothstep(1, 4, pd) * 0.6 + 0.4);
+  // the lake basin and the river channels
+  const lf = lakeFactor(x, z);
+  if (lf < 1.4) h = lerp(-3.2, h, smoothstep(0.55, 1.35, lf));
+  const rd = distToRiver(x, z);
+  const w = LAYOUT.riverWidth;
+  if (rd < w * 2.2) h = lerp(-2.0, Math.min(h, 1.4 + (rd - w) * 0.6), smoothstep(w * 0.55, w * 1.5, rd));
   return h;
 }
 
@@ -147,7 +177,7 @@ export class Terrain {
     const v = fbm(x * 0.06, z * 0.06, 3, 3);
     if (y < -0.6) out.copy(COLORS.lakebed);
     else if (y < 0.45) out.copy(COLORS.shore);
-    else if (distToPath(x, z) < 3.2) out.copy(COLORS.earth);
+    else if (distToPath(x, z) < 3.2 && distToRiver(x, z) > LAYOUT.riverWidth) out.copy(COLORS.earth);
     else if (slope > 0.75) out.copy(COLORS.rock[v > 0.5 ? 0 : 1]);
     else {
       out.copy(COLORS.grass[Math.min(3, Math.floor(v * 4.2))]);

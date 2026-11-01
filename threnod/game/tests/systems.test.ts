@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { inputToVelocity, resolveCollisions, stepMovement, DEFAULT_MOVE } from '../src/player/movement';
+import { inputToVelocity, resolveCollisions, stepBody, platformHeight, DEFAULT_MOVE, type Body, type World } from '../src/player/movement';
 import { findTarget, placeName } from '../src/interaction/Interaction';
 import { parseSave, parseSettings, DEFAULT_SETTINGS, SAVE_VERSION } from '../src/save/Save';
 import { heightAt, LAYOUT, lakeFactor } from '../src/world/terrain';
@@ -33,12 +33,65 @@ describe('movement', () => {
     expect(Math.hypot(x, z)).toBeCloseTo(1.4);
   });
 
+  it('blocks rotated boxes (houses) and slides along them', () => {
+    const house = [{ x: 0, z: 0, hx: 3, hz: 2, rot: 0.5 }];
+    // walking straight into the house from the side stops at its wall
+    const [x, z] = resolveCollisions(0.2, 0.1, 0.4, house);
+    const lx = (x * Math.cos(-0.5) - z * Math.sin(-0.5));
+    const lz = (x * Math.sin(-0.5) + z * Math.cos(-0.5));
+    expect(Math.abs(lx) >= 3 + 0.39 || Math.abs(lz) >= 2 + 0.39).toBe(true);
+  });
+
+  const flat: World = { colliders: [], platforms: [], terrain: () => 1 };
+  const body = (): Body => ({ x: 0, y: 1, z: 0, vy: 0, onGround: true });
+
   it('does not walk into deep water and stays inside the vale', () => {
-    const flat = () => 1;
-    const deep = (x: number) => (x > 1 ? -5 : 1);
-    expect(stepMovement(0, 0, 10, 0, 0.5, [], deep)).toEqual([0, 0]);
-    const [bx, bz] = stepMovement(103, 0, 10, 0, 1, [], flat);
-    expect(Math.hypot(bx, bz)).toBeLessThanOrEqual(DEFAULT_MOVE.boundsRadius + 1e-6);
+    const deep: World = { colliders: [], platforms: [], terrain: (x) => (x > 1 ? -5 : 1) };
+    const b = body();
+    for (let i = 0; i < 60; i++) stepBody(b, 10, 0, false, 1 / 60, deep);
+    expect(b.x).toBeLessThan(1.2);
+    const far = { ...body(), x: DEFAULT_MOVE.boundsRadius - 0.5 };
+    for (let i = 0; i < 60; i++) stepBody(far, 10, 0, false, 1 / 60, flat);
+    expect(Math.hypot(far.x, far.z)).toBeLessThanOrEqual(DEFAULT_MOVE.boundsRadius + 1e-6);
+  });
+
+  it('jumps, falls back and lands', () => {
+    const b = body();
+    stepBody(b, 0, 0, true, 1 / 60, flat);
+    expect(b.onGround).toBe(false);
+    let peak = 0;
+    for (let i = 0; i < 120; i++) {
+      stepBody(b, 0, 0, false, 1 / 60, flat);
+      peak = Math.max(peak, b.y);
+    }
+    expect(peak).toBeGreaterThan(2);
+    expect(b.onGround).toBe(true);
+    expect(b.y).toBeCloseTo(1);
+  });
+
+  it('cannot walk up a cliff but can climb a gentle slope', () => {
+    const cliff: World = { colliders: [], platforms: [], terrain: (x) => (x > 1 ? 4 : 1) };
+    const b = body();
+    for (let i = 0; i < 60; i++) stepBody(b, 5, 0, false, 1 / 60, cliff);
+    expect(b.x).toBeLessThan(1.1);
+    const ramp: World = { colliders: [], platforms: [], terrain: (x) => 1 + Math.max(0, x) * 0.3 };
+    const c = body();
+    for (let i = 0; i < 120; i++) stepBody(c, 4, 0, false, 1 / 60, ramp);
+    expect(c.x).toBeGreaterThan(5);
+    expect(c.y).toBeCloseTo(1 + c.x * 0.3, 1);
+  });
+
+  it('walks across a bridge over water', () => {
+    const river: World = {
+      colliders: [],
+      platforms: [{ x: 5, z: 0, hx: 1.5, hz: 10, rot: Math.PI / 2, y: 1.1 }],
+      terrain: (x) => (x > 1 && x < 9 ? -2 : 1),
+    };
+    expect(platformHeight(5, 0, river.platforms)).toBeCloseTo(1.1);
+    const b = body();
+    for (let i = 0; i < 180; i++) stepBody(b, 5, 0, false, 1 / 60, river);
+    expect(b.x).toBeGreaterThan(9);
+    expect(b.y).toBeGreaterThan(0.9);
   });
 });
 
@@ -98,7 +151,7 @@ describe('world generation', () => {
     expect(lakeFactor(LAYOUT.lake.x, LAYOUT.lake.z)).toBeLessThan(0.1);
     expect(heightAt(LAYOUT.village.x, LAYOUT.village.z)).toBeCloseTo(LAYOUT.village.height, 0);
     expect(heightAt(LAYOUT.cemetery.x, LAYOUT.cemetery.z)).toBeGreaterThan(LAYOUT.waterLevel + 1);
-    expect(heightAt(0, 115)).toBeGreaterThan(15);
+    expect(heightAt(0, 205)).toBeGreaterThan(15);
   });
 });
 

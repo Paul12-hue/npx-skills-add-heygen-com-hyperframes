@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { Humanoid } from '../character/Humanoid';
 import { unsungSpec } from '../character/figures';
-import { DEFAULT_MOVE, inputToVelocity, stepMovement } from './movement';
+import { DEFAULT_MOVE, inputToVelocity, stepBody, type Body } from './movement';
 import type { World } from '../world/World';
 
 export class Player {
@@ -11,25 +11,34 @@ export class Player {
   yaw = 0;
   private speed01 = 0;
   private time = 0;
+  private body: Body = { x: 0, y: 0, z: 0, vy: 0, onGround: true };
+
+  get onGround(): boolean {
+    return this.body.onGround;
+  }
 
   constructor(private world: World) {}
 
   place(x: number, z: number, yaw: number): void {
-    this.position.set(x, this.world.height(x, z), z);
+    const y = this.world.groundHeight(x, z, 1e9);
+    this.body = { x, y, z, vy: 0, onGround: true };
+    this.position.set(x, y, z);
     this.yaw = yaw;
     this.sync();
   }
 
-  update(dt: number, moveX: number, moveY: number, run: boolean, cameraYaw: number): void {
+  update(dt: number, moveX: number, moveY: number, run: boolean, cameraYaw: number, jump = false): void {
     this.time += dt;
     const [vx, vz] = inputToVelocity(moveX, moveY, cameraYaw, run);
-    const [nx, nz] = stepMovement(this.position.x, this.position.z, vx, vz, dt, this.world.colliders, (x, z) =>
-      this.world.height(x, z),
-    );
-    const moved = Math.hypot(nx - this.position.x, nz - this.position.z) / Math.max(dt, 1e-4);
-    this.position.x = nx;
-    this.position.z = nz;
-    this.position.y = this.world.height(nx, nz);
+    const ox = this.body.x;
+    const oz = this.body.z;
+    // fixed small sub-steps keep collisions solid even at low frame rates
+    const steps = Math.max(1, Math.ceil(dt / (1 / 120)));
+    for (let i = 0; i < steps; i++) {
+      stepBody(this.body, vx, vz, jump && i === 0, dt / steps, this.world.physics);
+    }
+    const moved = Math.hypot(this.body.x - ox, this.body.z - oz) / Math.max(dt, 1e-4);
+    this.position.set(this.body.x, this.body.y, this.body.z);
     if (Math.hypot(vx, vz) > 0.1) {
       const target = Math.atan2(-vx, -vz);
       let d = target - this.yaw;
@@ -37,7 +46,7 @@ export class Player {
       this.yaw += d * Math.min(1, dt * 12);
     }
     this.speed01 += (moved / DEFAULT_MOVE.walkSpeed - this.speed01) * Math.min(1, dt * 10);
-    this.mesh.animate(dt, this.speed01, this.time);
+    this.mesh.animate(dt, this.speed01, this.time, !this.body.onGround);
     this.sync();
   }
 

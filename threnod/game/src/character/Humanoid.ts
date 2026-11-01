@@ -287,43 +287,73 @@ export class Humanoid {
   }
 
   /** speed01: 0 = idle, 1 = walking, ~1.7 = running. */
-  animate(dt: number, speed01: number, t: number): void {
+  /**
+   * Procedural animation. speed01: 0 = idle, 1 = walking, ~1.75 = running.
+   * The stride advances with the distance covered, so the feet do not slide.
+   */
+  animate(dt: number, speed01: number, t: number, airborne = false): void {
     const B = (n: string) => this.bone(n);
-    const walk = Math.min(1.4, speed01);
-    if (walk > 0.05) this.phase += dt * (5.2 + walk * 3.4);
-    const s = Math.sin(this.phase);
-    const c = Math.cos(this.phase);
-    const a = walk;
-    const ease = Math.min(1, dt * 10);
+    const a = Math.min(1, speed01); // walk weight
+    const run = Math.min(1, Math.max(0, (speed01 - 1.05) / 0.6)); // run weight
+    const metres = speed01 * 4.2 * dt;
+    const stepLen = 0.72 + run * 0.45; // one step = half a gait cycle
+    if (a > 0.03) this.phase += (metres / stepLen) * Math.PI;
+    const ease = Math.min(1, dt * 14);
     const set = (b: THREE.Bone, x: number, y = 0, z = 0) => {
       b.rotation.x += (x - b.rotation.x) * ease;
       b.rotation.y += (y - b.rotation.y) * ease;
       b.rotation.z += (z - b.rotation.z) * ease;
     };
     const breathe = Math.sin(t * 1.7) * 0.02;
-    set(B('thighL'), s * 0.55 * a);
-    set(B('thighR'), -s * 0.55 * a);
-    set(B('shinL'), -Math.max(0, -s) * 0.9 * a - 0.04);
-    set(B('shinR'), -Math.max(0, s) * 0.9 * a - 0.04);
-    set(B('footL'), Math.max(0, -s) * 0.3 * a);
-    set(B('footR'), Math.max(0, s) * 0.3 * a);
-    set(B('upperArmL'), -s * 0.45 * a + breathe, 0, 0.08);
-    set(B('upperArmR'), s * 0.45 * a + breathe, 0, -0.08);
-    set(B('forearmL'), 0.25 + Math.max(0, -s) * 0.35 * a);
-    set(B('forearmR'), (this.lanternLight ? 0.55 : 0.25) + Math.max(0, s) * 0.35 * a);
+    const legs = (phi: number, side: 'L' | 'R') => {
+      const sw = Math.sin(phi);
+      const forward = Math.max(0, Math.cos(phi)); // leg swinging forward
+      const thigh = sw * (0.42 + 0.3 * run) * a;
+      const knee = -((0.06 + (0.6 + 0.65 * run) * Math.pow(forward, 1.4)) * a + 0.12 * a * Math.max(0, sw)) - 0.04;
+      set(B('thigh' + side), thigh - 0.12 * run);
+      set(B('shin' + side), knee);
+      set(B('foot' + side), -thigh * 0.35 - knee * 0.45 + 0.2 * a * Math.max(0, -sw));
+    };
+    const arms = (phi: number, side: 'L' | 'R', outward: number) => {
+      const sw = Math.sin(phi);
+      const lantern = side === 'R' && this.lanternLight ? 0.4 : 0;
+      set(B('upperArm' + side), -sw * (0.42 + 0.35 * run) * a * (lantern ? 0.5 : 1) + breathe + run * 0.15, 0, outward * (1 + run));
+      set(B('forearm' + side), 0.18 + 0.2 * a + 1.0 * run + 0.25 * a * Math.max(0, -sw) + lantern);
+    };
+
+    if (airborne) {
+      set(B('thighL'), 0.7);
+      set(B('shinL'), -1.1);
+      set(B('thighR'), 0.1);
+      set(B('shinR'), -0.5);
+      set(B('upperArmL'), 0.5, 0, 0.5);
+      set(B('upperArmR'), 0.3, 0, -0.5);
+      set(B('forearmL'), 0.6);
+      set(B('forearmR'), 0.8);
+      set(B('spine'), 0.12);
+    } else {
+      const phi = this.phase;
+      legs(phi, 'L');
+      legs(phi + Math.PI, 'R');
+      arms(phi, 'L', 0.09);
+      arms(phi + Math.PI, 'R', -0.09);
+    }
     if (this.lanternLight) this.lanternLight.intensity = 2.6 * (0.92 + Math.sin(t * 11) * 0.04 + Math.sin(t * 27) * 0.04);
-    set(B('chest'), breathe, -s * 0.06 * a);
-    // idle: the head looks around now and then
+
+    const sw = Math.sin(this.phase);
+    // pelvis: up at mid-stance, down when both feet touch; rolls and turns with the stride
+    const hips = B('hips');
+    hips.position.y = (hips.userData.baseY ??= hips.position.y) + (0.022 + 0.02 * run) * a * Math.cos(2 * this.phase) - 0.02 * a - 0.06 * run;
+    const idleSway = a < 0.1 ? Math.sin(t * 0.55) * 0.035 : 0;
+    set(hips, 0, sw * 0.12 * a, sw * 0.05 * a + idleSway);
+    // the upper body turns against the hips and leans into a run
+    set(B('spine'), 0.03 * a + 0.22 * run + breathe * 0.5, -sw * 0.08 * a, -idleSway * 0.6 - sw * 0.03 * a);
+    set(B('chest'), breathe + 0.05 * run, -sw * 0.12 * a);
+    // idle: the head looks around now and then; walking: it stays steady
     if (a < 0.1) this.lookYaw = Math.sin(t * 0.31) * 0.35 * Math.max(0, Math.sin(t * 0.13));
     else this.lookYaw *= 0.9;
-    set(B('head'), 0.02 + Math.abs(c) * 0.02 * a, this.lookYaw * 0.6);
-    B('hips').position.y = (B('hips').userData.baseY ??= B('hips').position.y) + Math.abs(c) * 0.035 * a - 0.015 * a;
-
-    // idle: shift the weight from one leg to the other, now and then
-    const sway = a < 0.1 ? Math.sin(t * 0.55) * 0.035 : 0;
-    set(B('hips'), 0, 0, sway);
-    set(B('spine'), 0.05 * a + breathe * 0.5, s * 0.08 * a, -sway * 0.6);
-    set(B('neck'), -0.03, this.lookYaw * 0.4, -sway * 0.5);
+    set(B('neck'), -0.03 - 0.1 * run, this.lookYaw * 0.4 + sw * 0.05 * a, -idleSway * 0.5);
+    set(B('head'), 0.02 - 0.08 * run, this.lookYaw * 0.6 + sw * 0.06 * a, -sw * 0.03 * a);
 
     // the eyes dart around like a living person's
     this.gazeTimer -= dt;

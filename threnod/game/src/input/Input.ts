@@ -11,7 +11,7 @@ export interface InputState {
   run: boolean;
 }
 
-type Action = 'interact' | 'pause' | 'up' | 'down' | 'confirm' | 'n1' | 'n2' | 'n3' | 'n4' | 'time';
+type Action = 'interact' | 'pause' | 'up' | 'down' | 'confirm' | 'n1' | 'n2' | 'n3' | 'n4' | 'time' | 'jump';
 
 export class Input {
   readonly state: InputState = { moveX: 0, moveY: 0, lookX: 0, lookY: 0, run: false };
@@ -60,7 +60,8 @@ export class Input {
         };
         const a = map[k];
         if (a) this.pressed.add(a);
-        if (k === 'e' || k === 'enter' || k === ' ') this.pressed.add('interact');
+        if (k === 'e' || k === 'enter') this.pressed.add('interact');
+        if (k === ' ') this.pressed.add('jump');
       }
       this.keys.add(k);
       if (['arrowup', 'arrowdown', ' '].includes(k)) e.preventDefault();
@@ -126,6 +127,7 @@ export class Input {
       edge(0, 'interact');
       edge(0, 'confirm');
       edge(9, 'pause');
+      edge(1, 'jump');
       edge(12, 'up');
       edge(13, 'down');
       if (btn(10) || btn(4)) run = true;

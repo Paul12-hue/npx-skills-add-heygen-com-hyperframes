@@ -23,6 +23,7 @@ export interface UIHandlers {
   onSettingsChange: (s: Settings) => void;
   onInteract: () => void;
   onPause: () => void;
+  onJump: () => void;
   onDialogueAdvance: () => void;
   onDialogueChoose: (index: number) => void;
 }
@@ -86,6 +87,12 @@ export class UI {
       e.stopPropagation();
       h.onPause();
     });
+    const jumpBtn = el('button', 'jump-btn', 'Jump');
+    jumpBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      h.onJump();
+    });
+    this.hud.append(jumpBtn);
     this.place = el('div', 'place-name');
     this.fps = el('div', 'fps hidden');
     this.hud.append(this.prompt, this.actionBtn, this.pauseBtn, this.place, this.fps);
@@ -156,7 +163,7 @@ export class UI {
     });
     row('Graphics quality', res);
 
-    const toggle = (key: 'bloom' | 'grain' | 'ascii' | 'invertY' | 'showFps', label: string) => {
+    const toggle = (key: 'bloom' | 'grain' | 'invertY' | 'showFps', label: string) => {
       const c = el('input');
       c.type = 'checkbox';
       c.id = 'set-' + key;
@@ -167,7 +174,6 @@ export class UI {
       });
       row(label, c);
     };
-    toggle('ascii', 'ASCII look (text characters)');
     toggle('bloom', 'Glow (bloom)');
     toggle('grain', 'Film grain');
     toggle('invertY', 'Invert camera');

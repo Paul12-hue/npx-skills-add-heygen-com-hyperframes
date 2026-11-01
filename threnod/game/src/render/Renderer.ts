@@ -4,7 +4,6 @@ import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPass.js';
 import { OutputPass } from 'three/examples/jsm/postprocessing/OutputPass.js';
 import { ShaderPass } from 'three/examples/jsm/postprocessing/ShaderPass.js';
-import { AsciiShader, createGlyphAtlas } from './ascii';
 
 export type Quality = 'low' | 'medium' | 'high';
 
@@ -12,8 +11,6 @@ export interface RenderOptions {
   quality: Quality;
   bloom: boolean;
   grain: boolean;
-  /** draw the picture as text characters */
-  ascii: boolean;
 }
 
 /** Pixel ratio and shadows per quality level. */
@@ -70,7 +67,6 @@ export class Renderer {
   private renderPass: RenderPass;
   private bloom: UnrealBloomPass;
   private grade: ShaderPass;
-  private ascii: ShaderPass;
   private opts: RenderOptions;
   width = 1;
   height = 1;
@@ -87,12 +83,9 @@ export class Renderer {
     this.renderPass = new RenderPass(scene, camera);
     this.bloom = new UnrealBloomPass(new THREE.Vector2(256, 256), 0.55, 0.45, 0.92);
     this.grade = new ShaderPass(GradeShader);
-    this.ascii = new ShaderPass(AsciiShader);
-    this.ascii.uniforms.tGlyphs.value = createGlyphAtlas();
     this.composer.addPass(this.renderPass);
     this.composer.addPass(this.bloom);
     this.composer.addPass(new OutputPass());
-    this.composer.addPass(this.ascii);
     this.composer.addPass(this.grade);
     this.setOptions(opts);
   }
@@ -109,7 +102,6 @@ export class Renderer {
     Object.assign(this.opts, opts);
     this.bloom.enabled = this.opts.bloom;
     this.grade.uniforms.uGrain.value = this.opts.grain ? 1 : 0;
-    this.ascii.uniforms.uEnabled.value = this.opts.ascii ? 1 : 0;
     this.renderer.shadowMap.enabled = this.shadowsEnabled;
     this.renderer.shadowMap.needsUpdate = true;
   }
@@ -124,9 +116,6 @@ export class Renderer {
     this.width = Math.round(w * ratio);
     this.height = Math.round(h * ratio);
     this.grade.uniforms.uResolution.value.set(this.width, this.height);
-    this.ascii.uniforms.uResolution.value.set(this.width, this.height);
-    // character cells are a fixed size on screen (about 6 x 10 CSS pixels)
-    this.ascii.uniforms.uCell.value.set(Math.max(4, Math.round(6 * ratio)), Math.max(6, Math.round(10 * ratio)));
   }
 
   render(dt: number): void {

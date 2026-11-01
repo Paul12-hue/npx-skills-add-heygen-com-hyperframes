@@ -64,7 +64,6 @@ export class Game {
       quality: this.settings.quality,
       bloom: this.settings.bloom,
       grain: this.settings.grain,
-      ascii: this.settings.ascii,
     });
     this.input = new Input(canvas);
     this.touch = new TouchControls(canvas, this.input);
@@ -92,6 +91,7 @@ export class Game {
         },
         onInteract: () => this.input.press('interact'),
         onPause: () => this.input.press('pause'),
+        onJump: () => this.input.press('jump'),
         onDialogueAdvance: () => this.dialogueAdvance(),
         onDialogueChoose: (i) => this.dialogueChoose(i),
       },
@@ -127,9 +127,10 @@ export class Game {
 
   private applySettings(): void {
     const s = this.settings;
-    this.renderer.setOptions({ quality: s.quality, bloom: s.bloom, grain: s.grain, ascii: s.ascii });
+    this.renderer.setOptions({ quality: s.quality, bloom: s.bloom, grain: s.grain });
     this.world.sky.setShadowSize(this.renderer.shadowSize);
     this.world.setGrassDensity({ low: 0.35, medium: 0.7, high: 1 }[s.quality]);
+    this.world.setReflections(s.quality !== 'low');
     this.input.invertY = s.invertY;
     this.input.sensitivity = s.sensitivity;
     this.resize();
@@ -283,7 +284,7 @@ export class Game {
   private updatePlaying(dt: number): void {
     const s = this.input.state;
     this.cam.rotate(s.lookX, s.lookY);
-    this.player.update(dt, s.moveX, s.moveY, s.run, this.cam.yaw);
+    this.player.update(dt, s.moveX, s.moveY, s.run, this.cam.yaw, this.input.consume('jump'));
     this.cam.update(dt, this.player.position, (x, z) => this.world.height(x, z));
     this.hour = (this.hour + dt / SECONDS_PER_GAME_HOUR) % 24;
 

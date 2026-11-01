@@ -31,11 +31,12 @@ await page.waitForFunction(() => window.__threnod, null, { timeout: 20000 });
 await page.getByRole('button', { name: 'New Game' }).click();
 const views = [
   ['spawn', null, 21],
-  ['village', [34, -12, -Math.PI / 2 - 0.5], 21.5],
-  ['lake', [-8, -26, Math.PI + 0.3], 22],
-  ['road', [-20, -31, -Math.PI / 2 - 0.2], 21],
-  ['mushrooms', [-6, 18, Math.PI * 0.6], 23],
-  ['day', [30, -14, -Math.PI / 2], 13],
+  ['village', [46, 6, -Math.PI * 0.7], 21.5],
+  ['bridge', [6, -32, -Math.PI * 0.62], 21],
+  ['farm', [100, 34, -Math.PI * 0.8], 20.5],
+  ['stones', [-104, -58, Math.PI * 0.3], 22],
+  ['ruin', [-16, -128, Math.PI * 0.95], 21],
+  ['camp', [126, -24, -Math.PI * 0.7], 22],
 ];
 for (const [name, tp, hour] of views) {
   await page.evaluate(([tp, hour]) => {
@@ -43,7 +44,7 @@ for (const [name, tp, hour] of views) {
     window.__threnod.setHour(hour);
   }, [tp, hour]);
   await new Promise((r) => setTimeout(r, 2500));
-  await page.screenshot({ path: `${OUT}/view-${name}.png` });
+  await page.screenshot({ path: `${OUT}/view-${name}.png`, timeout: 120000 });
   console.log('shot', name);
 }
 await browser.close();
