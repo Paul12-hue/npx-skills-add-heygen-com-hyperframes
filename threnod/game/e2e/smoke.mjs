@@ -117,7 +117,7 @@ const browser = await chromium.launch({ args: ['--use-angle=swiftshader', '--ena
   // camera: zoom button, mouse wheel, free camera
   {
     const c0 = (await st()).cam;
-    check('camera buttons are hidden', !(await page.locator('.cam-panel').isVisible()));
+    check('camera buttons are hidden', !(await page.locator('.cam-panel').isVisible()) && !(await page.locator('.view-btn').isVisible()));
     await page.keyboard.down('x');
     await sleep(1500);
     await page.keyboard.up('x');

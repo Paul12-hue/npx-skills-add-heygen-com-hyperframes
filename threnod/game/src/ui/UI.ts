@@ -74,7 +74,7 @@ export class UI {
         <h1>Threnod</h1>
         <p class="subtitle">The Last Song of a Forgotten World</p>
         <div class="menu"></div>
-        <p class="footnote">Development build 14 · Phase 5</p>
+        <p class="footnote">Development build 15 · Phase 5</p>
       </div>`;
     const menu = this.title.querySelector('.menu')!;
     this.continueBtn = this.button('Continue', () => h.onContinue());
@@ -105,6 +105,7 @@ export class UI {
       e.stopPropagation();
       h.onView();
     });
+    viewBtn.classList.add('hidden'); // no camera buttons on screen (V key / controller Y still switch views)
     this.hud.append(jumpBtn, viewBtn);
 
     // camera panel: hold the buttons to zoom, turn and tilt; "Free" detaches the camera
