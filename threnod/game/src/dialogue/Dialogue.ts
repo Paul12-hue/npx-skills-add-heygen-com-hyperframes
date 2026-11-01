@@ -28,6 +28,8 @@ export interface DialogueNode {
   choices?: Choice[];
   end?: boolean;
   set?: Flags;
+  /** ask the player to type something; stored in flags under this key */
+  input?: string;
 }
 
 export interface DialogueGraph {
@@ -108,10 +110,19 @@ export class DialogueRunner {
       this.finished = true;
       return;
     }
+    if (n.input && !this.flags[n.input]) return; // waiting for the player's answer
     if (n.next) {
       this.nodeId = n.next;
       this.enter();
     }
+  }
+
+  /** Answer an input node (e.g. the player's name) and move on. */
+  answer(value: string): void {
+    const n = this.node;
+    if (!n.input) return;
+    this.flags[n.input] = value;
+    this.advance();
   }
 
   choose(index: number): void {

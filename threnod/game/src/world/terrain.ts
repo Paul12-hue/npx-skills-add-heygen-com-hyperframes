@@ -3,8 +3,8 @@ import { fbm } from './noise';
 
 /** Layout of Hollowmere Vale (world units ≈ metres). */
 export const LAYOUT = {
-  size: 440,
-  segments: 200,
+  size: 800,
+  segments: 300,
   waterLevel: 0,
   lake: { x: 0, z: 6, radius: 27 },
   village: { x: 54, z: 0, radius: 24, height: 2.2 },
@@ -15,6 +15,18 @@ export const LAYOUT = {
   stones: { x: -112, z: -64, radius: 12, height: 9 },
   ruin: { x: -18, z: -142, radius: 10, height: 7 },
   camp: { x: 132, z: -30 },
+  /** the four outer lands */
+  whisperwood: { x: 210, z: -200, radius: 120 },
+  marsh: { x: -215, z: 190, radius: 105 },
+  moor: { x: -235, z: -135, radius: 90, height: 14 },
+  hush: { x: 318, z: 70, radius: 100 },
+  aldersey: { x: 322, z: 66, radius: 22, height: 4 },
+  /** forgotten bell towers that can be rung */
+  bells: [
+    { id: 'whisper', x: 214, z: -206, name: 'the Whisperwood' },
+    { id: 'marsh', x: -198, z: 168, name: 'the Sallow Marsh' },
+    { id: 'moor', x: -232, z: -128, name: 'the High Moor' },
+  ],
   /** Old roads as polylines (x, z). */
   paths: [
     [[-44, -40], [-24, -32], [0, -30], [26, -18], [54, 0]],
@@ -24,11 +36,15 @@ export const LAYOUT = {
     [[54, 0], [96, -8], [128, -26]],
     [[-46, -6], [-84, -36], [-106, -58]],
     [[-24, -32], [-30, -90], [-20, -134]],
+    [[128, -26], [170, -110], [214, -196]],
+    [[118, 62], [200, 80], [262, 72], [318, 70]],
+    [[-52, 60], [-120, 120], [-190, 160]],
+    [[-106, -58], [-170, -100], [-226, -126]],
   ] as [number, number][][],
   /** Rivers as polylines: one flows into the lake, one out of it to the west. */
   rivers: [
-    [[176, -160], [124, -108], [76, -72], [40, -46], [14, -24], [4, -12]],
-    [[-24, 10], [-60, 20], [-110, 8], [-160, 28], [-215, 20]],
+    [[300, -330], [240, -250], [176, -160], [124, -108], [76, -72], [40, -46], [14, -24], [4, -12]],
+    [[-24, 10], [-60, 20], [-110, 8], [-160, 28], [-215, 20], [-250, 90], [-230, 160]],
   ] as [number, number][][],
   riverWidth: 4.2,
 };
@@ -68,6 +84,16 @@ export function distToRiver(x: number, z: number): number {
   return best;
 }
 
+/** 0 outside, 1 deep inside the Hush – the grey land where the world forgets itself. */
+export function hushFactor(x: number, z: number): number {
+  const h = LAYOUT.hush;
+  const d = Math.hypot(x - h.x, z - h.z) / h.radius;
+  const inner = 1 - smoothstep(0.35, 1.0, d);
+  // the very rim of the world is forgotten too
+  const rim = smoothstep(340, 385, Math.hypot(x, z));
+  return Math.max(inner, rim);
+}
+
 /** Normalised distance to the lake shore: < 1 inside the lake. */
 export function lakeFactor(x: number, z: number): number {
   const { lake } = LAYOUT;
@@ -82,9 +108,15 @@ export function heightAt(x: number, z: number): number {
   let h = 1.2 + fbm(x * 0.02, z * 0.02, 4, 11) * 3.2 + Math.max(0, fbm(x * 0.007, z * 0.007, 3, 21) - 0.45) * 22;
   // valley walls – the vale is enclosed by hills
   const r = Math.hypot(x, z);
-  h += smoothstep(150, 214, r) * (26 + fbm(x * 0.02, z * 0.02, 3, 5) * 18);
+  h += smoothstep(330, 395, r) * (30 + fbm(x * 0.02, z * 0.02, 3, 5) * 20);
+  // the high moor: a broad windy plateau
+  const md = Math.hypot(x - LAYOUT.moor.x, z - LAYOUT.moor.z);
+  h = lerp(h, LAYOUT.moor.height + fbm(x * 0.05, z * 0.05, 3, 7) * 3, 1 - smoothstep(LAYOUT.moor.radius * 0.6, LAYOUT.moor.radius * 1.3, md));
+  // the marsh: low ground with pools of black water
+  const sd = Math.hypot(x - LAYOUT.marsh.x, z - LAYOUT.marsh.z);
+  h = lerp(h, -0.9 + fbm(x * 0.06, z * 0.06, 3, 33) * 2.6, 1 - smoothstep(LAYOUT.marsh.radius * 0.6, LAYOUT.marsh.radius * 1.2, sd));
   // flattened ground for the settlements, raised hill tops for the old sites
-  for (const s of [LAYOUT.village, LAYOUT.cemetery, LAYOUT.farm, LAYOUT.stones, LAYOUT.ruin]) {
+  for (const s of [LAYOUT.village, LAYOUT.cemetery, LAYOUT.farm, LAYOUT.stones, LAYOUT.ruin, LAYOUT.aldersey]) {
     const d = Math.hypot(x - s.x, z - s.z);
     h = lerp(s.height, h, smoothstep(s.radius * 0.6, s.radius * 1.5, d));
   }
@@ -182,6 +214,13 @@ export class Terrain {
     else {
       out.copy(COLORS.grass[Math.min(3, Math.floor(v * 4.2))]);
       if (fbm(x * 0.15, z * 0.15, 2, 9) > 0.66) out.lerp(COLORS.moss, 0.6);
+      // heather on the high moor
+      if (Math.hypot(x - LAYOUT.moor.x, z - LAYOUT.moor.z) < LAYOUT.moor.radius && v > 0.45) out.lerp(new THREE.Color('#6a4a6a'), 0.55);
+    }
+    const hf = hushFactor(x, z);
+    if (hf > 0) {
+      const l = out.r * 0.3 + out.g * 0.59 + out.b * 0.11;
+      out.lerp(new THREE.Color(l * 1.4 + 0.12, l * 1.4 + 0.12, l * 1.45 + 0.14), hf);
     }
   }
 

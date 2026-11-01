@@ -36,6 +36,6 @@ e2e/smoke.mjs             Automatischer Browser-Test
 ```
 
 ## Steuerung
-- **iPad:** linke Bildschirmhälfte = Bewegungs-Stick, rechte Hälfte wischen = Kamera, runder Knopf = Interagieren, ❙❙ = Pause
-- **PC:** WASD/Pfeile, Shift = rennen, Maus ziehen = Kamera, E/Enter = Interagieren, 1–4 = Antwort wählen, Esc = Pause, T = eine Stunde vorspulen (Test)
-- **Controller:** linker Stick bewegen, rechter Stick Kamera, A = Interagieren, Start = Pause
+- **iPad:** linke Hälfte = Bewegungs-Stick · rechte Hälfte wischen = Kamera drehen und neigen · zwei Finger rechts auseinander/zusammen = Zoom · „View“ = Kamera-Voreinstellung (Schulter / Klassisch / Von oben) · „Jump“ = springen · runder Knopf = Interagieren · ❙❙ = Pause
+- **PC:** WASD/Pfeile, Shift = rennen, Leertaste = springen, Maus ziehen = Kamera, Mausrad = Zoom, V = Ansicht wechseln, E/Enter = Interagieren, 1–4 = Antwort wählen, Esc = Pause, T = eine Stunde vorspulen (Test)
+- **Controller:** linker Stick bewegen, rechter Stick Kamera, Trigger = Zoom, A = Interagieren, B = springen, Y = Ansicht, Start = Pause

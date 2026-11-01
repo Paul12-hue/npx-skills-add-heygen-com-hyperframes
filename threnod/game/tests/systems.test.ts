@@ -151,7 +151,7 @@ describe('world generation', () => {
     expect(lakeFactor(LAYOUT.lake.x, LAYOUT.lake.z)).toBeLessThan(0.1);
     expect(heightAt(LAYOUT.village.x, LAYOUT.village.z)).toBeCloseTo(LAYOUT.village.height, 0);
     expect(heightAt(LAYOUT.cemetery.x, LAYOUT.cemetery.z)).toBeGreaterThan(LAYOUT.waterLevel + 1);
-    expect(heightAt(0, 205)).toBeGreaterThan(15);
+    expect(heightAt(0, 385)).toBeGreaterThan(15);
   });
 });
 

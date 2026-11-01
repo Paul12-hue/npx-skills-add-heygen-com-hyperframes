@@ -157,13 +157,11 @@ export function organicTexture(): TexPair {
 
 /** Ground: grass tufts, earth and moss for the terrain. */
 export function groundTexture(): TexPair {
-  // a dense carpet of grass blades seen from above
+  // soft, calm ground: large gentle patches, no scratchy marks
   return paint((u, v) => {
-    const blades = tfbm(u * 6, v * 0.8, 10, 3, 53);
-    const n = tfbm(u, v, 24, 4, 51);
-    const big = tfbm(u, v, 4, 3, 52);
-    const streak = Math.pow(Math.abs(Math.sin((u * 90 + blades * 9) * Math.PI)), 6);
-    return [0.45 + streak * 0.45 + n * 0.2 + big * 0.1, streak * 0.7 + n * 0.3];
+    const n = tfbm(u, v, 6, 4, 51);
+    const big = tfbm(u, v, 2, 3, 52);
+    return [0.62 + n * 0.18 + big * 0.12, n * 0.5 + big * 0.2];
   });
 }
 

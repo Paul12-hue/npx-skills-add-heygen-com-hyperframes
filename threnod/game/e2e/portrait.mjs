@@ -25,6 +25,12 @@ await page.goto(`http://127.0.0.1:${server.address().port}/`);
 await page.waitForFunction(() => window.__threnod, null, { timeout: 30000 });
 console.log('boot ms', Date.now() - t0);
 await page.getByRole('button', { name: 'New Game' }).click();
+  // skip the opening text
+  for (let i = 0; i < 4; i++) {
+    if (await page.locator('.prologue:not(.hidden)').count()) await page.keyboard.press('Enter');
+    await new Promise((r) => setTimeout(r, 300));
+  }
+
 const shots = [
   ['unsung-face', [56, 6, 0.4], [1.3, 0.05, Math.PI], 21],
   ['unsung-34', [56, 6, 0.4], [2.2, 0.15, Math.PI * 0.75], 21],

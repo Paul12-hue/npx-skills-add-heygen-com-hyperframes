@@ -34,8 +34,10 @@ export class Player {
     const oz = this.body.z;
     // fixed small sub-steps keep collisions solid even at low frame rates
     const steps = Math.max(1, Math.ceil(dt / (1 / 120)));
+    // only the obstacles near the player take part in this step
+    const near = { ...this.world.physics, colliders: this.world.nearby(this.body.x, this.body.z) };
     for (let i = 0; i < steps; i++) {
-      stepBody(this.body, vx, vz, jump && i === 0, dt / steps, this.world.physics);
+      stepBody(this.body, vx, vz, jump && i === 0, dt / steps, near);
     }
     const moved = Math.hypot(this.body.x - ox, this.body.z - oz) / Math.max(dt, 1e-4);
     this.position.set(this.body.x, this.body.y, this.body.z);

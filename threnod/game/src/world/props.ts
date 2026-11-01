@@ -508,3 +508,30 @@ export function cropRowGeometry(length: number, color: string): Prop {
   for (let z = -length / 2 + 0.4; z < length / 2; z += 0.6) parts.push(p(at(new THREE.ConeGeometry(0.28, 0.7 + ((z * 7) % 3) * 0.1, 5), 0, 0.5, z), 'foliage', color));
   return build(parts);
 }
+
+/** A tall, forgotten bell tower of grey stone; its lamp lights up once the bell is rung. */
+export function forgottenBellTowerGeometry(): Prop {
+  return build([
+    p(at(new THREE.BoxGeometry(3.4, 2, 3.4), 0, -0.6, 0), 'stone', '6a6478'),
+    p(at(new THREE.BoxGeometry(2.8, 9, 2.8), 0, 4.5, 0), 'stone', '7a7488'),
+    p(at(new THREE.BoxGeometry(3.1, 0.4, 3.1), 0, 9.2, 0), 'stone', '6a6478'),
+    ...[-1.2, 1.2].flatMap((x) => [-1.2, 1.2].map((z) => p(at(new THREE.BoxGeometry(0.4, 3, 0.4), x, 10.9, z), 'stone', '7a7488'))),
+    p(at(new THREE.ConeGeometry(1.55 * Math.SQRT2 + 0.2, 3.2, 4), 0, 14, 0, Math.PI / 4), 'shingle', '3a3448'),
+    p(at(new THREE.CylinderGeometry(0.4, 0.95, 1.3, 12), 0, 11.3, 0), 'metal', 'b08040'),
+    p(at(new THREE.BoxGeometry(1.2, 2.2, 0.2), 0, 1.1, 1.45), 'darkwood', '2a1a12'),
+  ]);
+}
+
+/** A crooked hut on stilts above the marsh water. */
+export function stiltHutGeometry(): Prop {
+  const parts = [
+    ...[-1.6, 1.6].flatMap((x) => [-1.4, 1.4].map((z) => p(at(new THREE.BoxGeometry(0.3, 3.6, 0.3), x, 0.3, z), 'darkwood', '3a2418'))),
+    p(at(new THREE.BoxGeometry(4.4, 0.25, 3.8), 0, 2.2, 0), 'wood', '6a4a30'),
+    p(at(new THREE.BoxGeometry(3.6, 2.4, 3.0), 0, 3.5, 0), 'wood', '5a4028'),
+    p(at(gableRoofGeometry(3.6, 3.0, 2.0, 0.4), 0, 4.7, 0), 'shingle', '3a3448'),
+    p(at(new THREE.CylinderGeometry(0.4, 0.4, 0.08, 14), 1.0, 3.6, 1.52, 0, Math.PI / 2), 'glowWarm', 'ffa020'),
+    p(at(new THREE.BoxGeometry(0.9, 1.6, 0.1), -0.9, 3.1, 1.52), 'darkwood', '2a1a12'),
+    p(at(new THREE.BoxGeometry(1.0, 0.15, 2.6), -0.9, 1.1, 2.6, 0, 0.6), 'wood', '6a4a30'),
+  ];
+  return build(parts);
+}

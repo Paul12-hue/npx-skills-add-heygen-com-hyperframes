@@ -1,21 +1,26 @@
 import * as THREE from 'three';
 
 /**
- * High, top-down follow camera (looking down at about 60°, like a classic
- * overhead RPG). Dragging turns it around the player; the tilt can be nudged a
- * little. Distance shortens smoothly when terrain would block the view.
+ * Freely adjustable follow camera: drag to turn and tilt (from just over the
+ * shoulder down to a top-down view), pinch / mouse wheel to zoom, or switch
+ * between three presets. Distance shortens smoothly when terrain is in the way.
  */
+export const VIEW_PRESETS = [
+  { name: 'Shoulder', pitch: 0.28, distance: 6 },
+  { name: 'Classic', pitch: 0.62, distance: 11 },
+  { name: 'Overhead', pitch: 1.05, distance: 17 },
+];
 export class ThirdPersonCamera {
   readonly camera: THREE.PerspectiveCamera;
   yaw = 0;
-  pitch = 1.02;
-  distance = 15;
+  pitch = VIEW_PRESETS[1].pitch;
+  distance = VIEW_PRESETS[1].distance;
   private current = new THREE.Vector3();
   private focus = new THREE.Vector3();
   private initialised = false;
 
   constructor(aspect: number) {
-    this.camera = new THREE.PerspectiveCamera(40, aspect, 0.5, 900);
+    this.camera = new THREE.PerspectiveCamera(45, aspect, 0.3, 600);
   }
 
   setAspect(aspect: number): void {
@@ -23,14 +28,32 @@ export class ThirdPersonCamera {
     this.camera.updateProjectionMatrix();
   }
 
+  private preset = 1;
+
   /** dx/dy in radians. */
   rotate(dx: number, dy: number): void {
     this.yaw -= dx;
-    this.pitch = THREE.MathUtils.clamp(this.pitch + dy * 0.5, 0.75, 1.3);
+    this.pitch = THREE.MathUtils.clamp(this.pitch + dy, 0.08, 1.35);
+  }
+
+  /** zoom > 0 moves the camera away, < 0 closer. */
+  zoom(amount: number): void {
+    if (!amount) return;
+    this.distance = THREE.MathUtils.clamp(this.distance * Math.exp(amount), 3.2, 34);
+  }
+
+  /** Switch to the next of the three view presets; returns its name. */
+  cyclePreset(): string {
+    this.preset = (this.preset + 1) % VIEW_PRESETS.length;
+    const v = VIEW_PRESETS[this.preset];
+    this.pitch = v.pitch;
+    this.distance = v.distance;
+    return v.name;
   }
 
   update(dt: number, target: THREE.Vector3, heightAt: (x: number, z: number) => number): void {
-    this.focus.set(target.x, target.y + 0.9, target.z);
+    // aim a little higher when the camera is low behind the shoulder
+    this.focus.set(target.x, target.y + 0.9 + (1 - Math.min(1, this.pitch / 0.8)) * 0.7, target.z);
     let dist = this.distance;
     const dir = new THREE.Vector3(Math.sin(this.yaw) * Math.cos(this.pitch), Math.sin(this.pitch), Math.cos(this.yaw) * Math.cos(this.pitch));
     // pull the camera in if the ground is in the way

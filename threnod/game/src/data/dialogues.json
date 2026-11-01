@@ -177,7 +177,10 @@
     "nodes": {
       "a": {
         "text": "The Old Silver Mine. Cold air breathes out of the dark. Somewhere deep inside, someone is counting — slowly, over and over.",
-        "next": "b"
+        "next": "b",
+        "set": {
+          "seen_mine": true
+        }
       },
       "b": {
         "text": "\"…four… five…\" The voice never reaches six. (The mine opens in the next phase of development.)",
@@ -251,6 +254,237 @@
       },
       "b": {
         "text": "You sit for a while and listen to the fire. For a moment, nothing in the world is forgetting anything.",
+        "end": true
+      }
+    }
+  },
+  "odile": {
+    "start": "a",
+    "starts": [
+      {
+        "if": "player_named",
+        "start": "again"
+      }
+    ],
+    "nodes": {
+      "a": {
+        "speaker": "Mother Odile",
+        "text": "Tilde told me about you. Came out of Saint Ebba's own unmarked stone, she says. And here you stand — and I'll forget your face the moment you turn around.",
+        "next": "b"
+      },
+      "b": {
+        "speaker": "Mother Odile",
+        "text": "Unless… sit with me. A candle needs a name, love. Wax forgets everything else.",
+        "next": "c"
+      },
+      "c": {
+        "speaker": "Mother Odile",
+        "text": "So. What shall the world call you, now that it's ready to listen?",
+        "input": "playerName",
+        "next": "d"
+      },
+      "d": {
+        "speaker": "Mother Odile",
+        "text": "{name}. There — scratched into the wax. Now you're *someone*. Try not to waste it.",
+        "next": "e",
+        "set": {
+          "player_named": true
+        }
+      },
+      "e": {
+        "speaker": "Mother Odile",
+        "text": "Old Ansel down in the silver mine still counts his lost men every night. Somebody ought to make him stop. Maybe somebody nobody remembers.",
+        "end": true
+      },
+      "again": {
+        "speaker": "Mother Odile",
+        "text": "Your candle burns nicely, {name}. The mine is east of the lake. And if you hear bells in the hills — those towers have been silent for a hundred years.",
+        "end": true
+      }
+    }
+  },
+  "bell_whisper": {
+    "start": "a",
+    "starts": [
+      {
+        "if": "rang_whisper",
+        "start": "done"
+      }
+    ],
+    "nodes": {
+      "a": {
+        "text": "A bell tower nobody has climbed in a hundred years. The rope is rotten, but it might hold.",
+        "choices": [
+          {
+            "text": "Ring the bell.",
+            "next": "rung"
+          },
+          {
+            "text": "Leave it.",
+            "next": "leave"
+          }
+        ]
+      },
+      "rung": {
+        "text": "The bell's voice rolls out over the Whisperwood. For a heartbeat the trees and stones seem to remember their own shapes more clearly. Far away, very faintly, another bell answers.",
+        "set": {
+          "rang_whisper": true
+        },
+        "end": true
+      },
+      "leave": {
+        "text": "Not yet.",
+        "end": true
+      },
+      "done": {
+        "text": "The bell still hums. This land remembers you now.",
+        "end": true
+      }
+    }
+  },
+  "bell_marsh": {
+    "start": "a",
+    "starts": [
+      {
+        "if": "rang_marsh",
+        "start": "done"
+      }
+    ],
+    "nodes": {
+      "a": {
+        "text": "A bell tower nobody has climbed in a hundred years. The rope is rotten, but it might hold.",
+        "choices": [
+          {
+            "text": "Ring the bell.",
+            "next": "rung"
+          },
+          {
+            "text": "Leave it.",
+            "next": "leave"
+          }
+        ]
+      },
+      "rung": {
+        "text": "The bell's voice rolls out over the Sallow Marsh. For a heartbeat the trees and stones seem to remember their own shapes more clearly. Far away, very faintly, another bell answers.",
+        "set": {
+          "rang_marsh": true
+        },
+        "end": true
+      },
+      "leave": {
+        "text": "Not yet.",
+        "end": true
+      },
+      "done": {
+        "text": "The bell still hums. This land remembers you now.",
+        "end": true
+      }
+    }
+  },
+  "bell_moor": {
+    "start": "a",
+    "starts": [
+      {
+        "if": "rang_moor",
+        "start": "done"
+      }
+    ],
+    "nodes": {
+      "a": {
+        "text": "A bell tower nobody has climbed in a hundred years. The rope is rotten, but it might hold.",
+        "choices": [
+          {
+            "text": "Ring the bell.",
+            "next": "rung"
+          },
+          {
+            "text": "Leave it.",
+            "next": "leave"
+          }
+        ]
+      },
+      "rung": {
+        "text": "The bell's voice rolls out over the High Moor. For a heartbeat the trees and stones seem to remember their own shapes more clearly. Far away, very faintly, another bell answers.",
+        "set": {
+          "rang_moor": true
+        },
+        "end": true
+      },
+      "leave": {
+        "text": "Not yet.",
+        "end": true
+      },
+      "done": {
+        "text": "The bell still hums. This land remembers you now.",
+        "end": true
+      }
+    }
+  },
+  "faded_woman": {
+    "start": "a",
+    "nodes": {
+      "a": {
+        "speaker": "A Faded Woman",
+        "text": "…was there a door here? I had a door. Blue, I think. Or was that a name…",
+        "choices": [
+          {
+            "text": "What is your name?",
+            "next": "b"
+          },
+          {
+            "text": "(Leave her be.)",
+            "next": "c"
+          }
+        ]
+      },
+      "b": {
+        "speaker": "A Faded Woman",
+        "text": "Name? I'll know it when I hear it. Will you say it to me, if you ever find it?",
+        "set": {
+          "met_faded": true
+        },
+        "end": true
+      },
+      "c": {
+        "text": "She keeps turning in a slow circle, looking for a door that isn't there.",
+        "end": true
+      }
+    }
+  },
+  "faded_man": {
+    "start": "a",
+    "nodes": {
+      "a": {
+        "speaker": "A Faded Man",
+        "text": "Counting. I was counting something. Sheep? Days? …Steps home. How many steps is home?",
+        "set": {
+          "met_faded": true
+        },
+        "end": true
+      }
+    }
+  },
+  "aldersey": {
+    "start": "a",
+    "nodes": {
+      "a": {
+        "text": "A signpost, the letters almost gone: A_DERS_Y. Nobody in Candlewick knows this village. It is on no map.",
+        "next": "b"
+      },
+      "b": {
+        "text": "Everything here is grey as ash, and so quiet you can hear your own heartbeat. This is the Hush — the place where the world forgets itself.",
+        "set": {
+          "seen_hush": true
+        },
+        "end": true
+      }
+    }
+  },
+  "marsh_hut": {
+    "start": "a",
+    "nodes": {
+      "a": {
+        "text": "Nobody answers. Through the round window you see a table laid for two, and a candle burned down to nothing — but the wax is still warm.",
         "end": true
       }
     }

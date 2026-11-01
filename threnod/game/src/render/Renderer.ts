@@ -31,6 +31,7 @@ const GradeShader = {
     uGrain: { value: 1 },
     uSaturation: { value: 1.05 },
     uResolution: { value: new THREE.Vector2(1, 1) },
+    uHush: { value: 0 },
   },
   vertexShader: /* glsl */ `
     varying vec2 vUv;
@@ -41,6 +42,7 @@ const GradeShader = {
     uniform float uGrain;
     uniform float uSaturation;
     uniform vec2 uResolution;
+    uniform float uHush;
     varying vec2 vUv;
     float hash(vec2 p) { return fract(sin(dot(p, vec2(12.9898, 78.233))) * 43758.5453); }
     void main() {
@@ -50,6 +52,9 @@ const GradeShader = {
       // cool blue-green night in the shadows
       c += vec3(0.0, 0.012, 0.03) * (1.0 - smoothstep(0.0, 0.35, l));
       c = (c - 0.5) * 1.08 + 0.5;
+      // the Hush drains the colour out of the world
+      float g = dot(c, vec3(0.299, 0.587, 0.114));
+      c = mix(c, vec3(g) * 1.08 + 0.04, uHush * 0.85);
       vec2 d = vUv - 0.5;
       c *= 1.0 - dot(d, d) * 1.15;
       c += (hash(vUv * uResolution + uTime) - 0.5) * 0.045 * uGrain;
@@ -116,6 +121,10 @@ export class Renderer {
     this.width = Math.round(w * ratio);
     this.height = Math.round(h * ratio);
     this.grade.uniforms.uResolution.value.set(this.width, this.height);
+  }
+
+  setHush(v: number): void {
+    this.grade.uniforms.uHush.value = v;
   }
 
   render(dt: number): void {

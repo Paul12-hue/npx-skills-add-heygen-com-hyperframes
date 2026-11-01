@@ -210,3 +210,58 @@ function eyesAt(c: Vec3, s: number): { l: Vec3; r: Vec3 } {
   const [l, r] = eyePositions(c, s);
   return { l, r };
 }
+
+/** A long skirt or robe from the waist down, plus a shawl – shared by older villagers and the Faded. */
+function robe(J: Joints, cloth: string, shawl: string, skirtR: number): Prim[] {
+  return [
+    { shape: { kind: 'ellipsoid', c: [0, 1.31, 0.005], r: [0.16, 0.15, 0.11] }, bone: 'chest', color: cloth },
+    { shape: { kind: 'ellipsoid', c: [0, 1.12, 0], r: [0.15, 0.13, 0.1] }, bone: 'spine', color: cloth, blend: 0.08 },
+    { shape: { kind: 'cone', a: [0, 1.02, 0], b: [0, 0.06, 0.01], ra: 0.16, rb: skirtR }, bone: 'hips', color: cloth, blend: 0.06 },
+    { shape: { kind: 'ellipsoid', c: [0, 1.43, 0.02], r: [0.23, 0.08, 0.16] }, bone: 'chest', color: shawl, blend: 0.05 },
+    { shape: { kind: 'cone', a: J.neck, b: add(J.head, [0, 0.02, 0]), ra: 0.05, rb: 0.048 }, bone: 'neck', color: 'e2c0a8', blend: 0.03 },
+  ];
+}
+
+/** Mother Odile, eldest of the Lamplighters: grey bun, warm shawl, candle-wax apron. */
+export function odileSpec(): FigureSpec {
+  const J = adultJoints(1.62);
+  const H = J.head;
+  const C = { skin: 'e2c0a8', blush: 'dca898', lip: 'b0706a', brow: 'a8a0a0', hair: 'c8c4c8', dress: '5a3a4a', shawl: 'b07040', apron: 'd8ccb0' };
+  const prims: Prim[] = [
+    ...robe(J, C.dress, C.shawl, 0.3),
+    { shape: { kind: 'box', c: [0, 0.7, -0.17], h: [0.15, 0.36, 0.012], round: 0.02 }, bone: 'hips', color: C.apron, blend: 0.02 },
+    { shape: { kind: 'shell', c: add(H, [0, 0.11, 0.012]), r: [0.1, 0.11, 0.112], thickness: 0.012 }, bone: 'head', color: C.hair, blend: 0.006 },
+    { shape: { kind: 'ellipsoid', c: add(H, [0, 0.075, -0.16]), r: [0.085, 0.1, 0.1] }, bone: 'head', color: C.hair, subtract: true, blend: 0.01 },
+    ...face(add(H, [0, 0.085, 0]), 1, C.skin, C.lip, C.brow, C.blush),
+    { shape: { kind: 'ellipsoid', c: add(H, [0, 0.19, 0.09]), r: [0.06, 0.055, 0.055] }, bone: 'head', color: C.hair, blend: 0.02 },
+    ...limbs(J, { sleeve: C.dress, glove: C.skin, trousers: C.dress, boot: '3a2618', armR: 0.95, legR: 0.9 }),
+  ];
+  return {
+    name: 'odile',
+    joints: J,
+    prims,
+    eyes: { ...eyesAt(add(H, [0, 0.085, 0]), 1), radius: 0.017, iris: '6a5a40', glow: 0 },
+    bounds: { min: [-0.42, -0.02, -0.3], max: [0.42, 1.85, 0.32] },
+  };
+}
+
+/** One of the Faded: a grey, half-remembered villager. */
+export function fadedSpec(variant: number): FigureSpec {
+  const J = adultJoints(1.66 + (variant % 3) * 0.06);
+  const H = J.head;
+  const g = ['9a98a4', '8a8896', 'a8a6b0'][variant % 3];
+  const prims: Prim[] = [
+    ...robe(J, g, '7a7886', 0.26 + (variant % 2) * 0.05),
+    { shape: { kind: 'shell', c: add(H, [0, 0.11, 0.03]), r: [0.13, 0.15, 0.15], thickness: 0.014 }, bone: 'head', color: '7a7886', blend: 0.03 },
+    { shape: { kind: 'ellipsoid', c: add(H, [0, 0.06, -0.16]), r: [0.11, 0.15, 0.15] }, bone: 'head', color: '7a7886', subtract: true, blend: 0.04 },
+    ...face(add(H, [0, 0.085, 0]), 1, 'b8b6c0', '9a98a4', '7a7886', 'b0aeb8'),
+    ...limbs(J, { sleeve: g, glove: 'b8b6c0', trousers: g, boot: '6a6874', armR: 0.95, legR: 0.95 }),
+  ];
+  return {
+    name: 'faded' + (variant % 3),
+    joints: J,
+    prims,
+    eyes: { ...eyesAt(add(H, [0, 0.085, 0]), 1), radius: 0.017, iris: 'c8c6d0', glow: 0.4 },
+    bounds: { min: [-0.42, -0.02, -0.3], max: [0.42, 1.95, 0.34] },
+  };
+}

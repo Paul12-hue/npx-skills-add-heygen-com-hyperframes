@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { Reflector } from 'three/examples/jsm/objects/Reflector.js';
-import { LAYOUT, Terrain, distToPath, distToRiver, lakeFactor } from './terrain';
+import { LAYOUT, Terrain, distToPath, distToRiver, hushFactor, lakeFactor } from './terrain';
 import { rng } from './noise';
 import * as P from './props';
 import { Sky } from './Sky';
@@ -100,6 +100,8 @@ export class World {
   private mirror!: Reflector;
   private plainWater!: THREE.Mesh;
   private time = 0;
+  private bellLights = new Map<string, { light: THREE.PointLight; glow: THREE.Mesh }>();
+  private baseFog = new THREE.Color();
 
   constructor() {
     this.textures = createTextures();
@@ -117,6 +119,7 @@ export class World {
     this.buildFarm(batch);
     this.buildOldSites(batch);
     this.buildMine(batch);
+    this.buildOuterLands(batch);
     this.buildForest(batch); // last: trees avoid everything placed before
     this.flush(batch);
     this.buildAtmosphere();
@@ -148,16 +151,47 @@ export class World {
   }
 
   private box(x: number, z: number, hx: number, hz: number, rot: number): void {
-    this.colliders.push({ x, z, hx, hz, rot });
+    this.addCollider({ x, z, hx, hz, rot });
   }
 
   private circle(x: number, z: number, r: number): void {
-    this.colliders.push({ x, z, r });
+    this.addCollider({ x, z, r });
+  }
+
+  // a coarse grid so that physics and placement only look at nearby obstacles
+  private static readonly CELL = 16;
+  private grid = new Map<number, Collider[]>();
+  private key(i: number, j: number): number {
+    return (i + 1000) * 4096 + (j + 1000);
+  }
+
+  addCollider(c: Collider): void {
+    this.colliders.push(c);
+    const reach = c.r ?? Math.max(c.hx!, c.hz!) * 1.42;
+    const C = World.CELL;
+    for (let i = Math.floor((c.x - reach) / C); i <= Math.floor((c.x + reach) / C); i++) {
+      for (let j = Math.floor((c.z - reach) / C); j <= Math.floor((c.z + reach) / C); j++) {
+        const k = this.key(i, j);
+        const list = this.grid.get(k);
+        if (list) list.push(c);
+        else this.grid.set(k, [c]);
+      }
+    }
+  }
+
+  /** Colliders in the 3×3 grid cells around a point. */
+  nearby(x: number, z: number): Collider[] {
+    const C = World.CELL;
+    const ci = Math.floor(x / C);
+    const cj = Math.floor(z / C);
+    const out = new Set<Collider>();
+    for (let i = ci - 1; i <= ci + 1; i++) for (let j = cj - 1; j <= cj + 1; j++) for (const c of this.grid.get(this.key(i, j)) ?? []) out.add(c);
+    return [...out];
   }
 
   /** Is the spot free of obstacles (for scattering trees and clutter)? */
   private free(x: number, z: number, margin: number): boolean {
-    for (const c of this.colliders) {
+    for (const c of this.nearby(x, z)) {
       const reach = (c.r ?? Math.max(c.hx!, c.hz!) * 1.42) + margin;
       if (Math.abs(c.x - x) < reach && Math.abs(c.z - z) < reach && Math.hypot(c.x - x, c.z - z) < reach) return false;
     }
@@ -587,47 +621,143 @@ export class World {
     this.interactables.push({ id: 'mine', x, z: z - 3, radius: 3.4, verb: 'Look', dialogue: 'mine_entrance' });
   }
 
+  // ---------------------------------------------------------------- the outer lands
+  private buildOuterLands(batch: P.PropBatch): void {
+    const r = rng(1234);
+    // forgotten bell towers – ring them and the vale remembers
+    for (const b of LAYOUT.bells) {
+      const y = this.footY(b.x, b.z, 1.7, 1.7, 0);
+      batch.add(P.place(P.forgottenBellTowerGeometry(), b.x, y, b.z, 0));
+      this.box(b.x, b.z, 1.7, 1.7, 0);
+      const glow = new THREE.Mesh(new THREE.OctahedronGeometry(0.45, 0), new THREE.MeshBasicMaterial({ color: new THREE.Color(0.25, 0.22, 0.2) }));
+      glow.position.set(b.x, y + 10, b.z);
+      const light = this.light(0xffb040, 0, 26, b.x, y + 10, b.z, false);
+      this.scene.add(glow);
+      this.bellLights.set(b.id, { light, glow });
+      this.interactables.push({ id: 'bell_' + b.id, x: b.x, z: b.z + 2.6, radius: 3.2, verb: 'Ring', dialogue: 'bell_' + b.id });
+    }
+
+    // the Sallow Marsh: a stilt hut, dead trees, glowing lily pads on the pools
+    const hx = -232;
+    const hz = 206;
+    batch.add(P.place(P.stiltHutGeometry(), hx, this.y(hx, hz), hz, 0.3));
+    this.box(hx, hz, 2.3, 2.0, -0.3);
+    this.light(0xffa040, 4, 14, hx + 1, this.y(hx, hz) + 3.6, hz + 2);
+    this.interactables.push({ id: 'marsh_hut', x: hx - 0.5, z: hz + 3.4, radius: 3, verb: 'Knock', dialogue: 'marsh_hut' });
+    const pad = P.lilyPadGeometry();
+    const dead = P.deadTreeGeometry();
+    const shroom = P.mushroomGeometry();
+    const m = LAYOUT.marsh;
+    for (let i = 0; i < 900; i++) {
+      const a = r() * Math.PI * 2;
+      const d = Math.sqrt(r()) * m.radius;
+      const x = m.x + Math.cos(a) * d;
+      const z = m.z + Math.sin(a) * d;
+      const y = this.y(x, z);
+      if (y < -0.25 && r() < 0.25) batch.add(P.place(pad, x, 0.01, z, r() * 6, 0.6 + r() * 0.8));
+      else if (y > 0.2 && r() < 0.03 && this.free(x, z, 1)) {
+        batch.add(P.place(dead, x, y - 0.1, z, r() * 6, 1 + r() * 0.8));
+        this.circle(x, z, 0.35);
+      } else if (y > 0.2 && r() < 0.008 && this.free(x, z, 2)) {
+        const s = 0.8 + r() * 1.2;
+        batch.add(P.place(shroom, x, y - 0.1, z, r() * 6, s));
+        this.circle(x, z, 0.55 * s);
+      }
+    }
+    this.light(0x60ff60, 4, 18, m.x + 20, 3, m.z - 10);
+    this.light(0x60ff60, 4, 18, m.x - 30, 3, m.z + 25);
+
+    // Aldersey: the first village the world forgot – grey, silent, half gone
+    const al = LAYOUT.aldersey;
+    const grey = new P.PropBatch();
+    const spots: [number, number][] = [[-10, -6], [0, -12], [11, -5], [8, 9], [-8, 8]];
+    spots.forEach(([dx, dz], i) => {
+      const x = al.x + dx;
+      const z = al.z + dz;
+      const ry = Math.round(Math.atan2(-dx, -dz) / (Math.PI / 4)) * (Math.PI / 4);
+      grey.add(P.place(P.houseGeometry(i + 3), x, this.footY(x, z, P.HOUSE_HALF.hx, P.HOUSE_HALF.hz, -ry), z, ry));
+      this.box(x, z, P.HOUSE_HALF.hx, P.HOUSE_HALF.hz, -ry);
+    });
+    grey.add(P.place(P.wellGeometry(), al.x, this.y(al.x, al.z), al.z));
+    this.circle(al.x, al.z, 1.35);
+    const greyMat = new THREE.MeshLambertMaterial({ color: 0xb0aebb, transparent: true, opacity: 0.8 });
+    for (const [, geo] of grey.merged()) {
+      const mesh = new THREE.Mesh(geo, greyMat);
+      mesh.castShadow = true;
+      this.scene.add(mesh);
+    }
+    this.interactables.push({ id: 'aldersey', x: al.x, z: al.z + 2, radius: 4, verb: 'Look', dialogue: 'aldersey' });
+    for (let i = 0; i < 40; i++) {
+      const x = LAYOUT.hush.x + (r() - 0.5) * 160;
+      const z = LAYOUT.hush.z + (r() - 0.5) * 160;
+      if (hushFactor(x, z) < 0.4 || !this.free(x, z, 1.5) || distToPath(x, z) < 3) continue;
+      batch.add(P.place(dead, x, this.y(x, z) - 0.1, z, r() * 6, 1 + r() * 0.8));
+      this.circle(x, z, 0.35);
+    }
+  }
+
+  /** Light the lamp of a rung bell tower. */
+  lightBell(id: string): void {
+    const b = this.bellLights.get(id);
+    if (!b) return;
+    b.light.intensity = 10;
+    (b.glow.material as THREE.MeshBasicMaterial).color.setRGB(3, 2, 0.7);
+  }
+
+  /** 0..1 – how deep in the Hush a point is. */
+  hushAt(x: number, z: number): number {
+    return hushFactor(x, z);
+  }
+
   // ---------------------------------------------------------------- forest
   private sitesClear(x: number, z: number, m: number): boolean {
-    for (const s of [LAYOUT.village, LAYOUT.cemetery, LAYOUT.farm, LAYOUT.stones, LAYOUT.ruin]) {
+    for (const s of [LAYOUT.village, LAYOUT.cemetery, LAYOUT.farm, LAYOUT.stones, LAYOUT.ruin, LAYOUT.aldersey]) {
       if (Math.hypot(x - s.x, z - s.z) < s.radius + m) return false;
     }
+    for (const b of LAYOUT.bells) if (Math.hypot(x - b.x, z - b.z) < 6 + m) return false;
     for (const p of [LAYOUT.mine, LAYOUT.camp, LAYOUT.windmill]) if (Math.hypot(x - p.x, z - p.z) < 8 + m) return false;
     return true;
   }
 
   private scatterInstanced(prop: P.Prop, max: number, place: (r: () => number) => [number, number, number] | null, trunk: number, seed: number): void {
     const r = rng(seed);
-    const meshes = (Object.entries(prop) as [P.MatKey, THREE.BufferGeometry][]).map(([k, geo]) => {
+    const parts = (Object.entries(prop) as [P.MatKey, THREE.BufferGeometry][]).map(([k, geo]) => {
       P.applyBoxUV(geo, this.texScale(k));
-      const m = new THREE.InstancedMesh(geo, this.mats.get(k), max);
-      m.castShadow = true;
-      m.receiveShadow = true;
-      return m;
+      return [k, geo] as const;
     });
-    const mtx = new THREE.Matrix4();
+    // collect the instances per 96 m tile so each tile can be culled when it is off screen
+    const TILE = 96;
+    const tiles = new Map<string, { m: THREE.Matrix4; c: number }[]>();
     const q = new THREE.Quaternion();
-    const tint = new THREE.Color();
     let count = 0;
     for (let tries = 0; count < max && tries < max * 20; tries++) {
       const spot = place(r);
       if (!spot) continue;
       const [x, z, s] = spot;
       if (trunk > 0 && !this.free(x, z, trunk * s + 0.4)) continue;
-      mtx.compose(new THREE.Vector3(x, this.y(x, z) - 0.15, z), q.setFromEuler(new THREE.Euler(0, r() * 6.28, 0)), new THREE.Vector3(s, s * (0.9 + r() * 0.3), s));
-      tint.setScalar(0.75 + r() * 0.4);
-      for (const m of meshes) {
-        m.setMatrixAt(count, mtx);
-        m.setColorAt(count, tint);
-      }
+      const m = new THREE.Matrix4().compose(new THREE.Vector3(x, this.y(x, z) - 0.15, z), q.setFromEuler(new THREE.Euler(0, r() * 6.28, 0)), new THREE.Vector3(s, s * (0.9 + r() * 0.3), s));
+      const key = Math.floor(x / TILE) + ',' + Math.floor(z / TILE);
+      const list = tiles.get(key) ?? [];
+      list.push({ m, c: 0.75 + r() * 0.4 });
+      tiles.set(key, list);
       if (trunk > 0) this.circle(x, z, trunk * s);
       count++;
     }
-    for (const m of meshes) {
-      m.count = count;
-      m.instanceMatrix.needsUpdate = true;
-      if (m.instanceColor) m.instanceColor.needsUpdate = true;
-      this.scene.add(m);
+    const tint = new THREE.Color();
+    for (const list of tiles.values()) {
+      for (const [k, geo] of parts) {
+        const mesh = new THREE.InstancedMesh(geo, this.mats.get(k), list.length);
+        list.forEach((it, i) => {
+          mesh.setMatrixAt(i, it.m);
+          mesh.setColorAt(i, tint.setScalar(it.c));
+        });
+        mesh.instanceMatrix.needsUpdate = true;
+        if (mesh.instanceColor) mesh.instanceColor.needsUpdate = true;
+        mesh.computeBoundingSphere();
+        mesh.castShadow = true;
+        mesh.receiveShadow = true;
+        this.scene.add(mesh);
+      }
     }
   }
 
@@ -635,30 +765,35 @@ export class World {
     const half = LAYOUT.size / 2;
     const W = LAYOUT.riverWidth;
     const okGround = (x: number, z: number, m: number) =>
-      Math.hypot(x, z) < 212 && lakeFactor(x, z) > 1.25 && distToRiver(x, z) > W * 1.9 && distToPath(x, z) > 4.5 && this.sitesClear(x, z, m);
-    // dense pine woods in the east and on the valley walls, open meadows elsewhere
-    this.scatterInstanced(P.pineGeometry(), 1500, (r) => {
+      Math.hypot(x, z) < 378 && lakeFactor(x, z) > 1.25 && distToRiver(x, z) > W * 1.9 && distToPath(x, z) > 4.5 &&
+      this.sitesClear(x, z, m) && hushFactor(x, z) < 0.25 && this.y(x, z) > 0.3;
+    const ww = LAYOUT.whisperwood;
+    const moor = LAYOUT.moor;
+    // pines: the Whisperwood is dense and dark, the valley walls wooded, the moor almost bare
+    this.scatterInstanced(P.pineGeometry(), 3200, (r) => {
       const x = (r() - 0.5) * 2 * half;
       const z = (r() - 0.5) * 2 * half;
       if (!okGround(x, z, 4)) return null;
       const rad = Math.hypot(x, z);
-      const dense = 0.12 + (x > 70 ? 0.4 : 0) + (rad > 140 ? 0.5 : 0) + (z < -90 ? 0.25 : 0);
+      const inWood = 1 - Math.min(1, Math.hypot(x - ww.x, z - ww.z) / ww.radius);
+      const onMoor = Math.hypot(x - moor.x, z - moor.z) < moor.radius;
+      const dense = onMoor ? 0.02 : 0.06 + inWood * 1.4 + (rad > 300 ? 0.5 : 0) + (x > 70 && z < 0 ? 0.15 : 0);
       if (r() > dense) return null;
-      return [x, z, 0.8 + r() * 0.8];
+      return [x, z, 0.8 + r() * 0.9 + inWood * 0.5];
     }, 0.45, 412);
     // broadleaf trees in groups around the meadows
     for (let v = 0; v < 2; v++) {
-      this.scatterInstanced(P.oakGeometry(v), 160, (r) => {
-        const x = (r() - 0.5) * 2 * 170;
-        const z = (r() - 0.5) * 2 * 170;
+      this.scatterInstanced(P.oakGeometry(v), 380, (r) => {
+        const x = (r() - 0.5) * 2 * 330;
+        const z = (r() - 0.5) * 2 * 330;
         if (!okGround(x, z, 5)) return null;
         if (Math.sin(x * 0.04) * Math.cos(z * 0.05) < 0.1) return null; // clustered groves
         return [x, z, 0.8 + r() * 0.5];
       }, 0.5, 700 + v);
     }
-    this.scatterInstanced(P.bushGeometry(), 420, (r) => {
-      const x = (r() - 0.5) * 2 * 190;
-      const z = (r() - 0.5) * 2 * 190;
+    this.scatterInstanced(P.bushGeometry(), 900, (r) => {
+      const x = (r() - 0.5) * 2 * 340;
+      const z = (r() - 0.5) * 2 * 340;
       if (!okGround(x, z, 2)) return null;
       return [x, z, 0.7 + r() * 0.8];
     }, 0.6, 801);
@@ -666,7 +801,7 @@ export class World {
     const r = rng(77);
     // rocks along the lake shore and the river banks
     const rock = P.rockGeometry();
-    for (let i = 0; i < 160; i++) {
+    for (let i = 0; i < 360; i++) {
       let x: number;
       let z: number;
       if (i < 40) {
@@ -675,8 +810,8 @@ export class World {
         x = LAYOUT.lake.x + Math.cos(a) * d;
         z = LAYOUT.lake.z + Math.sin(a) * d;
       } else {
-        x = (r() - 0.5) * 380;
-        z = (r() - 0.5) * 380;
+        x = (r() - 0.5) * 700;
+        z = (r() - 0.5) * 700;
         const rd = distToRiver(x, z);
         if (rd < W * 1.2 || rd > W * 2.6) continue;
       }
@@ -687,7 +822,7 @@ export class World {
     }
 
     const shroom = P.mushroomGeometry();
-    const spots: [number, number, number][] = [[-22, 30, 1.4], [-28, 22, 0.9], [18, 34, 1.7], [24, 28, 1.0], [-30, -4, 1.2], [70, 30, 1.5], [62, 38, 0.8], [-58, -52, 1.1], [150, -40, 1.6], [-80, 70, 1.3]];
+    const spots: [number, number, number][] = [[-22, 30, 1.4], [-28, 22, 0.9], [18, 34, 1.7], [24, 28, 1.0], [-30, -4, 1.2], [70, 30, 1.5], [62, 38, 0.8], [-58, -52, 1.1], [150, -40, 1.6], [-80, 70, 1.3], [190, -170, 2.0], [230, -230, 1.6], [250, -180, 1.2], [176, -232, 1.8]];
     for (const [x, z, s] of spots) {
       batch.add(P.place(shroom, x, this.y(x, z) - 0.1, z, r() * 6, s));
       this.circle(x, z, 0.55 * s);
@@ -744,10 +879,12 @@ export class World {
     this.scene.add(this.fireflies);
 
     const tex = mistSprite();
-    for (let i = 0; i < 26; i++) {
-      const x = (r() - 0.5) * 320;
-      const z = (r() - 0.5) * 320;
-      const s = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, color: 0x6a8a9a, transparent: true, opacity: 0.22, depthWrite: false, fog: true }));
+    const spots: [number, number, number][] = [];
+    for (let i = 0; i < 40; i++) spots.push([(r() - 0.5) * 640, (r() - 0.5) * 640, 0x6a8a9a]);
+    for (let i = 0; i < 18; i++) spots.push([LAYOUT.marsh.x + (r() - 0.5) * 180, LAYOUT.marsh.z + (r() - 0.5) * 180, 0x5a8a6a]);
+    for (let i = 0; i < 24; i++) spots.push([LAYOUT.hush.x + (r() - 0.5) * 180, LAYOUT.hush.z + (r() - 0.5) * 180, 0xc0bec8]);
+    for (const [x, z, color] of spots) {
+      const s = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, color, transparent: true, opacity: 0.26, depthWrite: false, fog: true }));
       s.scale.set(30, 7, 1);
       s.position.set(x, Math.max(0, this.y(x, z)) + 1.6, z);
       s.userData.base = s.position.clone();
@@ -757,12 +894,20 @@ export class World {
     }
   }
 
+  /** How strongly the Hush is felt at the player's position (smoothed). */
+  hushHere = 0;
+
   /** Per-frame animation: sky, flickering lights, fireflies, mist, windmill, water. */
   update(dt: number, hour: number, focus: THREE.Vector3, camera: THREE.Camera): void {
     this.time += dt;
     const t = this.time;
     for (const f of this.fields) f.update(dt, focus);
     this.sky.update(dt, hour, focus, camera, this.fog);
+    // in the Hush the world turns grey and the fog closes in
+    this.hushHere += (hushFactor(focus.x, focus.z) - this.hushHere) * Math.min(1, dt * 1.5);
+    this.baseFog.copy(this.fog.color);
+    this.fog.color.lerp(new THREE.Color(0x8a8892), this.hushHere * 0.8);
+    this.fog.density = 0.0095 + this.hushHere * 0.03;
     const night = this.sky.state.night;
     for (const [m, mult] of this.glowMats) m.color.setScalar(mult * (0.75 + night * 0.35));
     for (const f of this.flickerLights) {

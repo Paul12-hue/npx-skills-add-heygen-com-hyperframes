@@ -1,11 +1,15 @@
 import * as THREE from 'three';
 import { Humanoid } from './Humanoid';
-import { tildeSpec, unsungSpec, type FigureSpec } from './figures';
+import { odileSpec, tildeSpec, unsungSpec, fadedSpec, type FigureSpec } from './figures';
 
 /** Who can appear in a dialogue portrait. Keys match the dialogue "speaker" names. */
 const SPECS: Record<string, () => FigureSpec> = {
   Unsung: unsungSpec,
   Tilde: tildeSpec,
+  Odile: odileSpec,
+  'Mother Odile': odileSpec,
+  'A Faded Woman': () => fadedSpec(0),
+  'A Faded Man': () => fadedSpec(1),
 };
 
 /**
@@ -72,7 +76,7 @@ export class PortraitRenderer {
     if (!this.current) return;
     if (!this.figures.has(this.current)) {
       const spec = SPECS[this.current]();
-      const h = new Humanoid(spec, { cell: 0.0075 }); // finer sculpt for close-ups
+      const h = new Humanoid(spec); // reuses the sculpt already built for the world – opens instantly
       const head = spec.joints.head;
       const face = new THREE.Vector3(head[0], head[1] + 0.07, head[2] - 0.02);
       this.scene.add(h.root);
@@ -83,6 +87,14 @@ export class PortraitRenderer {
     // a slight three-quarter view of the face
     this.camera.position.set(f.face.x - 0.2, f.face.y + 0.03, f.face.z - 0.85);
     this.camera.lookAt(f.face.x, f.face.y - 0.03, f.face.z);
+  }
+
+  /** Build the portrait renderer and compile its shaders ahead of time (avoids a hitch on the first conversation). */
+  warmUp(): void {
+    const prev = this.current;
+    this.show('Unsung');
+    this.render(0);
+    this.current = prev;
   }
 
   render(dt: number): void {

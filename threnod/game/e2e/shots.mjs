@@ -29,18 +29,23 @@ page.on('pageerror', (e) => console.log('pageerror', e.message));
 await page.goto(`http://127.0.0.1:${server.address().port}/`);
 await page.waitForFunction(() => window.__threnod, null, { timeout: 20000 });
 await page.getByRole('button', { name: 'New Game' }).click();
+  // skip the opening text
+  for (let i = 0; i < 4; i++) {
+    if (await page.locator('.prologue:not(.hidden)').count()) await page.keyboard.press('Enter');
+    await new Promise((r) => setTimeout(r, 300));
+  }
+
 const views = [
-  ['spawn', null, 21],
-  ['village', [46, 6, -Math.PI * 0.7], 21.5],
-  ['bridge', [6, -32, -Math.PI * 0.62], 21],
-  ['farm', [100, 34, -Math.PI * 0.8], 20.5],
-  ['stones', [-104, -58, Math.PI * 0.3], 22],
-  ['ruin', [-16, -128, Math.PI * 0.95], 21],
-  ['camp', [126, -24, -Math.PI * 0.7], 22],
+  ['odile', [50.5, 1.5, Math.PI * 0.85], 21],
+  ['whisperwood', [214, -196, Math.PI], 21],
+  ['marsh', [-222, 216, -Math.PI * 0.8], 22],
+  ['aldersey', [322, 78, 0], 21],
+  ['moor', [-232, -118, Math.PI], 20.5],
 ];
 for (const [name, tp, hour] of views) {
   await page.evaluate(([tp, hour]) => {
     if (tp) window.__threnod.teleport(tp[0], tp[1], tp[2]);
+    window.__threnod.setCamera(9, 0.55, Math.PI);
     window.__threnod.setHour(hour);
   }, [tp, hour]);
   await new Promise((r) => setTimeout(r, 2500));

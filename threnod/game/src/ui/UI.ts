@@ -24,8 +24,10 @@ export interface UIHandlers {
   onInteract: () => void;
   onPause: () => void;
   onJump: () => void;
+  onView: () => void;
   onDialogueAdvance: () => void;
   onDialogueChoose: (index: number) => void;
+  onDialogueAnswer: (value: string) => void;
 }
 
 /**
@@ -43,6 +45,8 @@ export class UI {
   private place: HTMLElement;
   private fps: HTMLElement;
   private toast: HTMLElement;
+  private goal: HTMLElement;
+  private prologue: HTMLElement;
   private dialogue: HTMLElement;
   private dlgSpeaker: HTMLElement;
   private dlgText: HTMLElement;
@@ -67,7 +71,7 @@ export class UI {
         <h1>Threnod</h1>
         <p class="subtitle">The Last Song of a Forgotten World</p>
         <div class="menu"></div>
-        <p class="footnote">Development build · Phase 5 · visual style test</p>
+        <p class="footnote">Development build 10 · Phase 5</p>
       </div>`;
     const menu = this.title.querySelector('.menu')!;
     this.continueBtn = this.button('Continue', () => h.onContinue());
@@ -92,12 +96,21 @@ export class UI {
       e.stopPropagation();
       h.onJump();
     });
-    this.hud.append(jumpBtn);
+    const viewBtn = el('button', 'view-btn', 'View');
+    viewBtn.setAttribute('aria-label', 'Change camera view');
+    viewBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      h.onView();
+    });
+    this.hud.append(jumpBtn, viewBtn);
     this.place = el('div', 'place-name');
     this.fps = el('div', 'fps hidden');
     this.hud.append(this.prompt, this.actionBtn, this.pauseBtn, this.place, this.fps);
 
     this.toast = el('div', 'toast');
+    this.goal = el('div', 'goal');
+    this.hud.append(this.goal);
+    this.prologue = el('div', 'screen prologue hidden');
 
     // ---- dialogue
     this.dialogue = el('div', 'dialogue hidden');
@@ -126,7 +139,7 @@ export class UI {
     this.settings = el('div', 'screen settings hidden');
     this.buildSettings();
 
-    root.append(this.title, this.hud, this.toast, this.dialogue, this.pause, this.settings);
+    root.append(this.title, this.hud, this.toast, this.dialogue, this.pause, this.settings, this.prologue);
   }
 
   private button(label: string, fn: () => void): HTMLButtonElement {
@@ -258,6 +271,36 @@ export class UI {
     this.placeTimer = 3.5;
   }
 
+  setGoal(text: string): void {
+    this.goal.textContent = text;
+  }
+
+  /** The opening text, one paragraph at a time; tap or press a key to continue. */
+  showPrologue(lines: string[], done: () => void): void {
+    let i = 0;
+    const p = this.prologue;
+    const show = () => {
+      p.innerHTML = `<div class="prologue-text">${lines[i].replace(/&/g, '&amp;').replace(/</g, '&lt;')}</div><div class="prologue-hint">tap to continue</div>`;
+    };
+    const next = (e?: Event) => {
+      e?.stopPropagation();
+      i++;
+      if (i >= lines.length) {
+        p.classList.add('hidden');
+        p.removeEventListener('click', next);
+        window.removeEventListener('keydown', key);
+        done();
+      } else show();
+    };
+    const key = (e: KeyboardEvent) => {
+      if (['Enter', ' ', 'e', 'E', 'Escape'].includes(e.key)) next(e);
+    };
+    p.addEventListener('click', next);
+    window.addEventListener('keydown', key);
+    p.classList.remove('hidden');
+    show();
+  }
+
   showToast(text: string): void {
     this.toast.textContent = text;
     this.toast.classList.add('visible');
@@ -278,6 +321,29 @@ export class UI {
     this.dlgChoices.innerHTML = '';
     this.choiceCount = choices.length;
     this.selectedChoice = 0;
+    if (node.input) {
+      // a text field, e.g. for the player's name
+      const form = el('form', 'name-form');
+      const field = el('input');
+      field.id = 'dlg-input';
+      field.maxLength = 18;
+      field.placeholder = 'Your name';
+      field.autocomplete = 'off';
+      field.addEventListener('keydown', (e) => e.stopPropagation());
+      field.addEventListener('keyup', (e) => e.stopPropagation());
+      const ok = el('button', 'btn choice', 'Carve the name');
+      ok.type = 'submit';
+      form.append(field, ok);
+      form.addEventListener('submit', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        this.h.onDialogueAnswer(field.value);
+      });
+      form.addEventListener('click', (e) => e.stopPropagation());
+      this.dlgChoices.append(form);
+      setTimeout(() => field.focus(), 50);
+      this.choiceCount = -1; // taps on the box must not skip the question
+    }
     choices.forEach((c, i) => {
       const b = this.button(`${i + 1}. ${format(c.text)}`, () => this.h.onDialogueChoose(i));
       b.classList.add('choice');
@@ -309,7 +375,7 @@ export class UI {
   }
 
   moveChoice(delta: number): void {
-    if (!this.choiceCount) return;
+    if (this.choiceCount <= 0) return;
     this.selectedChoice = (this.selectedChoice + delta + this.choiceCount) % this.choiceCount;
     this.highlightChoice();
   }

@@ -1,3 +1,4 @@
+import { LAYOUT, hushFactor } from '../world/terrain';
 /**
  * Finds the interactable the player is facing. Pure logic, unit tested.
  */
@@ -40,10 +41,20 @@ export function findTarget(px: number, pz: number, yaw: number, targets: readonl
 
 /** Name of the place the player is standing in (shown when it changes). */
 export function placeName(x: number, z: number): string {
-  const near = (cx: number, cz: number, r: number) => Math.hypot(x - cx, z - cz) < r;
-  if (near(-44, -40, 22)) return "Saint Ebba's";
-  if (near(54, 0, 26)) return 'Candlewick';
-  if (near(36, 58, 14)) return 'The Old Silver Mine';
-  if (near(0, 6, 36)) return 'Hollowmere';
+  const L = LAYOUT;
+  const near = (p: { x: number; z: number }, r: number) => Math.hypot(x - p.x, z - p.z) < r;
+  if (near(L.aldersey, 34)) return 'Aldersey';
+  if (hushFactor(x, z) > 0.45) return 'The Hush';
+  if (near(L.cemetery, 22)) return "Saint Ebba's";
+  if (near(L.village, 30)) return 'Candlewick';
+  if (near(L.mine, 14)) return 'The Old Silver Mine';
+  if (near(L.lake, 36)) return 'Hollowmere';
+  if (near(L.stones, 18)) return 'The Nine Places';
+  if (near(L.ruin, 16)) return 'The Old Watch';
+  if (near(L.farm, 34) || near(L.windmill, 14)) return 'Millfield';
+  if (near(L.camp, 14)) return "Hunter's Camp";
+  if (near(L.marsh, L.marsh.radius)) return 'The Sallow Marsh';
+  if (near(L.moor, L.moor.radius)) return 'The High Moor';
+  if (near(L.whisperwood, L.whisperwood.radius)) return 'The Whisperwood';
   return 'Hollowmere Vale';
 }

@@ -8,13 +8,15 @@ export interface InputState {
   moveY: number; // -1..1 (forward)
   lookX: number; // radians this frame
   lookY: number;
+  /** zoom this frame (> 0 = away) */
+  zoom: number;
   run: boolean;
 }
 
-type Action = 'interact' | 'pause' | 'up' | 'down' | 'confirm' | 'n1' | 'n2' | 'n3' | 'n4' | 'time' | 'jump';
+type Action = 'interact' | 'pause' | 'up' | 'down' | 'confirm' | 'n1' | 'n2' | 'n3' | 'n4' | 'time' | 'jump' | 'view' | 'journal';
 
 export class Input {
-  readonly state: InputState = { moveX: 0, moveY: 0, lookX: 0, lookY: 0, run: false };
+  readonly state: InputState = { moveX: 0, moveY: 0, lookX: 0, lookY: 0, zoom: 0, run: false };
   sensitivity = 1;
   invertY = false;
   private keys = new Set<string>();
@@ -47,6 +49,14 @@ export class Input {
       this.lastMouse = [e.clientX, e.clientY];
     });
     lookTarget.addEventListener('contextmenu', (e) => e.preventDefault());
+    lookTarget.addEventListener(
+      'wheel',
+      (e) => {
+        e.preventDefault();
+        this.state.zoom += Math.max(-1, Math.min(1, e.deltaY * 0.0015));
+      },
+      { passive: false },
+    );
   }
 
   private onKey(e: KeyboardEvent, down: boolean): void {
@@ -55,7 +65,7 @@ export class Input {
       this.touchMode = false;
       if (!this.keys.has(k)) {
         const map: Record<string, Action> = {
-          e: 'interact', enter: 'confirm', ' ': 'confirm', escape: 'pause', p: 'pause',
+          e: 'interact', enter: 'confirm', ' ': 'confirm', escape: 'pause', p: 'pause', v: 'view', j: 'journal',
           arrowup: 'up', arrowdown: 'down', '1': 'n1', '2': 'n2', '3': 'n3', '4': 'n4', t: 'time',
         };
         const a = map[k];
@@ -83,6 +93,9 @@ export class Input {
   addTouchLook(dx: number, dy: number): void {
     this.touchMode = true;
     this.addLook(dx, dy, 0.007);
+  }
+  addZoom(z: number): void {
+    this.state.zoom += z;
   }
   press(a: Action): void {
     this.pressed.add(a);
@@ -128,6 +141,10 @@ export class Input {
       edge(0, 'confirm');
       edge(9, 'pause');
       edge(1, 'jump');
+      edge(3, 'view');
+      edge(8, 'journal');
+      if (btn(6)) this.state.zoom -= dt * 1.2;
+      if (btn(7)) this.state.zoom += dt * 1.2;
       edge(12, 'up');
       edge(13, 'down');
       if (btn(10) || btn(4)) run = true;
@@ -148,6 +165,7 @@ export class Input {
   endFrame(): void {
     this.state.lookX = 0;
     this.state.lookY = 0;
+    this.state.zoom = 0;
   }
 
   clearPressed(): void {

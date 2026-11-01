@@ -44,7 +44,7 @@ export const DEFAULT_MOVE: MoveParams = {
   walkSpeed: 4.2,
   runSpeed: 7.4,
   minGroundHeight: -0.45,
-  boundsRadius: 205,
+  boundsRadius: 382,
   radius: 0.38,
   gravity: 26,
   jumpSpeed: 8.2,

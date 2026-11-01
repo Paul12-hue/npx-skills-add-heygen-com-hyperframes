@@ -178,7 +178,7 @@ export class Humanoid {
   private blinkTimer = 2 + Math.random() * 3;
   private lookYaw = 0;
 
-  constructor(spec: FigureSpec, opts: { scale?: number; lantern?: boolean; cell?: number } = {}) {
+  constructor(spec: FigureSpec, opts: { scale?: number; lantern?: boolean; cell?: number; ghost?: boolean } = {}) {
     const scale = opts.scale ?? 1;
     const cell = opts.cell ?? 0.011;
     const { geometry } = buildGeometry(spec, cell);
@@ -198,6 +198,13 @@ export class Humanoid {
       bones.push(b);
     }
     const mat = new THREE.MeshPhongMaterial({ vertexColors: true, shininess: 10, specular: 0x14101a });
+    if (opts.ghost) {
+      // the Faded: see-through and softly glowing
+      mat.transparent = true;
+      mat.opacity = 0.5;
+      mat.depthWrite = false;
+      mat.emissive = new THREE.Color(0x30343c);
+    }
     this.mesh = new THREE.SkinnedMesh(geometry, mat);
     this.mesh.add(bones[0]);
     this.mesh.updateMatrixWorld(true);

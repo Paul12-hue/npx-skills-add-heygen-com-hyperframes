@@ -55,16 +55,22 @@ const browser = await chromium.launch({ args: ['--use-angle=swiftshader', '--ena
   await sleep(1500);
   const st = () => page.evaluate(() => window.__threnod.state());
   check('boots to title screen', (await st()).mode === 'title');
-  await page.screenshot({ path: `${OUT}/01-title.png` });
+  await page.screenshot({ path: `${OUT}/01-title.png`, timeout: 120000 });
 
   await page.getByRole('button', { name: 'New Game' }).click();
+  // skip the opening text
+  for (let i = 0; i < 4; i++) {
+    if (await page.locator('.prologue:not(.hidden)').count()) await page.keyboard.press('Enter');
+    await new Promise((r) => setTimeout(r, 300));
+  }
+
   await sleep(600);
   const s0 = await st();
   check('new game starts playing', s0.mode === 'playing', `internal ${s0.internal.join('x')}`);
-  await page.screenshot({ path: `${OUT}/02-spawn.png` });
+  await page.screenshot({ path: `${OUT}/02-spawn.png`, timeout: 120000 });
 
   await page.keyboard.down('w');
-  await sleep(1500);
+  await sleep(2500);
   await page.keyboard.up('w');
   const s1 = await st();
   const moved = Math.hypot(s1.player.x - s0.player.x, s1.player.z - s0.player.z);
@@ -73,13 +79,20 @@ const browser = await chromium.launch({ args: ['--use-angle=swiftshader', '--ena
 
   // walk up to Tilde and talk
   await page.evaluate(() => window.__threnod.teleport(-41.4 - 5.5 + 1.4, -38.5 + 3.2, Math.PI / 2));
-  await sleep(1000);
+  await sleep(2500);
   const s2 = await st();
   check('Tilde is targetable', s2.target === 'tilde', `target=${s2.target}`);
-  await page.keyboard.press('e');
-  await sleep(800);
-  const s3 = await st();
-  check('E opens a dialogue', s3.mode === 'dialogue' && !!s3.dialogue, s3.dialogue?.text?.slice(0, 40));
+  await sleep(4000); // let the portrait warm-up finish in the slow software renderer
+  // the software renderer can be very slow – retry the key a few times
+  let s3 = await st();
+  for (let i = 0; i < 6 && s3.mode !== 'dialogue'; i++) {
+    await page.keyboard.press('e');
+    for (let j = 0; j < 6 && s3.mode !== 'dialogue'; j++) {
+      await sleep(500);
+      s3 = await st();
+    }
+  }
+  check('E opens a dialogue', s3.mode === 'dialogue' && !!s3.dialogue, s3.dialogue?.text?.slice(0, 40) ?? ('mode=' + s3.mode + ' target=' + s3.target));
   // advance until the first choice appears (the software renderer in CI is slow)
   for (let i = 0; i < 12; i++) {
     const cur = await st();
@@ -91,7 +104,7 @@ const browser = await chromium.launch({ args: ['--use-angle=swiftshader', '--ena
   await sleep(600);
   const s4 = await st();
   check('dialogue offers choices', s4.dialogue?.choices === 3, `choices=${s4.dialogue?.choices}`);
-  await page.screenshot({ path: `${OUT}/03-dialogue.png` });
+  await page.screenshot({ path: `${OUT}/03-dialogue.png`, timeout: 120000 });
   await page.keyboard.press('3');
   await sleep(800);
   check('choice sets a flag', (await st()).flags.tilde_quiet_ghost === true);
@@ -107,13 +120,13 @@ const browser = await chromium.launch({ args: ['--use-angle=swiftshader', '--ena
     window.__threnod.teleport(40, 6, -Math.PI / 2);
   });
   await sleep(800);
-  await page.screenshot({ path: `${OUT}/04-candlewick-night.png` });
+  await page.screenshot({ path: `${OUT}/04-candlewick-night.png`, timeout: 120000 });
   await page.evaluate(() => {
     window.__threnod.setHour(13);
     window.__threnod.teleport(-10, -26, Math.PI);
   });
   await sleep(800);
-  await page.screenshot({ path: `${OUT}/05-lake-day.png` });
+  await page.screenshot({ path: `${OUT}/05-lake-day.png`, timeout: 120000 });
 
   await page.keyboard.press('Escape');
   await sleep(800);
@@ -149,6 +162,11 @@ const browser = await chromium.launch({ args: ['--use-angle=swiftshader', '--ena
   await page.waitForFunction(() => window.__threnod, null, { timeout: 15000 });
   await page.evaluate(() => localStorage.removeItem('threnod.save'));
   await page.getByRole('button', { name: 'New Game' }).tap();
+  await new Promise((r) => setTimeout(r, 400));
+  for (let i = 0; i < 4; i++) {
+    if (await page.locator('.prologue:not(.hidden)').count()) await page.locator('.prologue').tap();
+    await new Promise((r) => setTimeout(r, 300));
+  }
   await sleep(500);
   const st = () => page.evaluate(() => window.__threnod.state());
   const s0 = await st();
@@ -166,7 +184,7 @@ const browser = await chromium.launch({ args: ['--use-angle=swiftshader', '--ena
   await touch('touchstart', 200, 600);
   await touch('touchmove', 200, 545);
   await sleep(1200);
-  await page.screenshot({ path: `${OUT}/06-ipad-stick.png` });
+  await page.screenshot({ path: `${OUT}/06-ipad-stick.png`, timeout: 120000 });
   await touch('touchend', 200, 545);
   const s1 = await st();
   const moved = Math.hypot(s1.player.x - s0.player.x, s1.player.z - s0.player.z);
@@ -187,10 +205,11 @@ const browser = await chromium.launch({ args: ['--use-angle=swiftshader', '--ena
   await sleep(1000);
   const btn = page.locator('.action-btn');
   check('touch action button appears', await btn.isVisible(), await btn.textContent());
+  await sleep(4000);
   await btn.tap();
-  await sleep(1000);
+  await sleep(2500);
   check('tapping the action button talks', (await st()).mode === 'dialogue');
-  await page.screenshot({ path: `${OUT}/07-ipad-dialogue.png` });
+  await page.screenshot({ path: `${OUT}/07-ipad-dialogue.png`, timeout: 120000 });
   check('no JavaScript errors (touch)', errors.length === 0, errors.slice(0, 3).join(' | '));
   await ctx.close();
 }

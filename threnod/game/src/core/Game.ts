@@ -3,7 +3,8 @@ import { Renderer } from '../render/Renderer';
 import { World } from '../world/World';
 import { Player } from '../player/Player';
 import { Humanoid } from '../character/Humanoid';
-import { tildeSpec } from '../character/figures';
+import { fadedSpec, odileSpec, tildeSpec } from '../character/figures';
+import { LAYOUT } from '../world/terrain';
 import { PortraitRenderer } from '../character/Portrait';
 import { ThirdPersonCamera } from '../camera/ThirdPersonCamera';
 import { Input } from '../input/Input';
@@ -14,7 +15,7 @@ import { DialogueRunner, type DialogueGraph, type Flags } from '../dialogue/Dial
 import { Storage, type Settings } from '../save/Save';
 import dialogues from '../data/dialogues.json';
 
-type Mode = 'title' | 'playing' | 'dialogue' | 'paused';
+type Mode = 'title' | 'playing' | 'dialogue' | 'paused' | 'paused-story';
 
 const START_HOUR = 21; // the game begins at night, under the orange moon
 const SECONDS_PER_GAME_HOUR = 60; // one in-game day = 24 real minutes
@@ -24,7 +25,15 @@ interface Npc {
   mesh: Humanoid;
   target: Target;
   baseYaw: number;
+  /** slow wandering in a circle (the Faded) */
+  wander?: { cx: number; cz: number; r: number; speed: number; a: number };
 }
+
+const PROLOGUE = [
+  'The gods are dead.',
+  'For four hundred years the world has been forgetting itself. Villages slip off the maps. Names slip from tongues. At the edges of the vale a grey fog eats the land, and what it touches is never remembered again.',
+  'In Hollowmere Vale, in the graveyard of Saint Ebba, an unmarked grave opens.',
+];
 
 export class Game {
   private renderer: Renderer;
@@ -69,6 +78,7 @@ export class Game {
     this.touch = new TouchControls(canvas, this.input);
     this.applySettings();
     this.spawnNpcs();
+    this.spawnStoryNpcs();
 
     this.ui = new UI(
       uiRoot,
@@ -92,8 +102,10 @@ export class Game {
         onInteract: () => this.input.press('interact'),
         onPause: () => this.input.press('pause'),
         onJump: () => this.input.press('jump'),
+        onView: () => this.input.press('view'),
         onDialogueAdvance: () => this.dialogueAdvance(),
         onDialogueChoose: (i) => this.dialogueChoose(i),
+        onDialogueAnswer: (v) => this.dialogueAnswer(v),
       },
       this.settings,
     );
@@ -112,6 +124,33 @@ export class Game {
     this.exposeDebug();
   }
 
+  private addNpc(mesh: Humanoid, x: number, z: number, yaw: number, target: Omit<Target, 'x' | 'z'>, wander?: Npc['wander']): void {
+    mesh.root.position.set(x, this.world.height(x, z), z);
+    mesh.root.rotation.y = yaw;
+    this.world.scene.add(mesh.root);
+    if (!wander) this.world.addCollider({ x, z, r: 0.42 });
+    this.npcs.push({ mesh, baseYaw: yaw, target: { ...target, x, z }, wander });
+  }
+
+  private spawnStoryNpcs(): void {
+    // Mother Odile waits at the candle shrine in Candlewick
+    const v = LAYOUT.village;
+    this.addNpc(new Humanoid(odileSpec()), v.x - 2.2, v.z - 0.6, Math.PI * 0.85, { id: 'odile', name: 'Mother Odile', radius: 3, verb: 'Talk', dialogue: 'odile' });
+    // the Faded drift through grey Aldersey
+    const al = LAYOUT.aldersey;
+    for (let i = 0; i < 4; i++) {
+      const woman = i % 2 === 0;
+      this.addNpc(
+        new Humanoid(fadedSpec(woman ? 0 : 1 + (i % 2)), { ghost: true }),
+        al.x,
+        al.z,
+        0,
+        { id: 'faded' + i, name: woman ? 'Faded woman' : 'Faded man', radius: 2.6, verb: 'Talk', dialogue: woman ? 'faded_woman' : 'faded_man' },
+        { cx: al.x + [-6, 6, 4, -5][i], cz: al.z + [4, -3, 9, -8][i], r: 3 + i, speed: 0.12 + i * 0.03, a: i * 1.7 },
+      );
+    }
+  }
+
   private spawnNpcs(): void {
     // Tilde, the gravedigger's girl, waits by the open grave.
     const mesh = new Humanoid(tildeSpec());
@@ -121,7 +160,7 @@ export class Game {
     const baseYaw = Math.atan2(-(this.world.spawn.x - x), -(this.world.spawn.z - z));
     mesh.root.rotation.y = baseYaw;
     this.world.scene.add(mesh.root);
-    this.world.colliders.push({ x, z, r: 0.45 });
+    this.world.addCollider({ x, z, r: 0.45 });
     this.npcs.push({ mesh, baseYaw, target: { id: 'tilde', name: 'Tilde', x, z, radius: 3, verb: 'Talk', dialogue: 'tilde_first' } });
   }
 
@@ -153,10 +192,21 @@ export class Game {
       this.player.place(this.world.spawn.x, this.world.spawn.z, this.world.spawnYaw);
     }
     this.cam.yaw = this.player.yaw;
-    this.cam.pitch = 1.02;
     this.cam.snap();
     this.lastPlace = '';
+    this.syncBells(false);
+    window.setTimeout(() => this.portrait.warmUp(), 1200);
     this.setMode('playing');
+    this.updateGoal();
+    if (!data) {
+      this.mode = 'paused-story';
+      this.touch.enabled = false;
+      this.ui.showPrologue(PROLOGUE, () => {
+        this.mode = 'playing';
+        this.touch.enabled = true;
+        this.input.clearPressed();
+      });
+    }
   }
 
   private save(): void {
@@ -207,7 +257,9 @@ export class Game {
     // the speaker's face; narration and the player's own answers show the Unsung
     const who = this.dialogue.node.speaker ?? 'Unsung';
     this.portrait.show(who);
-    this.ui.showDialogue(this.dialogue.node, this.dialogue.choices, this.input.touchMode, this.portrait.has(who));
+    const name = String(this.flags.playerName ?? 'stranger');
+    const node = { ...this.dialogue.node, text: this.dialogue.node.text.split('{name}').join(name) };
+    this.ui.showDialogue(node, this.dialogue.choices, this.input.touchMode, this.portrait.has(who));
   }
 
   private dialogueAdvance(): void {
@@ -227,7 +279,41 @@ export class Game {
     this.showNode();
   }
 
+  private dialogueAnswer(value: string): void {
+    if (!this.dialogue) return;
+    const clean = value.trim().slice(0, 18) || 'Wanderer';
+    this.dialogue.answer(clean);
+    this.showNode();
+  }
+
+  /** Light the lamps of every bell tower that has been rung. */
+  private syncBells(announce: boolean): void {
+    for (const b of LAYOUT.bells) {
+      if (!this.flags['rang_' + b.id] || this.litBells.has(b.id)) continue;
+      this.litBells.add(b.id);
+      this.world.lightBell(b.id);
+      if (announce) this.ui.showToast(`The vale remembers ${b.name}.`);
+    }
+  }
+  private litBells = new Set<string>();
+
+  /** The current goal, shown small in the corner (there are no quest markers). */
+  private updateGoal(): void {
+    const f = this.flags;
+    const rung = LAYOUT.bells.filter((b) => f['rang_' + b.id]).length;
+    let goal: string;
+    if (!f.met_tilde) goal = 'Speak to the girl among the gravestones.';
+    else if (!f.player_named) goal = 'Find Mother Odile at the candle shrine in Candlewick, east along the road.';
+    else if (!f.seen_mine) goal = 'Someone is counting in the Old Silver Mine, south-east of the lake.';
+    else if (rung < LAYOUT.bells.length) goal = `Ring the forgotten bell towers in the hills (${rung}/${LAYOUT.bells.length}).`;
+    else if (!f.seen_hush) goal = 'Follow the grey fog east, to where the world forgets itself.';
+    else goal = 'The Hush is spreading. (More of the story follows in the next chapter.)';
+    this.ui.setGoal(goal);
+  }
+
   private endDialogue(): void {
+    this.syncBells(true);
+    this.updateGoal();
     this.dialogue = null;
     this.ui.hideDialogue();
     this.mode = 'playing';
@@ -263,7 +349,20 @@ export class Game {
       this.cam.distance = 15;
     }
 
-    for (const n of this.npcs) n.mesh.animate(dt, 0, this.clock.elapsedTime);
+    for (const n of this.npcs) {
+      if (n.wander && this.mode === 'playing') {
+        const w = n.wander;
+        w.a += (w.speed * dt * 4.2) / w.r;
+        const x = w.cx + Math.cos(w.a) * w.r;
+        const z = w.cz + Math.sin(w.a) * w.r;
+        n.mesh.root.position.set(x, this.world.height(x, z), z);
+        n.mesh.root.rotation.y = Math.atan2(Math.sin(w.a), -Math.cos(w.a)) + Math.PI;
+        n.target.x = x;
+        n.target.z = z;
+        n.mesh.animate(dt, w.speed, this.clock.elapsedTime);
+      } else n.mesh.animate(dt, 0, this.clock.elapsedTime);
+    }
+    this.renderer.setHush(this.world.hushHere);
     this.world.update(dt, this.hour, this.player.position, this.cam.camera);
     this.renderer.render(dt);
     if (this.mode === 'dialogue') this.portrait.render(dt);
@@ -284,6 +383,8 @@ export class Game {
   private updatePlaying(dt: number): void {
     const s = this.input.state;
     this.cam.rotate(s.lookX, s.lookY);
+    this.cam.zoom(s.zoom);
+    if (this.input.consume('view')) this.ui.showToast('View: ' + this.cam.cyclePreset());
     this.player.update(dt, s.moveX, s.moveY, s.run, this.cam.yaw, this.input.consume('jump'));
     this.cam.update(dt, this.player.position, (x, z) => this.world.height(x, z));
     this.hour = (this.hour + dt / SECONDS_PER_GAME_HOUR) % 24;

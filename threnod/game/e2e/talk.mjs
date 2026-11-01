@@ -22,6 +22,12 @@ await page.addInitScript(() => localStorage.setItem('threnod.settings', JSON.str
 await page.goto(`http://127.0.0.1:${server.address().port}/`);
 await page.waitForFunction(() => window.__threnod, null, { timeout: 30000 });
 await page.getByRole('button', { name: 'New Game' }).click();
+  // skip the opening text
+  for (let i = 0; i < 4; i++) {
+    if (await page.locator('.prologue:not(.hidden)').count()) await page.keyboard.press('Enter');
+    await new Promise((r) => setTimeout(r, 300));
+  }
+
 await page.evaluate(() => window.__threnod.teleport(-41.4 - 5.5 + 1.4, -38.5 + 3.2, Math.PI / 2));
 await new Promise((r) => setTimeout(r, 1200));
 await page.keyboard.press('e');
