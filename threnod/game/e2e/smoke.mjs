@@ -80,22 +80,24 @@ const browser = await chromium.launch({ args: ['--use-angle=swiftshader', '--ena
   await sleep(800);
   const s3 = await st();
   check('E opens a dialogue', s3.mode === 'dialogue' && !!s3.dialogue, s3.dialogue?.text?.slice(0, 40));
-  await page.keyboard.press('e'); // finish typing
-  await page.keyboard.press('e'); // next node
-  await sleep(1800);
-  await page.keyboard.press('e'); // reveal choices
-  await sleep(800);
+  // advance until the first choice appears (the software renderer in CI is slow)
+  for (let i = 0; i < 12; i++) {
+    const cur = await st();
+    if (cur.dialogue?.choices) break;
+    await page.keyboard.press('e');
+    await sleep(900);
+  }
+  await page.keyboard.press('e'); // finish typing so the choices are shown
+  await sleep(600);
   const s4 = await st();
   check('dialogue offers choices', s4.dialogue?.choices === 3, `choices=${s4.dialogue?.choices}`);
   await page.screenshot({ path: `${OUT}/03-dialogue.png` });
   await page.keyboard.press('3');
   await sleep(800);
   check('choice sets a flag', (await st()).flags.tilde_quiet_ghost === true);
-  for (let i = 0; i < 6 && (await st()).mode === 'dialogue'; i++) {
+  for (let i = 0; i < 24 && (await st()).mode === 'dialogue'; i++) {
     await page.keyboard.press('e');
-    await sleep(500);
-    await page.keyboard.press('e');
-    await sleep(500);
+    await sleep(700);
   }
   check('dialogue closes', (await st()).mode === 'playing');
 

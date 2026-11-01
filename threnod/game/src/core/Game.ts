@@ -57,14 +57,14 @@ export class Game {
     this.world.scene.add(this.player.mesh.root);
     this.cam = new ThirdPersonCamera(1);
     // soft fill light that follows the camera so faces stay readable at night
-    const fill = new THREE.PointLight(0xffd4b4, 1.25, 9, 1.4);
+    const fill = new THREE.PointLight(0xffd4b4, 0.0, 9, 1.4); // top-down camera: no face fill needed
     this.cam.camera.add(fill);
     this.world.scene.add(this.cam.camera);
     this.renderer = new Renderer(canvas, this.world.scene, this.cam.camera, {
       quality: this.settings.quality,
       bloom: this.settings.bloom,
       grain: this.settings.grain,
-      look: this.settings.look,
+      ascii: this.settings.ascii,
     });
     this.input = new Input(canvas);
     this.touch = new TouchControls(canvas, this.input);
@@ -127,8 +127,9 @@ export class Game {
 
   private applySettings(): void {
     const s = this.settings;
-    this.renderer.setOptions({ quality: s.quality, bloom: s.bloom, grain: s.grain, look: s.look });
+    this.renderer.setOptions({ quality: s.quality, bloom: s.bloom, grain: s.grain, ascii: s.ascii });
     this.world.sky.setShadowSize(this.renderer.shadowSize);
+    this.world.setGrassDensity({ low: 0.35, medium: 0.7, high: 1 }[s.quality]);
     this.input.invertY = s.invertY;
     this.input.sensitivity = s.sensitivity;
     this.resize();
@@ -151,7 +152,7 @@ export class Game {
       this.player.place(this.world.spawn.x, this.world.spawn.z, this.world.spawnYaw);
     }
     this.cam.yaw = this.player.yaw;
-    this.cam.pitch = 0.3;
+    this.cam.pitch = 1.02;
     this.cam.snap();
     this.lastPlace = '';
     this.setMode('playing');
@@ -255,10 +256,10 @@ export class Game {
       // slow orbit around the cemetery behind the title
       this.titleAngle += dt * 0.05;
       this.cam.yaw = this.titleAngle;
-      this.cam.pitch = 0.22;
-      this.cam.distance = 11;
+      this.cam.pitch = 0.95;
+      this.cam.distance = 22;
       this.cam.update(dt, this.player.position, (x, z) => this.world.height(x, z));
-      this.cam.distance = 6.2;
+      this.cam.distance = 15;
     }
 
     for (const n of this.npcs) n.mesh.animate(dt, 0, this.clock.elapsedTime);

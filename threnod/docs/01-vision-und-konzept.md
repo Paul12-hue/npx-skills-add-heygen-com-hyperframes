@@ -32,14 +32,14 @@ Die Spielfigur ist **„the Unsung“**: ein Mensch, an den sich niemand mehr er
 - Alterseinstufung ungefähr 16
 - Spielsprache Englisch, ohne Sprachausgabe
 
-## 4. Visuelle Identität: „Vorgerenderte CGI der CD-ROM-Zeit“ *(überarbeitet nach Spieltest)*
+## 4. Visuelle Identität: „ASCII-Welt“ *(neu, nach Referenzvideo des Nutzers)*
 
-Vorbild sind die Dark-Fantasy-Videos des Nutzers (`fantasy/`). Der erste Entwurf mit 32 erdigen Farben wurde verworfen.
-- Kräftiges Violett, giftiges Grün, feuriges Orange und Gold vor nächtlichem Himmel mit großem orangem Mond
-- Glänzende Oberflächen mit Relief (Bump-Mapping), leuchtende Fenster, Laternen, Pilze und Kristalle (Bloom)
-- **Alter-Spiel-Pass** (wie in den Videos): niedrige interne Auflösung (240–380p) mit harten Pixeln, 18 Farbstufen je Kanal mit Bayer-Dithering, leichtes Farbbluten, Scanlines, facettierte Flächen und grobe Texturen
-- Figuren: weich modelliert mit freundlichem Gesicht; Dialog-Porträts im Stil der Videos (Canva AI)
-- Die Unsung ist **nicht** gruselig: eine sympathische, melancholische Wanderin mit silbernem Haar
+- **Kamera schräg von oben** (ca. 60°), die Figur ist klein im Bild; Drehen per Wischen
+- **ASCII-Darstellung:** Das fertige Bild wird in kleine Zellen zerlegt; jede Zelle wird ein Textzeichen (` .:-=+*oxO8#@`), dessen Form der Helligkeit folgt und dessen Farbe die der Szene ist. Die gemalte Welt schimmert darunter durch. Abschaltbar in den Einstellungen.
+- **Palette:** dunkle Nacht in Grün und Blaugrau, goldene Laternen und Lichter, weiße Funken
+- **Dichtes Gras** überall (ein Grasteppich, der mit der Figur mitwandert), Blumen als helle Punkte
+- Dialoge: dunkle, halbtransparente Box mit Schreibmaschinenschrift; Porträts aus den 3D-Figuren, ebenfalls im ASCII-Stil
+- Frühere Versuche (32-Farben-Pixel, CGI-Violett, KI-Porträts, gezeichnete Porträts, aufgemalte Gesichter) wurden verworfen.
 
 ## 5. Klang
 

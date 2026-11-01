@@ -144,7 +144,7 @@ export class UI {
 
     const res = el('select');
     res.id = 'set-quality';
-    for (const [v, t] of [['low', 'Low (chunky, fastest)'], ['medium', 'Medium'], ['high', 'High (sharpest)']] as const) {
+    for (const [v, t] of [['low', 'Low (fastest)'], ['medium', 'Medium'], ['high', 'High (sharpest)']] as const) {
       const o = el('option', '', t);
       o.value = v;
       if (s.quality === v) o.selected = true;
@@ -156,7 +156,7 @@ export class UI {
     });
     row('Graphics quality', res);
 
-    const toggle = (key: 'bloom' | 'grain' | 'invertY' | 'showFps', label: string) => {
+    const toggle = (key: 'bloom' | 'grain' | 'ascii' | 'invertY' | 'showFps', label: string) => {
       const c = el('input');
       c.type = 'checkbox';
       c.id = 'set-' + key;
@@ -167,19 +167,7 @@ export class UI {
       });
       row(label, c);
     };
-    const look = el('select');
-    look.id = 'set-look';
-    for (const [v, t] of [['mix', 'Old console (mixed)'], ['pixel', 'Pixel (chunky)'], ['smooth', 'Smooth (modern)']] as const) {
-      const o = el('option', '', t);
-      o.value = v;
-      if (s.look === v) o.selected = true;
-      look.append(o);
-    }
-    look.addEventListener('change', () => {
-      s.look = look.value as Settings['look'];
-      change();
-    });
-    row('Picture style', look);
+    toggle('ascii', 'ASCII look (text characters)');
     toggle('bloom', 'Glow (bloom)');
     toggle('grain', 'Film grain');
     toggle('invertY', 'Invert camera');
@@ -327,7 +315,7 @@ export class UI {
   private renderTyping(): void {
     if (!this.typing) return;
     const { full, shown } = this.typing;
-    this.dlgText.innerHTML = format(full.slice(0, Math.floor(shown)));
+    this.dlgText.innerHTML = format(full.slice(0, Math.floor(shown))).replace(/\*/g, ''); // hide half-typed *emphasis* markers
     if (shown >= full.length) this.dlgChoices.style.visibility = 'visible';
   }
 

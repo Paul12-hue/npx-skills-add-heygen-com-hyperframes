@@ -36,6 +36,8 @@ function buildGeometry(spec: FigureSpec, cell: number): Built {
   if (hit) return hit;
   const prims = spec.prims;
   const solid = prims.filter((p) => !p.subtract);
+  const solidIdx = prims.map((p, i) => [i, p] as [number, Prim]).filter(([, p]) => !p.subtract);
+  const subtracts = prims.map((p, i) => [i, p] as [number, Prim]).filter(([, p]) => p.subtract);
   const f = (x: number, y: number, z: number) => figureDistance(prims, x, y, z);
   const { positions, indices } = surfaceNets(f, spec.bounds.min, spec.bounds.max, cell);
   const n = positions.length / 3;
@@ -61,13 +63,22 @@ function buildGeometry(spec: FigureSpec, cell: number): Built {
     normals.set([gx / gl, gy / gl, gz / gl], v * 3);
 
     // colour and bone weights from the nearest primitives
-    const d = solid.map((p: Prim) => shapeDistance(p.shape, x, y, z));
+    // distance to each solid part, with the cuts that come after it applied (so carved-away
+    // hair or cloth does not colour the face underneath)
+    const subDist = subtracts.map(([, p]) => shapeDistance(p.shape, x, y, z));
+    const d = solidIdx.map(([idx, p]) => {
+      let dd = shapeDistance(p.shape, x, y, z);
+      subtracts.forEach(([sIdx], k) => {
+        if (sIdx > idx) dd = Math.max(dd, -subDist[k]);
+      });
+      return dd;
+    });
     const dmin = Math.min(...d);
     let wsum = 0;
     tmp.setRGB(0, 0, 0);
     const perBone = new Map<string, number>();
     for (let i = 0; i < solid.length; i++) {
-      const cw = Math.exp(-(d[i] - dmin) / 0.0035);
+      const cw = Math.exp(-(d[i] - dmin) / 0.0014);
       if (cw > 0.01) {
         tmp.r += primColor[i].r * cw;
         tmp.g += primColor[i].g * cw;
@@ -186,7 +197,7 @@ export class Humanoid {
       this.bones.set(name, b);
       bones.push(b);
     }
-    const mat = new THREE.MeshPhongMaterial({ vertexColors: true, shininess: 38, specular: 0x3a3048 });
+    const mat = new THREE.MeshPhongMaterial({ vertexColors: true, shininess: 10, specular: 0x14101a });
     this.mesh = new THREE.SkinnedMesh(geometry, mat);
     this.mesh.add(bones[0]);
     this.mesh.updateMatrixWorld(true);
@@ -217,6 +228,10 @@ export class Humanoid {
       iris.position.z = -r * 0.94;
       iris.rotation.y = Math.PI;
       eye.add(iris);
+      // a resting upper eyelid covers the top of the eye – relaxed instead of staring
+      const upper = new THREE.Mesh(new THREE.SphereGeometry(r * 1.06, 16, 8, 0, Math.PI * 2, 0, Math.PI * 0.36), lidMat);
+      upper.rotation.x = -0.35;
+      eye.add(upper);
       const lid = new THREE.Mesh(new THREE.SphereGeometry(r * 1.12, 14, 10), lidMat);
       lid.visible = false;
       eye.add(lid);

@@ -13,7 +13,7 @@ export interface TexPair {
   bump: THREE.Texture;
 }
 
-const SIZE = 128;
+const SIZE = 256;
 
 function canvas(): [HTMLCanvasElement, CanvasRenderingContext2D] {
   const c = document.createElement('canvas');
@@ -28,9 +28,8 @@ function toTexture(c: HTMLCanvasElement, color: boolean): THREE.Texture {
   const t = new THREE.CanvasTexture(c);
   t.wrapS = t.wrapT = THREE.RepeatWrapping;
   t.colorSpace = color ? THREE.SRGBColorSpace : THREE.NoColorSpace;
-  // hard texels like an old game: no smoothing when magnified
-  t.magFilter = THREE.NearestFilter;
-  t.minFilter = THREE.NearestMipmapLinearFilter;
+  // softly filtered, like the texture-mapped surfaces of early 3D games
+  t.anisotropy = 4;
   t.needsUpdate = true;
   return t;
 }
@@ -158,10 +157,13 @@ export function organicTexture(): TexPair {
 
 /** Ground: grass tufts, earth and moss for the terrain. */
 export function groundTexture(): TexPair {
+  // a dense carpet of grass blades seen from above
   return paint((u, v) => {
+    const blades = tfbm(u * 6, v * 0.8, 10, 3, 53);
     const n = tfbm(u, v, 24, 4, 51);
     const big = tfbm(u, v, 4, 3, 52);
-    return [0.6 + n * 0.35 + big * 0.15, n * 0.8 + big * 0.2];
+    const streak = Math.pow(Math.abs(Math.sin((u * 90 + blades * 9) * Math.PI)), 6);
+    return [0.45 + streak * 0.45 + n * 0.2 + big * 0.1, streak * 0.7 + n * 0.3];
   });
 }
 

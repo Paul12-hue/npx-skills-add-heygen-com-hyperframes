@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { Humanoid } from './Humanoid';
 import { tildeSpec, unsungSpec, type FigureSpec } from './figures';
+import { AsciiShader, createGlyphAtlas } from '../render/ascii';
 
 /** Who can appear in a dialogue portrait. Keys match the dialogue "speaker" names. */
 const SPECS: Record<string, () => FigureSpec> = {
@@ -20,8 +21,12 @@ export class PortraitRenderer {
   private figures = new Map<string, { h: Humanoid; face: THREE.Vector3 }>();
   private current: string | null = null;
   private time = 0;
+  private target: THREE.WebGLRenderTarget | null = null;
+  private post = new THREE.Scene();
+  private postCam = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
+  private postMat: THREE.ShaderMaterial | null = null;
 
-  constructor(size = 240) {
+  constructor(size = 320) {
     this.canvas = document.createElement('canvas');
     this.canvas.width = this.canvas.height = size;
     this.canvas.className = 'portrait';
@@ -42,7 +47,7 @@ export class PortraitRenderer {
 
     const key = new THREE.DirectionalLight(0xffe0c8, 1.6);
     key.position.set(-1, 1.2, -1.6);
-    const rim = new THREE.DirectionalLight(0x9a6aff, 2.4);
+    const rim = new THREE.DirectionalLight(0x9a7aff, 1.3);
     rim.position.set(1.4, 0.8, 1.2);
     const fill = new THREE.HemisphereLight(0xb8b0e0, 0x3a2a30, 1.3);
     this.scene.add(key, rim, fill);
@@ -91,6 +96,28 @@ export class PortraitRenderer {
     if (!r) return;
     this.time += dt;
     this.figures.get(this.current)!.h.animate(dt, 0, this.time);
+    // draw the portrait in the same ASCII style as the world
+    if (!this.target) {
+      const size = this.canvas.width;
+      this.target = new THREE.WebGLRenderTarget(size, size);
+      this.target.texture.colorSpace = THREE.SRGBColorSpace;
+      this.postMat = new THREE.ShaderMaterial({
+        vertexShader: AsciiShader.vertexShader,
+        fragmentShader: AsciiShader.fragmentShader,
+        uniforms: THREE.UniformsUtils.clone(AsciiShader.uniforms),
+        depthTest: false,
+      });
+      this.postMat.uniforms.tGlyphs.value = createGlyphAtlas();
+      this.postMat.uniforms.tDiffuse.value = this.target.texture;
+      this.postMat.uniforms.uResolution.value.set(size, size);
+      this.postMat.uniforms.uCell.value.set(6, 9);
+      this.postMat.uniforms.uBase.value = 0.55;
+      this.postMat.uniforms.uGain.value = 1.2;
+      this.post.add(new THREE.Mesh(new THREE.PlaneGeometry(2, 2), this.postMat));
+    }
+    r.setRenderTarget(this.target);
     r.render(this.scene, this.camera);
+    r.setRenderTarget(null);
+    r.render(this.post, this.postCam);
   }
 }

@@ -32,7 +32,7 @@ await page.getByRole('button', { name: 'New Game' }).click();
 const views = [
   ['spawn', null, 21],
   ['village', [34, -12, -Math.PI / 2 - 0.5], 21.5],
-  ['lake', [-6, -24, Math.PI + 0.3], 22],
+  ['lake', [-8, -26, Math.PI + 0.3], 22],
   ['road', [-20, -31, -Math.PI / 2 - 0.2], 21],
   ['mushrooms', [-6, 18, Math.PI * 0.6], 23],
   ['day', [30, -14, -Math.PI / 2], 13],

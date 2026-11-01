@@ -4,37 +4,23 @@ import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPass.js';
 import { OutputPass } from 'three/examples/jsm/postprocessing/OutputPass.js';
 import { ShaderPass } from 'three/examples/jsm/postprocessing/ShaderPass.js';
+import { AsciiShader, createGlyphAtlas } from './ascii';
 
 export type Quality = 'low' | 'medium' | 'high';
-
-/**
- * smooth: clean CGI picture.
- * mix:    old-console look – reduced resolution scaled up softly, fine colour steps, faint scanlines.
- * pixel:  hard pixels and coarse colour steps, like the dark-fantasy videos.
- */
-export type Look = 'smooth' | 'mix' | 'pixel';
 
 export interface RenderOptions {
   quality: Quality;
   bloom: boolean;
   grain: boolean;
-  look: Look;
+  /** draw the picture as text characters */
+  ascii: boolean;
 }
 
-const LOOKS: Record<Exclude<Look, 'smooth'>, { scale: number; levels: number; scan: number; bleed: number }> = {
-  mix: { scale: 1.6, levels: 40, scan: 0.045, bleed: 0.3 },
-  pixel: { scale: 1, levels: 17, scan: 0.08, bleed: 0.45 },
-};
-
-/**
- * Per quality level: the internal picture height in retro mode (it is scaled up with
- * hard pixels, like the 270p pass of the dark-fantasy videos), the pixel ratio in
- * smooth mode, and shadows.
- */
-export const QUALITY: Record<Quality, { retroHeight: number; pixelRatio: number; shadows: boolean; shadowSize: number }> = {
-  low: { retroHeight: 240, pixelRatio: 0.6, shadows: false, shadowSize: 512 },
-  medium: { retroHeight: 300, pixelRatio: 0.85, shadows: true, shadowSize: 1024 },
-  high: { retroHeight: 380, pixelRatio: 1.25, shadows: true, shadowSize: 2048 },
+/** Pixel ratio and shadows per quality level. */
+export const QUALITY: Record<Quality, { pixelRatio: number; shadows: boolean; shadowSize: number }> = {
+  low: { pixelRatio: 0.7, shadows: false, shadowSize: 512 },
+  medium: { pixelRatio: 1, shadows: true, shadowSize: 1024 },
+  high: { pixelRatio: 1.5, shadows: true, shadowSize: 2048 },
 };
 
 /**
@@ -46,12 +32,8 @@ const GradeShader = {
     tDiffuse: { value: null as THREE.Texture | null },
     uTime: { value: 0 },
     uGrain: { value: 1 },
-    uSaturation: { value: 1.28 },
+    uSaturation: { value: 1.05 },
     uResolution: { value: new THREE.Vector2(1, 1) },
-    uRetro: { value: 1 },
-    uLevels: { value: 17 },
-    uScan: { value: 0.08 },
-    uBleed: { value: 0.45 },
   },
   vertexShader: /* glsl */ `
     varying vec2 vUv;
@@ -62,46 +44,18 @@ const GradeShader = {
     uniform float uGrain;
     uniform float uSaturation;
     uniform vec2 uResolution;
-    uniform float uRetro;
-    uniform float uLevels;
-    uniform float uScan;
-    uniform float uBleed;
     varying vec2 vUv;
     float hash(vec2 p) { return fract(sin(dot(p, vec2(12.9898, 78.233))) * 43758.5453); }
-    float bayer4(vec2 p) {
-      vec2 q = mod(floor(p), 4.0);
-      float i = q.x + q.y * 4.0;
-      // 4x4 Bayer matrix as a lookup by index
-      float m = 0.0;
-      if (i < 0.5) m = 0.0; else if (i < 1.5) m = 8.0; else if (i < 2.5) m = 2.0; else if (i < 3.5) m = 10.0;
-      else if (i < 4.5) m = 12.0; else if (i < 5.5) m = 4.0; else if (i < 6.5) m = 14.0; else if (i < 7.5) m = 6.0;
-      else if (i < 8.5) m = 3.0; else if (i < 9.5) m = 11.0; else if (i < 10.5) m = 1.0; else if (i < 11.5) m = 9.0;
-      else if (i < 12.5) m = 15.0; else if (i < 13.5) m = 7.0; else if (i < 14.5) m = 13.0; else m = 5.0;
-      return m / 16.0 - 0.5;
-    }
     void main() {
       vec3 c = texture2D(tDiffuse, vUv).rgb;
-      if (uRetro > 0.5) {
-        // slight horizontal colour bleed, like an old video signal
-        vec3 left = texture2D(tDiffuse, vUv - vec2(1.0 / uResolution.x, 0.0)).rgb;
-        float y0 = dot(c, vec3(0.299, 0.587, 0.114));
-        vec3 chroma = mix(c - y0, left - dot(left, vec3(0.299, 0.587, 0.114)), uBleed);
-        c = y0 + chroma;
-      }
       float l = dot(c, vec3(0.299, 0.587, 0.114));
       c = mix(vec3(l), c, uSaturation);
-      // tint the shadows violet, keep highlights warm
-      c += vec3(0.02, 0.0, 0.045) * (1.0 - smoothstep(0.0, 0.35, l));
+      // cool blue-green night in the shadows
+      c += vec3(0.0, 0.012, 0.03) * (1.0 - smoothstep(0.0, 0.35, l));
       c = (c - 0.5) * 1.08 + 0.5;
       vec2 d = vUv - 0.5;
       c *= 1.0 - dot(d, d) * 1.15;
       c += (hash(vUv * uResolution + uTime) - 0.5) * 0.045 * uGrain;
-      if (uRetro > 0.5) {
-        // 18 colour steps per channel with ordered dithering, and faint scanlines
-        vec2 px = vUv * uResolution;
-        c = floor(clamp(c, 0.0, 1.0) * uLevels + 0.5 + bayer4(px)) / uLevels;
-        c *= 1.0 - uScan + uScan * step(0.5, fract(px.y * 0.5));
-      }
       gl_FragColor = vec4(clamp(c, 0.0, 1.0), 1.0);
     }`,
 };
@@ -116,6 +70,7 @@ export class Renderer {
   private renderPass: RenderPass;
   private bloom: UnrealBloomPass;
   private grade: ShaderPass;
+  private ascii: ShaderPass;
   private opts: RenderOptions;
   width = 1;
   height = 1;
@@ -124,7 +79,7 @@ export class Renderer {
     this.opts = { ...opts };
     this.renderer = new THREE.WebGLRenderer({ canvas, antialias: false, powerPreference: 'high-performance' });
     this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    this.renderer.toneMappingExposure = 1.35;
+    this.renderer.toneMappingExposure = 1.7;
     this.renderer.outputColorSpace = THREE.SRGBColorSpace;
     this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 
@@ -132,9 +87,12 @@ export class Renderer {
     this.renderPass = new RenderPass(scene, camera);
     this.bloom = new UnrealBloomPass(new THREE.Vector2(256, 256), 0.55, 0.45, 0.92);
     this.grade = new ShaderPass(GradeShader);
+    this.ascii = new ShaderPass(AsciiShader);
+    this.ascii.uniforms.tGlyphs.value = createGlyphAtlas();
     this.composer.addPass(this.renderPass);
     this.composer.addPass(this.bloom);
     this.composer.addPass(new OutputPass());
+    this.composer.addPass(this.ascii);
     this.composer.addPass(this.grade);
     this.setOptions(opts);
   }
@@ -151,25 +109,14 @@ export class Renderer {
     Object.assign(this.opts, opts);
     this.bloom.enabled = this.opts.bloom;
     this.grade.uniforms.uGrain.value = this.opts.grain ? 1 : 0;
-    const look = this.opts.look;
-    this.grade.uniforms.uRetro.value = look === 'smooth' ? 0 : 1;
-    if (look !== 'smooth') {
-      this.grade.uniforms.uLevels.value = LOOKS[look].levels;
-      this.grade.uniforms.uScan.value = LOOKS[look].scan;
-      this.grade.uniforms.uBleed.value = LOOKS[look].bleed;
-    }
-    this.renderer.domElement.classList.toggle('retro', look === 'pixel');
+    this.ascii.uniforms.uEnabled.value = this.opts.ascii ? 1 : 0;
     this.renderer.shadowMap.enabled = this.shadowsEnabled;
     this.renderer.shadowMap.needsUpdate = true;
   }
 
   resize(w: number, h: number): void {
     const q = QUALITY[this.opts.quality];
-    const look = this.opts.look;
-    const ratio =
-      look === 'smooth'
-        ? Math.min(q.pixelRatio, window.devicePixelRatio || 1)
-        : Math.min((q.retroHeight * LOOKS[look].scale) / Math.max(1, h), window.devicePixelRatio || 1);
+    const ratio = Math.min(q.pixelRatio, window.devicePixelRatio || 1);
     this.renderer.setPixelRatio(ratio);
     this.composer.setPixelRatio(ratio);
     this.renderer.setSize(w, h, false);
@@ -177,6 +124,9 @@ export class Renderer {
     this.width = Math.round(w * ratio);
     this.height = Math.round(h * ratio);
     this.grade.uniforms.uResolution.value.set(this.width, this.height);
+    this.ascii.uniforms.uResolution.value.set(this.width, this.height);
+    // character cells are a fixed size on screen (about 6 x 10 CSS pixels)
+    this.ascii.uniforms.uCell.value.set(Math.max(4, Math.round(6 * ratio)), Math.max(6, Math.round(10 * ratio)));
   }
 
   render(dt: number): void {

@@ -17,14 +17,14 @@ interface SkyKey {
 // The Long Vesper: even "noon" is a deep, saturated twilight. Nights are violet,
 // with a huge orange moon – the look of the reference renders.
 const KEYS: SkyKey[] = [
-  { hour: 0, top: '0a0420', horizon: '3a1270', cloud: '7a3ad0', moon: 'b0c0ff', moonIntensity: 1.3, ambient: 0.55, night: 1 },
-  { hour: 5, top: '120838', horizon: '6a2a90', cloud: 'b05ad0', moon: 'b8b8ff', moonIntensity: 1.2, ambient: 0.6, night: 0.9 },
+  { hour: 0, top: '04080e', horizon: '12242c', cloud: '2a4a5a', moon: 'b0c8ff', moonIntensity: 1.3, ambient: 0.55, night: 1 },
+  { hour: 5, top: '081018', horizon: '1a3040', cloud: '3a5a6a', moon: 'b8c8ff', moonIntensity: 1.2, ambient: 0.6, night: 0.9 },
   { hour: 7, top: '2a2a80', horizon: 'e0704a', cloud: 'ff9a6a', moon: 'ffb080', moonIntensity: 1.6, ambient: 0.75, night: 0.35 },
   { hour: 11, top: '2c3c9a', horizon: '9a7ad0', cloud: 'd8b0ff', moon: 'e8d8ff', moonIntensity: 2.0, ambient: 0.95, night: 0 },
   { hour: 15, top: '2c3c9a', horizon: 'b08ad8', cloud: 'e0b8ff', moon: 'f0d8ff', moonIntensity: 2.0, ambient: 0.95, night: 0 },
   { hour: 18, top: '2a1a70', horizon: 'ff6a3a', cloud: 'ff8a5a', moon: 'ff9a5a', moonIntensity: 1.7, ambient: 0.75, night: 0.35 },
-  { hour: 20, top: '140a40', horizon: '7a1a8a', cloud: 'c040c0', moon: 'c0b0ff', moonIntensity: 1.4, ambient: 0.62, night: 0.8 },
-  { hour: 24, top: '0a0420', horizon: '3a1270', cloud: '7a3ad0', moon: 'b0c0ff', moonIntensity: 1.3, ambient: 0.55, night: 1 },
+  { hour: 20, top: '080c18', horizon: '1a2a3a', cloud: '3a4a6a', moon: 'c0c8ff', moonIntensity: 1.4, ambient: 0.62, night: 0.8 },
+  { hour: 24, top: '04080e', horizon: '12242c', cloud: '2a4a5a', moon: 'b0c8ff', moonIntensity: 1.3, ambient: 0.55, night: 1 },
 ];
 
 export interface SkyState {
@@ -194,11 +194,11 @@ export class Sky {
     this.starMat.opacity = Math.max(0, s.night - 0.15);
     this.stars.visible = this.starMat.opacity > 0.02;
 
-    this.hemi.color.copy(s.top).lerp(new THREE.Color(0x7a8aff), 0.6);
-    this.hemi.groundColor.set(0x3a2010);
-    this.hemi.intensity = s.ambient * 3.0;
+    this.hemi.color.copy(s.top).lerp(new THREE.Color(0x7aa0b0), 0.7);
+    this.hemi.groundColor.set(0x1a2a1a);
+    this.hemi.intensity = s.ambient * 4.2;
     this.moonLight.color.copy(s.moon);
-    this.moonLight.intensity = s.moonIntensity * 1.8;
+    this.moonLight.intensity = s.moonIntensity * 2.4;
 
     // the moon hangs low in the north-east; it crosses slowly through the night
     const ang = -0.9 + ((hour + 6) % 24) * 0.04;

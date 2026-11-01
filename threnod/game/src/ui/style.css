@@ -40,10 +40,7 @@ html, body {
   height: 100dvh;
   display: block;
 }
-#view.retro {
-  image-rendering: pixelated;
-  image-rendering: crisp-edges;
-}
+
 
 #ui { position: fixed; inset: 0; pointer-events: none; }
 #ui > * { pointer-events: auto; }
@@ -283,3 +280,37 @@ html, body {
   .dialogue.has-portrait { padding-left: 120px; min-height: 126px; }
   .dialogue.has-portrait .speaker { left: 120px; }
 }
+
+/* ---------------------------------------------------------- ASCII-era dialogue */
+/* dark, glassy terminal box with monospace text to match the ASCII world */
+.dialogue {
+  color: #d8e6dc;
+  background: rgba(6, 12, 12, 0.82);
+  border: 1px solid rgba(190, 230, 205, 0.45);
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.6), 0 8px 30px rgba(0, 0, 0, 0.6);
+  font-family: 'Courier New', ui-monospace, Menlo, monospace;
+}
+.dialogue.narration { background: rgba(6, 12, 12, 0.72); }
+.dialogue .text { font-size: 19px; }
+.dialogue .text em { color: #f0c060; }
+.dialogue .speaker {
+  font: 700 18px 'Courier New', ui-monospace, Menlo, monospace;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: #f0c060;
+  background: rgba(6, 12, 12, 0.95);
+  border: 1px solid rgba(190, 230, 205, 0.45);
+  top: -16px;
+  padding: 2px 10px;
+}
+.dialogue .choice {
+  font-family: 'Courier New', ui-monospace, Menlo, monospace;
+  color: #d8e6dc;
+  background: rgba(20, 34, 32, 0.9);
+  border: 1px solid rgba(190, 230, 205, 0.35);
+  box-shadow: none;
+}
+.dialogue .choice.selected { background: rgba(240, 192, 96, 0.25); color: #ffe6a8; }
+.dialogue .hint { color: rgba(216, 230, 220, 0.6); }
+.dialogue .portrait { border: 1px solid rgba(190, 230, 205, 0.45); }
+.prompt { font-family: 'Courier New', ui-monospace, Menlo, monospace; }

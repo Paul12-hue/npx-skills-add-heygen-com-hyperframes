@@ -1,20 +1,21 @@
 import * as THREE from 'three';
 
 /**
- * Over-the-shoulder orbit camera. Yaw/pitch come from the look input; distance
- * shortens smoothly when terrain would block the view.
+ * High, top-down follow camera (looking down at about 60°, like a classic
+ * overhead RPG). Dragging turns it around the player; the tilt can be nudged a
+ * little. Distance shortens smoothly when terrain would block the view.
  */
 export class ThirdPersonCamera {
   readonly camera: THREE.PerspectiveCamera;
   yaw = 0;
-  pitch = 0.32;
-  distance = 6.2;
+  pitch = 1.02;
+  distance = 15;
   private current = new THREE.Vector3();
   private focus = new THREE.Vector3();
   private initialised = false;
 
   constructor(aspect: number) {
-    this.camera = new THREE.PerspectiveCamera(62, aspect, 0.1, 900);
+    this.camera = new THREE.PerspectiveCamera(40, aspect, 0.5, 900);
   }
 
   setAspect(aspect: number): void {
@@ -25,11 +26,11 @@ export class ThirdPersonCamera {
   /** dx/dy in radians. */
   rotate(dx: number, dy: number): void {
     this.yaw -= dx;
-    this.pitch = THREE.MathUtils.clamp(this.pitch + dy, -0.25, 1.15);
+    this.pitch = THREE.MathUtils.clamp(this.pitch + dy * 0.5, 0.75, 1.3);
   }
 
   update(dt: number, target: THREE.Vector3, heightAt: (x: number, z: number) => number): void {
-    this.focus.set(target.x, target.y + 1.55, target.z);
+    this.focus.set(target.x, target.y + 0.9, target.z);
     let dist = this.distance;
     const dir = new THREE.Vector3(Math.sin(this.yaw) * Math.cos(this.pitch), Math.sin(this.pitch), Math.cos(this.yaw) * Math.cos(this.pitch));
     // pull the camera in if the ground is in the way

@@ -17,7 +17,7 @@ const server = createServer(async (req, res) => {
   } catch { res.writeHead(404); res.end(); }
 }).listen(0);
 const browser = await chromium.launch({ args: ['--use-angle=swiftshader', '--enable-unsafe-swiftshader'] });
-const page = await browser.newPage({ viewport: { width: 1180, height: 820 } });
+const page = await browser.newPage({ viewport: { width: 1180, height: 820 }, deviceScaleFactor: 2 });
 await page.addInitScript(() => localStorage.setItem('threnod.settings', JSON.stringify({ quality: 'low' })));
 await page.goto(`http://127.0.0.1:${server.address().port}/`);
 await page.waitForFunction(() => window.__threnod, null, { timeout: 30000 });
@@ -26,7 +26,7 @@ await page.evaluate(() => window.__threnod.teleport(-41.4 - 5.5 + 1.4, -38.5 + 3
 await new Promise((r) => setTimeout(r, 1200));
 await page.keyboard.press('e');
 await new Promise((r) => setTimeout(r, 2500));
-await page.locator('.dialogue').screenshot({ path: `${OUT}/talk-tilde.png` });
+await page.locator('.dialogue .portrait').screenshot({ path: `${OUT}/talk-tilde.png` });
 await page.keyboard.press('e');
 await page.keyboard.press('e');
 await new Promise((r) => setTimeout(r, 2500));

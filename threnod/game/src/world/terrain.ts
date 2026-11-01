@@ -74,9 +74,9 @@ const C = (hex: string) => new THREE.Color('#' + hex);
 const COLORS = {
   lakebed: C('0c1a2a'),
   shore: C('5a4a48'),
-  earth: C('5a4038'),
-  grass: [C('2e6a3e'), C('3a7a44'), C('2a5a3a'), C('4a8a48')],
-  moss: C('6a9a3a'),
+  earth: C('6a5a50'),
+  grass: [C('3a7a46'), C('44884e'), C('34703e'), C('4e9454')],
+  moss: C('5a8a3a'),
   rock: [C('7a6a90'), C('5a5070')],
 };
 
@@ -153,6 +153,15 @@ export class Terrain {
       out.copy(COLORS.grass[Math.min(3, Math.floor(v * 4.2))]);
       if (fbm(x * 0.15, z * 0.15, 2, 9) > 0.66) out.lerp(COLORS.moss, 0.6);
     }
+  }
+
+  /** The height grid as a float texture (for shaders that need the ground height). */
+  heightTexture(): { texture: THREE.DataTexture; origin: number; cell: number; n: number } {
+    const tex = new THREE.DataTexture(this.heights, this.n, this.n, THREE.RedFormat, THREE.FloatType);
+    tex.minFilter = THREE.NearestFilter;
+    tex.magFilter = THREE.NearestFilter;
+    tex.needsUpdate = true;
+    return { texture: tex, origin: -this.half, cell: this.cell, n: this.n };
   }
 
   /** Height of the rendered surface at (x, z), interpolated exactly like the triangles. */

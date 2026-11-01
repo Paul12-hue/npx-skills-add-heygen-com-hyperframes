@@ -267,7 +267,7 @@ export function violetLanternGeometry(): Prop {
     p(at(new THREE.CylinderGeometry(0.08, 0.12, 3, 6), 0, 1.5, 0), 'metal', '2a2230'),
     p(at(new THREE.BoxGeometry(0.7, 0.08, 0.08), 0.3, 3.0, 0), 'metal', '2a2230'),
     p(at(new THREE.ConeGeometry(0.32, 0.3, 4), 0.62, 2.95, 0, Math.PI / 4), 'metal', '2a2230'),
-    p(at(new THREE.BoxGeometry(0.34, 0.5, 0.34), 0.62, 2.55, 0), 'glowViolet', '9a30ff'),
+    p(at(new THREE.BoxGeometry(0.34, 0.5, 0.34), 0.62, 2.55, 0), 'glowViolet', 'ffb030'),
     p(at(new THREE.BoxGeometry(0.4, 0.06, 0.4), 0.62, 2.28, 0), 'metal', '2a2230'),
   ]);
 }
