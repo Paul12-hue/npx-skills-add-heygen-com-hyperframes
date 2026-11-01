@@ -259,6 +259,25 @@ export class World {
     return Math.max(0.42, f);
   }
 
+  /** Is a camera at (x, y, z) inside a building (or a big solid thing)? Fences and posts do not count. */
+  cameraBlocked(x: number, y: number, z: number): boolean {
+    for (const c of this.nearby(x, z)) {
+      if (c.r !== undefined) {
+        if (c.r < 1 || Math.hypot(x - c.x, z - c.z) > c.r + 0.3) continue;
+        if (y < this.y(c.x, c.z) + 4) return true;
+        continue;
+      }
+      if (Math.min(c.hx, c.hz) < 1.3) continue; // carts, log piles, stalls: the camera may pass over them
+      const cs = Math.cos(c.rot);
+      const sn = Math.sin(c.rot);
+      const lx = (x - c.x) * cs + (z - c.z) * sn;
+      const lz = -(x - c.x) * sn + (z - c.z) * cs;
+      // houses: walls plus the roof overhang, up to the ridge
+      if (Math.abs(lx) < c.hx + 0.7 && Math.abs(lz) < c.hz + 0.7 && y < this.y(c.x, c.z) + 10) return true;
+    }
+    return false;
+  }
+
   /** Is the spot free of obstacles (public: animals and villagers choose where to go with it). */
   isFree(x: number, z: number, margin: number): boolean {
     return this.free(x, z, margin);

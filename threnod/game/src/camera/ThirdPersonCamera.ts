@@ -78,21 +78,32 @@ export class ThirdPersonCamera {
     return v.name;
   }
 
-  update(dt: number, target: THREE.Vector3, heightAt: (x: number, z: number) => number): void {
+  update(dt: number, target: THREE.Vector3, heightAt: (x: number, z: number) => number, blocked?: (x: number, y: number, z: number) => boolean): void {
     if (this.free) {
       this.freeFocus.y = Math.max(0, heightAt(this.freeFocus.x, this.freeFocus.z));
       target = this.freeFocus;
     }
     // aim a little higher when the camera is low behind the shoulder
     this.focus.set(target.x, target.y + 0.9 + (1 - Math.min(1, this.pitch / 0.8)) * 0.7, target.z);
-    let dist = this.distance;
-    const dir = new THREE.Vector3(Math.sin(this.yaw) * Math.cos(this.pitch), Math.sin(this.pitch), Math.cos(this.yaw) * Math.cos(this.pitch));
-    // pull the camera in if the ground is in the way
-    for (let d = 1; d <= this.distance; d += 0.5) {
-      const p = this.focus.clone().addScaledVector(dir, d);
-      if (heightAt(p.x, p.z) + 0.4 > p.y) {
-        dist = Math.max(1.2, d - 0.5);
-        break;
+    // how far the camera can go at a given pitch before ground or a building is in the way
+    const reach = (pitch: number): [number, THREE.Vector3] => {
+      const dir = new THREE.Vector3(Math.sin(this.yaw) * Math.cos(pitch), Math.sin(pitch), Math.cos(this.yaw) * Math.cos(pitch));
+      for (let d = 1; d <= this.distance; d += 0.5) {
+        const p = this.focus.clone().addScaledVector(dir, d);
+        if (heightAt(p.x, p.z) + 0.4 > p.y || (!this.free && blocked?.(p.x, p.y, p.z))) return [Math.max(1.2, d - 0.5), dir];
+      }
+      return [this.distance, dir];
+    };
+    // blocked? rather rise over the obstacle than squeeze in close to the face
+    let [dist, dir] = reach(this.pitch);
+    if (dist < Math.min(this.distance, 6) * 0.8) {
+      for (let p = this.pitch + 0.15; p <= 1.3; p += 0.15) {
+        const [d2, dir2] = reach(p);
+        if (d2 > dist + 0.5) {
+          dist = d2;
+          dir = dir2;
+        }
+        if (d2 >= Math.min(this.distance, 6) * 0.95) break;
       }
     }
     const desired = this.focus.clone().addScaledVector(dir, dist);

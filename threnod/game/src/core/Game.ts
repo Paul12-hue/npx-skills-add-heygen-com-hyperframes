@@ -358,7 +358,7 @@ export class Game {
       this.cam.yaw = this.titleAngle;
       this.cam.pitch = 0.95;
       this.cam.distance = 22;
-      this.cam.update(dt, this.player.position, (x, z) => this.world.height(x, z));
+      this.cam.update(dt, this.player.position, (x, z) => this.world.height(x, z), (x, y, z) => this.world.cameraBlocked(x, y, z));
       this.cam.distance = 15;
     }
 
@@ -411,7 +411,7 @@ export class Game {
     } else {
       this.player.update(dt, s.moveX, s.moveY, s.run, this.cam.yaw, this.input.consume('jump'));
     }
-    this.cam.update(dt, this.player.position, (x, z) => this.world.height(x, z));
+    this.cam.update(dt, this.player.position, (x, z) => this.world.height(x, z), (x, y, z) => this.world.cameraBlocked(x, y, z));
     this.hour = (this.hour + dt / SECONDS_PER_GAME_HOUR) % 24;
 
     const targets: Target[] = [...this.world.interactables, ...this.npcs.map((n) => n.target), ...this.population.targets];

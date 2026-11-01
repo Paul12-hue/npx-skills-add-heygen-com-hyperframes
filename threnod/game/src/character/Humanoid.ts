@@ -203,7 +203,11 @@ export class Humanoid {
       bones.push(b);
     }
     this.material = Humanoid.material(!!opts.ghost);
+    // the rest pose, measured in the figure's own space before it is placed or animated:
+    // meshes that arrive later are bound to exactly this pose (never to an animated one)
+    bones[0].updateMatrixWorld(true);
     this.skeleton = new THREE.Skeleton(bones);
+    this.skeleton.calculateInverses();
     this.root.add(bones[0]);
     bones[0].visible = false; // eyes, tools and lantern appear together with the body
     this.spec = spec;
@@ -317,12 +321,12 @@ export class Humanoid {
     this.requested.add(i);
     sculptService.request(sculptJob(this.spec, this.cells[i]), priority, (r) => {
       const m = new THREE.SkinnedMesh(geometryFor(r, this.spec.palette), this.material);
-      m.castShadow = i === 0;
+      m.castShadow = i < this.cells.length - 1 || this.cells.length === 1;
       m.frustumCulled = false;
       m.visible = false;
       this.root.add(m);
       this.root.updateMatrixWorld(true);
-      m.bind(this.skeleton);
+      m.bind(this.skeleton, new THREE.Matrix4()); // identity: bones and mesh share the figure's space
       this.lodMeshes[i] = m;
       this.lodLevel = -1; // re-pick on the next update
       this.setLod(this.wantLevel);
@@ -359,9 +363,10 @@ export class Humanoid {
     this.inView = d < maxDist;
     this.root.visible = this.inView && this.ready;
     if (!this.inView) return false;
-    const level = d < nearDist || this.cells.length === 1 ? 0 : 1;
+    // three levels (the player): very close / near / far; two levels: near / far
+    const level = this.cells.length === 1 ? 0 : this.cells.length === 3 ? (d < 5 ? 0 : d < nearDist ? 1 : 2) : d < nearDist ? 0 : 1;
     // fine detail is only sculpted once somebody comes close
-    if (this.lazyNear && d < nearDist * 1.6) this.requestLevel(0, 0);
+    if (this.lazyNear && d < (this.cells.length === 3 ? 5 : nearDist) * 1.6) this.requestLevel(0, 0);
     this.setLod(level);
     return this.ready;
   }

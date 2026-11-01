@@ -5,7 +5,7 @@ import { DEFAULT_MOVE, inputToVelocity, stepBody, type Body } from './movement';
 import type { World } from '../world/World';
 
 export class Player {
-  readonly mesh = new Humanoid(unsungSpec(), { lantern: true, priority: 0 });
+  readonly mesh = new Humanoid(unsungSpec(), { lantern: true, priority: 0, lods: [0.012, 0.017, 0.03], lazyNear: true });
   readonly position = new THREE.Vector3();
   /** Facing direction (radians). 0 faces −z. */
   yaw = 0;
