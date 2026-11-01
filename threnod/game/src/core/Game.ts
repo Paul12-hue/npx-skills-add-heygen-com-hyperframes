@@ -103,6 +103,8 @@ export class Game {
         onPause: () => this.input.press('pause'),
         onJump: () => this.input.press('jump'),
         onView: () => this.input.press('view'),
+        onFreeCam: () => this.input.press('freecam'),
+        onCamHold: (kind, v) => (this.input.hold[kind] = v),
         onDialogueAdvance: () => this.dialogueAdvance(),
         onDialogueChoose: (i) => this.dialogueChoose(i),
         onDialogueAnswer: (v) => this.dialogueAnswer(v),
@@ -237,6 +239,7 @@ export class Game {
 
   // ---------------------------------------------------------------- dialogue
   private startDialogue(t: Target): void {
+    if (this.cam.free) this.toggleFreeCam();
     const graph = (dialogues as Record<string, DialogueGraph>)[t.dialogue];
     if (!graph) {
       console.warn('missing dialogue', t.dialogue);
@@ -277,6 +280,12 @@ export class Game {
     if (!this.dialogue || this.ui.skipTyping()) return;
     this.dialogue.choose(i);
     this.showNode();
+  }
+
+  private toggleFreeCam(): void {
+    this.cam.setFree(!this.cam.free, this.player.position);
+    this.ui.setFreeCam(this.cam.free);
+    this.ui.showToast(this.cam.free ? 'Free camera – move it with the stick' : 'Camera follows you again');
   }
 
   private dialogueAnswer(value: string): void {
@@ -385,7 +394,15 @@ export class Game {
     this.cam.rotate(s.lookX, s.lookY);
     this.cam.zoom(s.zoom);
     if (this.input.consume('view')) this.ui.showToast('View: ' + this.cam.cyclePreset());
-    this.player.update(dt, s.moveX, s.moveY, s.run, this.cam.yaw, this.input.consume('jump'));
+    if (this.input.consume('freecam')) this.toggleFreeCam();
+    if (this.input.consume('center') && this.cam.free) this.toggleFreeCam();
+    if (this.cam.free) {
+      // free camera: the stick / WASD moves the camera, the Unsung waits
+      this.cam.pan(s.moveX, s.moveY, dt * (s.run ? 2.2 : 1));
+      this.player.update(dt, 0, 0, false, this.cam.yaw, false);
+    } else {
+      this.player.update(dt, s.moveX, s.moveY, s.run, this.cam.yaw, this.input.consume('jump'));
+    }
     this.cam.update(dt, this.player.position, (x, z) => this.world.height(x, z));
     this.hour = (this.hour + dt / SECONDS_PER_GAME_HOUR) % 24;
 
@@ -437,6 +454,7 @@ export class Game {
         flags: { ...this.flags },
         internal: [this.renderer.width, this.renderer.height],
         fps: this.fps,
+        cam: { distance: this.cam.distance, pitch: this.cam.pitch, yaw: this.cam.yaw, free: this.cam.free, x: this.cam.camera.position.x, z: this.cam.camera.position.z },
       }),
       setHour: (h: number) => (this.hour = h),
       setCamera: (distance: number, pitch: number, yawOffset: number) => {

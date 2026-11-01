@@ -25,6 +25,8 @@ export interface UIHandlers {
   onPause: () => void;
   onJump: () => void;
   onView: () => void;
+  onFreeCam: () => void;
+  onCamHold: (kind: 'zoom' | 'turn' | 'tilt', value: number) => void;
   onDialogueAdvance: () => void;
   onDialogueChoose: (index: number) => void;
   onDialogueAnswer: (value: string) => void;
@@ -45,6 +47,7 @@ export class UI {
   private place: HTMLElement;
   private fps: HTMLElement;
   private toast: HTMLElement;
+  private freeBtn!: HTMLButtonElement;
   private goal: HTMLElement;
   private prologue: HTMLElement;
   private dialogue: HTMLElement;
@@ -71,7 +74,7 @@ export class UI {
         <h1>Threnod</h1>
         <p class="subtitle">The Last Song of a Forgotten World</p>
         <div class="menu"></div>
-        <p class="footnote">Development build 10 · Phase 5</p>
+        <p class="footnote">Development build 11 · Phase 5</p>
       </div>`;
     const menu = this.title.querySelector('.menu')!;
     this.continueBtn = this.button('Continue', () => h.onContinue());
@@ -103,6 +106,42 @@ export class UI {
       h.onView();
     });
     this.hud.append(jumpBtn, viewBtn);
+
+    // camera panel: hold the buttons to zoom, turn and tilt; "Free" detaches the camera
+    const cam = el('div', 'cam-panel');
+    const hold = (label: string, aria: string, kind: 'zoom' | 'turn' | 'tilt', v: number) => {
+      const b = el('button', 'cam-btn', label);
+      b.setAttribute('aria-label', aria);
+      const on = (e: Event) => {
+        e.preventDefault();
+        e.stopPropagation();
+        h.onCamHold(kind, v);
+      };
+      const off = (e: Event) => {
+        e.stopPropagation();
+        h.onCamHold(kind, 0);
+      };
+      b.addEventListener('pointerdown', on);
+      for (const ev of ['pointerup', 'pointercancel', 'pointerleave']) b.addEventListener(ev, off);
+      b.addEventListener('touchstart', (e) => e.stopPropagation(), { passive: true });
+      return b;
+    };
+    this.freeBtn = el('button', 'cam-btn cam-free', 'Free');
+    this.freeBtn.setAttribute('aria-label', 'Free camera');
+    this.freeBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      h.onFreeCam();
+    });
+    cam.append(
+      hold('+', 'Zoom in', 'zoom', -1),
+      hold('−', 'Zoom out', 'zoom', 1),
+      hold('⟲', 'Turn left', 'turn', -1),
+      hold('⟳', 'Turn right', 'turn', 1),
+      hold('▲', 'Tilt up', 'tilt', -1),
+      hold('▼', 'Tilt down', 'tilt', 1),
+      this.freeBtn,
+    );
+    this.hud.append(cam);
     this.place = el('div', 'place-name');
     this.fps = el('div', 'fps hidden');
     this.hud.append(this.prompt, this.actionBtn, this.pauseBtn, this.place, this.fps);
@@ -269,6 +308,11 @@ export class UI {
     this.place.textContent = name;
     this.place.classList.add('visible');
     this.placeTimer = 3.5;
+  }
+
+  setFreeCam(on: boolean): void {
+    this.freeBtn.classList.toggle('on', on);
+    this.freeBtn.textContent = on ? 'Back' : 'Free';
   }
 
   setGoal(text: string): void {

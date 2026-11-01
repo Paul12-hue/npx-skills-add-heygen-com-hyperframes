@@ -17,10 +17,13 @@ export class ThirdPersonCamera {
   distance = VIEW_PRESETS[1].distance;
   private current = new THREE.Vector3();
   private focus = new THREE.Vector3();
+  /** Free camera: detached from the player, moved around the map with the stick / WASD. */
+  free = false;
+  private freeFocus = new THREE.Vector3();
   private initialised = false;
 
   constructor(aspect: number) {
-    this.camera = new THREE.PerspectiveCamera(45, aspect, 0.3, 600);
+    this.camera = new THREE.PerspectiveCamera(45, aspect, 0.3, 900);
   }
 
   setAspect(aspect: number): void {
@@ -39,7 +42,26 @@ export class ThirdPersonCamera {
   /** zoom > 0 moves the camera away, < 0 closer. */
   zoom(amount: number): void {
     if (!amount) return;
-    this.distance = THREE.MathUtils.clamp(this.distance * Math.exp(amount), 3.2, 34);
+    this.distance = THREE.MathUtils.clamp(this.distance * Math.exp(amount), 2.5, this.free ? 90 : 45);
+  }
+
+  /** Switch between following the player and a free camera. */
+  setFree(on: boolean, from: THREE.Vector3): void {
+    this.free = on;
+    this.freeFocus.copy(from);
+    if (!on) this.distance = Math.min(this.distance, 45);
+  }
+
+  /** Move the free camera: x = right, y = forward (screen relative), in metres per second × dt. */
+  pan(x: number, y: number, dt: number): void {
+    if (!this.free || (!x && !y)) return;
+    const speed = (12 + this.distance * 1.0) * dt;
+    const s = Math.sin(this.yaw);
+    const c = Math.cos(this.yaw);
+    this.freeFocus.x += (x * c - y * s) * speed;
+    this.freeFocus.z += (-x * s - y * c) * speed;
+    const r = Math.hypot(this.freeFocus.x, this.freeFocus.z);
+    if (r > 390) this.freeFocus.multiplyScalar(390 / r);
   }
 
   /** Switch to the next of the three view presets; returns its name. */
@@ -52,6 +74,10 @@ export class ThirdPersonCamera {
   }
 
   update(dt: number, target: THREE.Vector3, heightAt: (x: number, z: number) => number): void {
+    if (this.free) {
+      this.freeFocus.y = Math.max(0, heightAt(this.freeFocus.x, this.freeFocus.z));
+      target = this.freeFocus;
+    }
     // aim a little higher when the camera is low behind the shoulder
     this.focus.set(target.x, target.y + 0.9 + (1 - Math.min(1, this.pitch / 0.8)) * 0.7, target.z);
     let dist = this.distance;

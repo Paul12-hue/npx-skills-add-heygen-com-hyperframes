@@ -1,5 +1,4 @@
 import * as THREE from 'three';
-import { Reflector } from 'three/examples/jsm/objects/Reflector.js';
 import { LAYOUT, Terrain, distToPath, distToRiver, hushFactor, lakeFactor } from './terrain';
 import { rng } from './noise';
 import * as P from './props';
@@ -24,50 +23,88 @@ const GLOW: Partial<Record<P.MatKey, number>> = {
   glowWarm: 1.7, glowViolet: 1.9, glowGreen: 1.5, glowCyan: 1.6, glowMagenta: 1.7,
 };
 
-/** Water shader: the mirrored scene, darkened, tinted and gently rippling. */
-const WaterShader = {
-  name: 'ThrenodWater',
-  uniforms: {
-    color: { value: new THREE.Color(0x4a6a78) },
-    tDiffuse: { value: null as THREE.Texture | null },
-    textureMatrix: { value: new THREE.Matrix4() },
-    uTime: { value: 0 },
-  },
-  vertexShader: /* glsl */ `
-    uniform mat4 textureMatrix;
-    varying vec4 vUv;
-    varying vec3 vWorld;
-    #include <common>
-    #include <logdepthbuf_pars_vertex>
-    void main() {
-      vUv = textureMatrix * vec4(position, 1.0);
-      vWorld = (modelMatrix * vec4(position, 1.0)).xyz;
-      gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
-      #include <logdepthbuf_vertex>
-    }`,
-  fragmentShader: /* glsl */ `
-    uniform vec3 color;
-    uniform sampler2D tDiffuse;
-    uniform float uTime;
-    varying vec4 vUv;
-    varying vec3 vWorld;
-    #include <logdepthbuf_pars_fragment>
-    void main() {
-      #include <logdepthbuf_fragment>
-      vec2 w = vWorld.xz;
-      vec2 ripple = vec2(
-        sin(w.x * 0.9 + uTime * 1.3) + sin(w.y * 1.7 - uTime * 0.9),
-        cos(w.y * 1.1 + uTime * 1.1) + sin(w.x * 1.3 + uTime * 0.7)
-      ) * 0.006;
-      vec4 uv = vUv;
-      uv.xy += ripple * uv.w;
-      vec3 refl = texture2DProj(tDiffuse, uv).rgb;
-      vec3 deep = vec3(0.02, 0.05, 0.07);
-      gl_FragColor = vec4(mix(deep, refl * color * 1.6, 0.75), 1.0);
-      #include <tonemapping_fragment>
-      #include <colorspace_fragment>
-    }`,
-};
+/**
+ * Stylised water: turquoise in the shallows, deep blue-green in the middle,
+ * animated waves with moonlight glints, a soft fresnel sheen and foam along the
+ * shore. The depth comes from the terrain height texture, so the shore line is
+ * exact for the lake, the rivers and the marsh pools.
+ */
+const WATER_VERT = /* glsl */ `
+  varying vec3 vWorld;
+  #include <fog_pars_vertex>
+  void main() {
+    vec4 wp = modelMatrix * vec4(position, 1.0);
+    vWorld = wp.xyz;
+    vec4 mvPosition = viewMatrix * wp;
+    gl_Position = projectionMatrix * mvPosition;
+    #include <fog_vertex>
+  }`;
+const WATER_FRAG = /* glsl */ `
+  uniform float uTime;
+  uniform sampler2D uHeight;
+  uniform vec4 uHMeta;
+  uniform vec3 uDeep;
+  uniform vec3 uShallow;
+  uniform vec3 uSky;
+  uniform vec3 uMoonDir;
+  uniform vec3 uMoonColor;
+  uniform float uDetail;
+  varying vec3 vWorld;
+  #include <fog_pars_fragment>
+  float hAt(vec2 p) {
+    vec2 g = clamp((p - uHMeta.x) / uHMeta.y, vec2(0.0), vec2(uHMeta.z - 1.001));
+    ivec2 i = ivec2(floor(g));
+    vec2 f = fract(g);
+    float a = texelFetch(uHeight, i, 0).r;
+    float b = texelFetch(uHeight, i + ivec2(1, 0), 0).r;
+    float c = texelFetch(uHeight, i + ivec2(0, 1), 0).r;
+    float d = texelFetch(uHeight, i + ivec2(1, 1), 0).r;
+    return mix(mix(a, b, f.x), mix(c, d, f.x), f.y);
+  }
+  float hash(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
+  float noise(vec2 p) {
+    vec2 i = floor(p); vec2 f = fract(p); f = f * f * (3.0 - 2.0 * f);
+    return mix(mix(hash(i), hash(i + vec2(1, 0)), f.x), mix(hash(i + vec2(0, 1)), hash(i + vec2(1, 1)), f.x), f.y);
+  }
+  float waves(vec2 p) {
+    float t = uTime;
+    float w = noise(p * 0.35 + vec2(t * 0.08, t * 0.05)) * 0.6;
+    w += noise(p * 0.9 - vec2(t * 0.12, -t * 0.07)) * 0.3;
+    w += noise(p * 2.3 + vec2(-t * 0.2, t * 0.15)) * 0.15 * uDetail;
+    return w;
+  }
+  void main() {
+    float depth = -hAt(vWorld.xz); // water level is y = 0
+    if (depth < -0.05) discard;
+    vec2 p = vWorld.xz;
+    float e = 0.12;
+    float h0 = waves(p);
+    vec3 n = normalize(vec3(h0 - waves(p + vec2(e, 0.0)), e * 1.6, h0 - waves(p + vec2(0.0, e))));
+    vec3 v = normalize(cameraPosition - vWorld);
+    float shallow = 1.0 - smoothstep(0.0, 2.2, depth);
+    vec3 col = mix(uDeep, uShallow, shallow * 0.45);
+    // soft sky sheen at grazing angles
+    float fres = pow(1.0 - max(dot(n, v), 0.0), 3.0);
+    col = mix(col, uSky, fres * 0.25);
+    // moon glints on the wave crests
+    vec3 r = reflect(-normalize(uMoonDir), n);
+    float spec = pow(max(dot(r, v), 0.0), 60.0);
+    col += uMoonColor * spec * 0.9;
+    // light ripple streaks and foam along the shore
+    float rn = noise(p * 0.8 + vec2(uTime * 0.06, -uTime * 0.04));
+    float streak = pow(1.0 - abs(rn - 0.5) * 2.0, 14.0) * 0.07;
+    // a thin, broken line of foam right at the water's edge
+    float foamN = noise(p * 4.0 + vec2(uTime * 0.3, uTime * 0.2));
+    float edge = 1.0 - smoothstep(0.0, 0.1, depth);
+    float foam = edge * smoothstep(0.55, 0.8, foamN) * 0.35;
+    col = mix(col + vec3(streak), mix(uShallow, vec3(0.75, 0.82, 0.8), 0.5), clamp(foam, 0.0, 1.0));
+    float alpha = mix(0.62, 0.94, smoothstep(0.0, 1.2, depth));
+    alpha = max(alpha, clamp(foam, 0.0, 1.0));
+    gl_FragColor = vec4(col, alpha);
+    #include <tonemapping_fragment>
+    #include <colorspace_fragment>
+    #include <fog_fragment>
+  }`;
 
 /**
  * Hollowmere Vale: the lake and two rivers with bridges, Candlewick with its
@@ -97,8 +134,8 @@ export class World {
   private mist: THREE.Sprite[] = [];
   private fields: GrassField[] = [];
   private sails = new THREE.Group();
-  private mirror!: Reflector;
-  private plainWater!: THREE.Mesh;
+  private water!: THREE.Mesh;
+  private waterMat!: THREE.ShaderMaterial;
   private time = 0;
   private bellLights = new Map<string, { light: THREE.PointLight; glow: THREE.Mesh }>();
   private baseFog = new THREE.Color();
@@ -106,7 +143,7 @@ export class World {
   constructor() {
     this.textures = createTextures();
     this.scene.fog = this.fog;
-    this.terrain = new Terrain(this.textured(this.textures.ground, { shininess: 8, bump: 1.2, repeat: 1 }));
+    this.terrain = new Terrain(this.textured(this.textures.ground, { shininess: 6, bump: 3.2, repeat: 1 }));
     this.scene.add(this.terrain.mesh, this.sky.group);
     this.sky.addLightsTo(this.scene);
     this.physics = { colliders: this.colliders, platforms: this.platforms, terrain: (x, z) => this.terrain.getHeight(x, z) };
@@ -222,13 +259,13 @@ export class World {
   private buildMaterials(): void {
     const t = this.textures;
     const m = this.mats;
-    m.set('stone', this.textured(t.stone, { shininess: 30, bump: 2.5, specular: 0x30303a }));
-    m.set('wood', this.textured(t.wood, { shininess: 20, bump: 1.5 }));
-    m.set('darkwood', this.textured(t.wood, { shininess: 25, bump: 1.8 }));
-    m.set('shingle', this.textured(t.shingle, { shininess: 45, bump: 3, specular: 0x404050 }));
-    m.set('plaster', this.textured(t.plaster, { shininess: 10, bump: 1.2 }));
-    m.set('organic', this.textured(t.organic, { shininess: 15, bump: 2 }));
-    m.set('foliage', this.textured(t.organic, { shininess: 18, bump: 0.6, specular: 0x163a2a }));
+    m.set('stone', this.textured(t.stone, { shininess: 30, bump: 4.5, specular: 0x30303a }));
+    m.set('wood', this.textured(t.wood, { shininess: 20, bump: 3 }));
+    m.set('darkwood', this.textured(t.wood, { shininess: 25, bump: 3.2 }));
+    m.set('shingle', this.textured(t.shingle, { shininess: 45, bump: 5.5, specular: 0x404050 }));
+    m.set('plaster', this.textured(t.plaster, { shininess: 10, bump: 2.6 }));
+    m.set('organic', this.textured(t.organic, { shininess: 15, bump: 3.5 }));
+    m.set('foliage', this.textured(t.organic, { shininess: 18, bump: 2.4, specular: 0x163a2a }));
     m.set('metal', this.textured(t.stone, { shininess: 100, bump: 0.6, specular: 0x9090a0 }));
     m.set('mushCap', this.textured(t.plaster, { shininess: 120, bump: 1.5, specular: 0xd0a0ff, emissive: 0x2a0a50 }));
     m.set('mushStem', this.textured(t.organic, { shininess: 60, bump: 1.5, specular: 0x80ff80, emissive: 0x3aa020, emissiveIntensity: 0.7 }));
@@ -275,21 +312,36 @@ export class World {
   // ---------------------------------------------------------------- water
   private buildWater(batch: P.PropBatch): void {
     const { lake, waterLevel, size } = LAYOUT;
-    // one water surface for the lake and both rivers; the terrain covers it everywhere else
-    const geo = new THREE.PlaneGeometry(size, size);
-    this.mirror = new Reflector(geo, { clipBias: 0.003, textureWidth: 512, textureHeight: 512, shader: WaterShader });
-    this.mirror.rotation.x = -Math.PI / 2;
-    this.mirror.position.y = waterLevel;
-    this.mirror.name = 'water-mirror';
-    this.plainWater = new THREE.Mesh(
-      geo,
-      new THREE.MeshPhongMaterial({ color: 0x0a1820, specular: 0x8aa0b0, shininess: 140, emissive: 0x02060a }),
-    );
-    this.plainWater.rotation.x = -Math.PI / 2;
-    this.plainWater.position.y = waterLevel;
-    this.plainWater.receiveShadow = true;
-    this.plainWater.visible = false;
-    this.scene.add(this.mirror, this.plainWater);
+    // one water surface for the lake, the rivers and the marsh pools
+    const hm = this.terrain.heightTexture();
+    this.waterMat = new THREE.ShaderMaterial({
+      vertexShader: WATER_VERT,
+      fragmentShader: WATER_FRAG,
+      uniforms: THREE.UniformsUtils.merge([
+        THREE.UniformsLib.fog,
+        {
+          uTime: { value: 0 },
+          uHeight: { value: null },
+          uHMeta: { value: new THREE.Vector4(hm.origin, hm.cell, hm.n, 0) },
+          uDeep: { value: new THREE.Color(0x0a2a38) },
+          uShallow: { value: new THREE.Color(0x24685e) },
+          uSky: { value: new THREE.Color(0x3a5a7a) },
+          uMoonDir: { value: new THREE.Vector3(0.3, 0.5, -0.8) },
+          uMoonColor: { value: new THREE.Color(0xe8eeff) },
+          uDetail: { value: 1 },
+        },
+      ]),
+      transparent: true,
+      depthWrite: false,
+      fog: true,
+    });
+    this.waterMat.uniforms.uHeight.value = hm.texture;
+    this.water = new THREE.Mesh(new THREE.PlaneGeometry(size, size, 1, 1), this.waterMat);
+    this.water.rotation.x = -Math.PI / 2;
+    this.water.position.y = waterLevel;
+    this.water.renderOrder = 1;
+    this.water.name = 'water';
+    this.scene.add(this.water);
 
     // "The Lantern Under the Lake"
     this.lakeGlowMesh = new THREE.Mesh(new THREE.OctahedronGeometry(0.6, 0), new THREE.MeshBasicMaterial({ color: new THREE.Color(4, 2.6, 0.8) }));
@@ -310,10 +362,9 @@ export class World {
     this.interactables.push({ id: 'lake_shore', x: lake.x + 4, z: lake.z - lake.radius + 1, radius: 4, verb: 'Look', dialogue: 'lake_shore' });
   }
 
-  /** Mirror reflections are expensive: only on medium/high quality. */
+  /** Finer wave detail on medium/high quality. */
   setReflections(on: boolean): void {
-    this.mirror.visible = on;
-    this.plainWater.visible = !on;
+    this.waterMat.uniforms.uDetail.value = on ? 1 : 0;
   }
 
   // ---------------------------------------------------------------- roads & bridges
@@ -917,7 +968,11 @@ export class World {
     this.lakeGlow.intensity = 2 + pulse * 8;
     (this.lakeGlowMesh.material as THREE.MeshBasicMaterial).color.setRGB(1 + pulse * 3, 0.6 + pulse * 2, 0.2 + pulse * 0.6);
     this.sails.rotation.z = t * 0.35;
-    (this.mirror.material as THREE.ShaderMaterial).uniforms.uTime.value = t;
+    const wu = this.waterMat.uniforms;
+    wu.uTime.value = t;
+    wu.uSky.value.copy(this.sky.state.horizon).lerp(this.sky.state.top, 0.4).multiplyScalar(1.1);
+    wu.uMoonDir.value.copy(this.sky.moonLight.position).sub(focus).normalize();
+    wu.uMoonColor.value.copy(this.sky.moonLight.color);
 
     const pos = this.fireflies.geometry.getAttribute('position') as THREE.BufferAttribute;
     const o = this.fireflyOffsets;

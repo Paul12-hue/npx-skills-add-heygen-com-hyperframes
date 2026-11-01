@@ -179,7 +179,7 @@ export class Terrain {
         const z = j * this.cell - this.half;
         const y = this.heights[k];
         pos.set([x, y, z], k * 3);
-        uv.set([x / 6, z / 6], k * 2);
+        uv.set([x / 4, z / 4], k * 2);
         this.vertexColor(i, j, x, y, z, tmp);
         col.set([tmp.r, tmp.g, tmp.b], k * 3);
       }

@@ -39,3 +39,5 @@ e2e/smoke.mjs             Automatischer Browser-Test
 - **iPad:** linke Hälfte = Bewegungs-Stick · rechte Hälfte wischen = Kamera drehen und neigen · zwei Finger rechts auseinander/zusammen = Zoom · „View“ = Kamera-Voreinstellung (Schulter / Klassisch / Von oben) · „Jump“ = springen · runder Knopf = Interagieren · ❙❙ = Pause
 - **PC:** WASD/Pfeile, Shift = rennen, Leertaste = springen, Maus ziehen = Kamera, Mausrad = Zoom, V = Ansicht wechseln, E/Enter = Interagieren, 1–4 = Antwort wählen, Esc = Pause, T = eine Stunde vorspulen (Test)
 - **Controller:** linker Stick bewegen, rechter Stick Kamera, Trigger = Zoom, A = Interagieren, B = springen, Y = Ansicht, Start = Pause
+- **Kamera-Leiste (rechts, alle Geräte):** + / − zoomen · ⟲ ⟳ drehen · ▲ ▼ neigen (gedrückt halten) · „Free“ = freie Kamera: der Stick bzw. WASD bewegt die Kamera über die ganze Karte, die Figur bleibt stehen · „Back“ = zurück zur Figur
+- **Kamera per Tastatur:** Z/X zoomen, Q/R drehen, Bild↑/Bild↓ neigen, C = freie Kamera an/aus, F = zurück zur Figur

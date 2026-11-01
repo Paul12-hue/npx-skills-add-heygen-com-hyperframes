@@ -157,11 +157,43 @@ export function organicTexture(): TexPair {
 
 /** Ground: grass tufts, earth and moss for the terrain. */
 export function groundTexture(): TexPair {
-  // soft, calm ground: large gentle patches, no scratchy marks
+  // earth with texture: clumps of grass, little pebbles, cracks and soft hollows
+  const r = rng(91);
+  const pebbles: [number, number, number][] = [];
+  for (let i = 0; i < 30; i++) pebbles.push([r(), r(), 0.005 + r() * 0.01]);
   return paint((u, v) => {
-    const n = tfbm(u, v, 6, 4, 51);
-    const big = tfbm(u, v, 2, 3, 52);
-    return [0.62 + n * 0.18 + big * 0.12, n * 0.5 + big * 0.2];
+    const n = tfbm(u, v, 9, 4, 51);
+    const clumps = tfbm(u, v, 4, 3, 52);
+    const fine = tfbm(u, v, 34, 2, 53);
+    let l = 0.5 + n * 0.28 + clumps * 0.12 + (fine - 0.5) * 0.22;
+    let b = n * 0.45 + clumps * 0.3 + fine * 0.25;
+    // tufts of grass: brighter and raised
+    const sm = (a: number, c: number, x: number) => {
+      const t = Math.max(0, Math.min(1, (x - a) / (c - a)));
+      return t * t * (3 - 2 * t);
+    };
+    const tuft = sm(0.52, 0.68, fine) * sm(0.38, 0.55, clumps);
+    l += 0.1 * tuft;
+    b += 0.2 * tuft;
+    // fine cracks in the dry earth
+    const crack = Math.abs(tfbm(u, v, 5, 3, 54) - 0.5);
+    const ck = 1 - sm(0.002, 0.008, crack);
+    l -= 0.08 * ck;
+    b -= 0.14 * ck;
+    // pebbles
+    for (const [px, py, pr] of pebbles) {
+      let dx = Math.abs(u - px);
+      let dy = Math.abs(v - py);
+      dx = Math.min(dx, 1 - dx);
+      dy = Math.min(dy, 1 - dy);
+      const d = Math.sqrt(dx * dx + dy * dy);
+      if (d < pr) {
+        const dome = Math.sqrt(1 - (d / pr) ** 2);
+        l = l * 0.5 + (0.58 + dome * 0.2) * 0.5;
+        b = b * 0.4 + (0.5 + dome * 0.4) * 0.6;
+      }
+    }
+    return [l, Math.max(0, Math.min(1, b))];
   });
 }
 

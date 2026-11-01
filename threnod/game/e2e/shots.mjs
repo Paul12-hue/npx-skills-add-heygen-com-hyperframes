@@ -36,16 +36,15 @@ await page.getByRole('button', { name: 'New Game' }).click();
   }
 
 const views = [
-  ['odile', [50.5, 1.5, Math.PI * 0.85], 21],
-  ['whisperwood', [214, -196, Math.PI], 21],
-  ['marsh', [-222, 216, -Math.PI * 0.8], 22],
-  ['aldersey', [322, 78, 0], 21],
-  ['moor', [-232, -118, Math.PI], 20.5],
+  ['water-lake', [-8, -24, Math.PI + 0.3], 21],
+  ['water-river', [8, -32, -Math.PI * 0.62], 21],
+  ['water-marsh', [-205, 190, Math.PI * 0.2], 21],
+  ['ground', [30, -14, -Math.PI / 2], 21],
 ];
 for (const [name, tp, hour] of views) {
   await page.evaluate(([tp, hour]) => {
     if (tp) window.__threnod.teleport(tp[0], tp[1], tp[2]);
-    window.__threnod.setCamera(9, 0.55, Math.PI);
+    window.__threnod.setCamera(10, 0.6, Math.PI);
     window.__threnod.setHour(hour);
   }, [tp, hour]);
   await new Promise((r) => setTimeout(r, 2500));

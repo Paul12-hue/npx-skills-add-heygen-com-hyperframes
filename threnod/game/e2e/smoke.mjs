@@ -114,6 +114,41 @@ const browser = await chromium.launch({ args: ['--use-angle=swiftshader', '--ena
   }
   check('dialogue closes', (await st()).mode === 'playing');
 
+  // camera: zoom button, mouse wheel, free camera
+  {
+    const c0 = (await st()).cam;
+    const zoomOut = page.getByRole('button', { name: 'Zoom out' });
+    await zoomOut.dispatchEvent('pointerdown');
+    await sleep(1500);
+    await zoomOut.dispatchEvent('pointerup');
+    const c1 = (await st()).cam;
+    check('zoom button zooms out', c1.distance > c0.distance + 1, `distance ${c0.distance.toFixed(1)} → ${c1.distance.toFixed(1)}`);
+    await page.mouse.move(600, 400);
+    for (let i = 0; i < 6; i++) { await page.mouse.wheel(0, -300); await sleep(150); }
+    await sleep(500);
+    const c2 = (await st()).cam;
+    check('mouse wheel zooms in', c2.distance < c1.distance - 1, `distance ${c1.distance.toFixed(1)} → ${c2.distance.toFixed(1)}`);
+    await page.getByRole('button', { name: 'Free camera' }).click();
+    await sleep(500);
+    const p0 = (await st()).player;
+    const f0 = (await st()).cam;
+    await page.keyboard.down('w');
+    await sleep(2500);
+    await page.keyboard.up('w');
+    const f1 = (await st()).cam;
+    const p1 = (await st()).player;
+    const camMoved = Math.hypot(f1.x - f0.x, f1.z - f0.z);
+    const plMoved = Math.hypot(p1.x - p0.x, p1.z - p0.z);
+    check('free camera moves without the player', f1.free && camMoved > 1.5 && plMoved < 0.5, `camera ${camMoved.toFixed(1)} m, player ${plMoved.toFixed(2)} m`);
+    await page.keyboard.press('f');
+    let back = false;
+    for (let i = 0; i < 10 && !back; i++) {
+      await sleep(400);
+      back = (await st()).cam.free === false;
+    }
+    check('F returns the camera to the player', back);
+  }
+
   // night & the village
   await page.evaluate(() => {
     window.__threnod.setHour(22.5);

@@ -382,3 +382,29 @@ html, body {
   background: rgba(20, 34, 32, 0.95);
   border: 1px solid rgba(190, 230, 205, 0.5);
 }
+
+/* ---------------------------------------------------------- camera panel */
+.cam-panel {
+  position: absolute;
+  right: calc(12px + var(--safe-right));
+  top: 50%;
+  transform: translateY(-50%);
+  display: grid;
+  grid-template-columns: 48px 48px;
+  gap: 8px;
+}
+.cam-btn {
+  width: 48px;
+  height: 48px;
+  font: 700 22px 'Courier New', ui-monospace, monospace;
+  color: #e6efe8;
+  background: rgba(6, 12, 12, 0.55);
+  border: 2px solid rgba(190, 230, 205, 0.45);
+  border-radius: 10px;
+  touch-action: none;
+  -webkit-user-select: none;
+  user-select: none;
+}
+.cam-btn:active { background: rgba(240, 192, 96, 0.35); }
+.cam-free { grid-column: span 2; width: auto; font-size: 15px; }
+.cam-free.on { background: rgba(240, 192, 96, 0.4); color: #fff4d8; }

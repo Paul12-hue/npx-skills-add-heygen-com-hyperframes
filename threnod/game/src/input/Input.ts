@@ -13,7 +13,7 @@ export interface InputState {
   run: boolean;
 }
 
-type Action = 'interact' | 'pause' | 'up' | 'down' | 'confirm' | 'n1' | 'n2' | 'n3' | 'n4' | 'time' | 'jump' | 'view' | 'journal';
+type Action = 'interact' | 'pause' | 'up' | 'down' | 'confirm' | 'n1' | 'n2' | 'n3' | 'n4' | 'time' | 'jump' | 'view' | 'journal' | 'freecam' | 'center';
 
 export class Input {
   readonly state: InputState = { moveX: 0, moveY: 0, lookX: 0, lookY: 0, zoom: 0, run: false };
@@ -65,7 +65,7 @@ export class Input {
       this.touchMode = false;
       if (!this.keys.has(k)) {
         const map: Record<string, Action> = {
-          e: 'interact', enter: 'confirm', ' ': 'confirm', escape: 'pause', p: 'pause', v: 'view', j: 'journal',
+          e: 'interact', enter: 'confirm', ' ': 'confirm', escape: 'pause', p: 'pause', v: 'view', j: 'journal', c: 'freecam', f: 'center',
           arrowup: 'up', arrowdown: 'down', '1': 'n1', '2': 'n2', '3': 'n3', '4': 'n4', t: 'time',
         };
         const a = map[k];
@@ -94,6 +94,9 @@ export class Input {
     this.touchMode = true;
     this.addLook(dx, dy, 0.007);
   }
+  /** Held on-screen camera buttons: zoom (-1 in, +1 out), turn (-1/+1), tilt (-1/+1). */
+  hold = { zoom: 0, turn: 0, tilt: 0 };
+
   addZoom(z: number): void {
     this.state.zoom += z;
   }
@@ -151,6 +154,13 @@ export class Input {
       this.padButtonsPrev = pad.buttons.map((b) => b.pressed);
       break;
     }
+    // on-screen camera buttons and keyboard camera keys (Q/R turn, Z/X zoom, PageUp/Down tilt)
+    const turn = this.hold.turn + (k.has('q') ? -1 : 0) + (k.has('r') ? 1 : 0);
+    const zoom = this.hold.zoom + (k.has('z') ? -1 : 0) + (k.has('x') ? 1 : 0);
+    const tilt = this.hold.tilt + (k.has('pageup') ? 1 : 0) + (k.has('pagedown') ? -1 : 0);
+    this.state.lookX += turn * dt * 1.8;
+    this.state.lookY += tilt * dt * 0.9;
+    this.state.zoom += zoom * dt * 1.4;
     const len = Math.hypot(mx, my);
     if (len > 1) {
       mx /= len;
