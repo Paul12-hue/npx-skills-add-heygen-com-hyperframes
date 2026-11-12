@@ -1,0 +1,146 @@
+// Datenmodell Truhenzähler – SQLite für Entwicklung, PostgreSQL für Produktion
+// (provider ändern, sonst nichts). Aufzählungswerte werden als String gespeichert
+// und in src/lib/domain.ts zentral validiert, damit beide Datenbanken funktionieren.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+/// Mitglieder – Spielfiguren im Clan (nicht zwingend mit Login)
+model Member {
+  id           String   @id @default(cuid())
+  name         String   @unique            // Ingame-Name, exakt wie in der Clan-Truhenliste
+  aliases      String   @default("")       // Komma-getrennt: alte Namen / OCR-Schreibweisen
+  clanRank     String   @default("Mitglied") // Ingame-Rang (Info), unabhängig von App-Rolle
+  joinedAt     DateTime @default(now())
+  status       String   @default("AKTIV")  // AKTIV | PAUSIERT | AUSGETRETEN
+  notes        String   @default("")
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  chests Chest[]
+  goals  Goal[]
+  user   User?
+
+  @@index([status])
+}
+
+/// Benutzer & Benutzerrollen – Login-Konten der App
+model User {
+  id           String    @id @default(cuid())
+  username     String    @unique
+  passwordHash String
+  role         String    @default("MITGLIED") // ADMIN | OFFIZIER | MITGLIED
+  memberId     String?   @unique
+  member       Member?   @relation(fields: [memberId], references: [id], onDelete: SetNull)
+  active       Boolean   @default(true)
+  lastLoginAt  DateTime?
+  createdAt    DateTime  @default(now())
+
+  auditLogs     AuditLog[]
+  createdChests Chest[]    @relation("ChestCreatedBy")
+}
+
+/// Truhentypen inkl. Punkteregel: Punkte = basePoints + (Stufe - 1) * pointsPerTier
+model ChestType {
+  id            String  @id @default(cuid())
+  name          String  @unique
+  category      String  @default("STANDARD") // STANDARD | EVENT | SELTEN
+  basePoints    Int     @default(1)
+  pointsPerTier Int     @default(0)
+  active        Boolean @default(true)
+
+  chests Chest[]
+}
+
+/// Clan-Truhen – eine Zeile pro im Clan gutgeschriebener Truhe
+model Chest {
+  id          String    @id @default(cuid())
+  memberId    String
+  member      Member    @relation(fields: [memberId], references: [id], onDelete: Restrict)
+  capturedAt  DateTime                       // Zeitpunkt der Truhe (Serverzeit, UTC)
+  chestTypeId String
+  chestType   ChestType @relation(fields: [chestTypeId], references: [id], onDelete: Restrict)
+  tier        Int       @default(1)          // Stufe / Level
+  source      String                         // KRYPTA | EVENT | AUFGABE | KAMPF | ZITADELLE | ARENA | SONSTIGE
+  points      Int                            // beim Erfassen berechnet & eingefroren (nachvollziehbar)
+  eventId     String?
+  event       Event?    @relation(fields: [eventId], references: [id], onDelete: SetNull)
+  origin      String    @default("MANUELL")  // MANUELL | CSV | OCR | API
+  status      String    @default("GUELTIG")  // GUELTIG | PRUEFEN | VERWORFEN – nur GUELTIG zählt
+  fingerprint String    @unique              // Duplikatschutz, siehe src/lib/dedupe.ts
+  rawText     String    @default("")         // Original-Zeile aus Import/OCR
+  createdById String?
+  createdBy   User?     @relation("ChestCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([capturedAt])
+  @@index([memberId, capturedAt])
+  @@index([status])
+  @@index([eventId])
+}
+
+/// Events (z. B. Clan-Wettbewerb, Krypta-Wochenende)
+model Event {
+  id          String   @id @default(cuid())
+  name        String
+  startAt     DateTime
+  endAt       DateTime
+  goalPoints  Int?
+  description String   @default("")
+
+  chests Chest[]
+
+  @@index([startAt, endAt])
+}
+
+/// Ziele – Clan-Wochenziel oder individuelles Mitgliedsziel.
+/// Fortschritt wird live aus gültigen Truhen berechnet (nie gespeichert → immer korrekt).
+model Goal {
+  id          String   @id @default(cuid())
+  scope       String                      // CLAN | MITGLIED
+  memberId    String?
+  member      Member?  @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  periodStart DateTime
+  periodEnd   DateTime
+  metric      String   @default("PUNKTE") // PUNKTE | TRUHEN
+  targetValue Int
+  createdAt   DateTime @default(now())
+
+  @@index([periodStart, periodEnd])
+}
+
+/// Änderungsprotokoll – jede Änderung an Truhen, Mitgliedern, Zielen, Rollen
+model AuditLog {
+  id        String   @id @default(cuid())
+  userId    String?
+  user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  action    String                       // z. B. TRUHE_KORRIGIERT, TRUHE_VERWORFEN, IMPORT
+  entity    String                       // Chest | Member | Goal | User | Settings | Event
+  entityId  String?
+  oldValues String?                      // JSON
+  newValues String?                      // JSON
+  reason    String   @default("")
+  createdAt DateTime @default(now())
+
+  @@index([entity, entityId])
+  @@index([createdAt])
+}
+
+/// Clan-Einstellungen (genau eine Zeile, id = 1)
+model Settings {
+  id                      Int     @id @default(1)
+  clanName                String  @default("Mein Clan")
+  defaultMemberGoalPoints Int     @default(150)
+  inactiveAfterDays       Int     @default(3)
+  publicEnabled           Boolean @default(false)
+  publicToken             String  @unique @default(cuid())
+  publicPasswordHash      String?
+  webhookUrl              String  @default("") // Discord/Slack-Webhook für Offiziers-Hinweise
+}
