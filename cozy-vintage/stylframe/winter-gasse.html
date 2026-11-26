@@ -1,0 +1,324 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>Winter-Gasse Stylframe</title>
+<style>html,body{margin:0;background:#000}canvas{display:block}</style></head>
+<body><canvas id="c" width="1920" height="1080"></canvas>
+<script>
+// Handgezeichneter Stylframe: Gouache-Flächen + raue Tuschelinien + Papierkorn.
+// Alles deterministisch (seeded), damit spätere Animation (line boil) pro Frame neu "zeichnen" kann.
+const W = 1920, H = 1080;
+const cv = document.getElementById('c'), g = cv.getContext('2d');
+let seed = Number(new URLSearchParams(location.search).get('seed') || 7);
+function rnd() { seed = (seed * 16807) % 2147483647; return (seed - 1) / 2147483646; }
+const R = (a, b) => a + (b - a) * rnd();
+
+// ---------- Helfer ----------
+function jitterPath(pts, amt, closed) {
+  // unterteilt die Linie und verschiebt Punkte leicht -> zittrige Handlinie
+  const out = [];
+  const n = pts.length - (closed ? 0 : 1);
+  for (let i = 0; i < n; i++) {
+    const a = pts[i], b = pts[(i + 1) % pts.length];
+    const len = Math.hypot(b[0] - a[0], b[1] - a[1]);
+    const steps = Math.max(2, Math.round(len / 14));
+    for (let s = 0; s < steps; s++) {
+      const t = s / steps;
+      out.push([a[0] + (b[0] - a[0]) * t + R(-amt, amt), a[1] + (b[1] - a[1]) * t + R(-amt, amt)]);
+    }
+  }
+  if (!closed) out.push([pts[pts.length - 1][0] + R(-amt, amt), pts[pts.length - 1][1] + R(-amt, amt)]);
+  return out;
+}
+function smoothTrace(p, closed) {
+  g.beginPath();
+  g.moveTo(p[0][0], p[0][1]);
+  for (let i = 1; i < p.length - 1; i++) {
+    const mx = (p[i][0] + p[i + 1][0]) / 2, my = (p[i][1] + p[i + 1][1]) / 2;
+    g.quadraticCurveTo(p[i][0], p[i][1], mx, my);
+  }
+  g.lineTo(p[p.length - 1][0], p[p.length - 1][1]);
+  if (closed) g.closePath();
+}
+// Gouache-Fläche: Grundfarbe, leicht versetzt zur Linie, dann Pinseltupfer für Farbunebenheit
+function paint(pts, color, opts = {}) {
+  const off = opts.off ?? 4;
+  const p = jitterPath(pts.map(q => [q[0] + R(-off, off), q[1] + R(-off, off)]), 2.5, true);
+  g.save();
+  smoothTrace(p, true);
+  g.fillStyle = color; g.fill();
+  g.clip();
+  // Pinselstriche
+  const [x0, y0, x1, y1] = bbox(pts);
+  const strokes = opts.strokes ?? Math.min(500, ((x1 - x0) * (y1 - y0)) / 900);
+  for (let i = 0; i < strokes; i++) {
+    const x = R(x0, x1), y = R(y0, y1), l = R(10, 46), ang = (opts.dir ?? 0) + R(-0.35, 0.35);
+    g.strokeStyle = shade(color, R(-0.09, 0.09));
+    g.globalAlpha = R(0.12, 0.35);
+    g.lineWidth = R(3, 10); g.lineCap = 'round';
+    g.beginPath(); g.moveTo(x, y); g.lineTo(x + Math.cos(ang) * l, y + Math.sin(ang) * l); g.stroke();
+  }
+  // Trockenpinsel-Kante unten (dunkler)
+  if (opts.shadow) {
+    const gr = g.createLinearGradient(0, y0, 0, y1);
+    gr.addColorStop(0, 'rgba(0,0,0,0)'); gr.addColorStop(1, opts.shadow);
+    g.globalAlpha = 1; g.fillStyle = gr; g.fillRect(x0 - 20, y0 - 20, x1 - x0 + 40, y1 - y0 + 40);
+  }
+  g.restore();
+}
+// Tuschelinie: zwei Durchgänge, Druck variiert, Linie bricht manchmal ab
+function ink(pts, opts = {}) {
+  const closed = !!opts.closed, base = opts.w ?? 3.2, col = opts.col ?? '#1b1530';
+  for (let pass = 0; pass < (opts.passes ?? 2); pass++) {
+    const p = jitterPath(pts, opts.j ?? 2.2, closed);
+    if (closed) p.push(p[0]);
+    g.strokeStyle = col; g.lineCap = 'round'; g.lineJoin = 'round';
+    g.globalAlpha = pass ? 0.45 : 0.9;
+    for (let i = 0; i < p.length - 1; i++) {
+      if (rnd() < (opts.gaps ?? 0.03)) continue; // kleine Unterbrechungen wie beim Federstrich
+      const t = i / p.length;
+      g.lineWidth = Math.max(0.6, base * (0.55 + 0.6 * Math.sin(t * Math.PI) + R(-0.25, 0.25)) * (pass ? 0.6 : 1));
+      g.beginPath(); g.moveTo(p[i][0], p[i][1]); g.lineTo(p[i + 1][0], p[i + 1][1]); g.stroke();
+    }
+  }
+  g.globalAlpha = 1;
+}
+function bbox(pts) {
+  let x0 = 1e9, y0 = 1e9, x1 = -1e9, y1 = -1e9;
+  for (const [x, y] of pts) { x0 = Math.min(x0, x); y0 = Math.min(y0, y); x1 = Math.max(x1, x); y1 = Math.max(y1, y); }
+  return [x0, y0, x1, y1];
+}
+function hex(c) { const n = parseInt(c.slice(1), 16); return [n >> 16, (n >> 8) & 255, n & 255]; }
+function shade(c, k) {
+  const [r, gg, b] = hex(c);
+  const f = v => Math.max(0, Math.min(255, Math.round(k > 0 ? v + (255 - v) * k : v * (1 + k))));
+  return `rgb(${f(r)},${f(gg)},${f(b)})`;
+}
+function glow(x, y, r, col, a) {
+  const gr = g.createRadialGradient(x, y, 0, x, y, r);
+  gr.addColorStop(0, col.replace('A', a)); gr.addColorStop(0.35, col.replace('A', a * 0.45)); gr.addColorStop(1, col.replace('A', 0));
+  g.fillStyle = gr; g.fillRect(x - r, y - r, r * 2, r * 2);
+}
+// Klumpige Schneekante: Polygon mit welliger Unterkante
+function lumpy(x0, x1, yTop, yBot, bumps) {
+  const pts = [[x0, yBot]];
+  for (let i = 0; i <= bumps; i++) {
+    const x = x0 + (x1 - x0) * i / bumps;
+    pts.push([x, yTop + R(-10, 6) - Math.sin(i / bumps * Math.PI) * 18]);
+  }
+  pts.push([x1, yBot]);
+  return pts;
+}
+function pine(x, yBase, h, w, col) {
+  const tiers = 5, pts = [];
+  pts.push([x, yBase - h]);
+  for (let i = 1; i <= tiers; i++) {
+    const y = yBase - h + h * i / tiers, ww = w * (0.35 + 0.65 * i / tiers) / 2;
+    pts.push([x + ww, y]); if (i < tiers) pts.push([x + ww * 0.45, y - 4]);
+  }
+  for (let i = tiers; i >= 1; i--) {
+    const y = yBase - h + h * i / tiers, ww = w * (0.35 + 0.65 * i / tiers) / 2;
+    if (i < tiers) pts.push([x - ww * 0.45, y - 4]); pts.push([x - ww, y]);
+  }
+  paint(pts, col, { strokes: 60, dir: 1.2 });
+  ink(pts, { closed: true, w: 2, col: '#0b0d22', j: 2.5 });
+  // Schnee auf den Ästen
+  for (let i = 1; i <= tiers; i++) {
+    const y = yBase - h + h * i / tiers - h / tiers * 0.85, ww = w * (0.35 + 0.65 * i / tiers) / 2 * 0.75;
+    const s = [[x - ww * 0.6, y + 10], [x - ww * 0.2, y], [x + ww * 0.3, y + 2], [x + ww * 0.7, y + 12], [x, y + 9]];
+    paint(s, '#c9d3ee', { strokes: 6, off: 2 });
+  }
+}
+
+// ---------- 1. Himmel ----------
+const sky = g.createLinearGradient(0, 0, 0, H * 0.75);
+sky.addColorStop(0, '#0d1238'); sky.addColorStop(0.55, '#1d2f6e'); sky.addColorStop(1, '#2f4f8f');
+g.fillStyle = sky; g.fillRect(0, 0, W, H);
+// lange horizontale Gouache-Striche im Himmel
+for (let i = 0; i < 1400; i++) {
+  const y = R(0, H * 0.8), x = R(-50, W);
+  const tone = y < 300 ? '#141a4a' : y < 550 ? '#23387a' : '#355a99';
+  g.strokeStyle = shade(tone, R(-0.12, 0.12)); g.globalAlpha = R(0.08, 0.25);
+  g.lineWidth = R(6, 22); g.lineCap = 'round';
+  g.beginPath(); g.moveTo(x, y); g.quadraticCurveTo(x + R(60, 120), y + R(-6, 6), x + R(140, 300), y + R(-8, 8)); g.stroke();
+}
+g.globalAlpha = 1;
+
+// Mond
+glow(1530, 190, 420, 'rgba(225,235,255,A)', 0.32);
+const moon = []; for (let a = 0; a < Math.PI * 2; a += 0.35) moon.push([1530 + Math.cos(a) * 78, 190 + Math.sin(a) * 78]);
+paint(moon, '#f6efd8', { strokes: 50, off: 2 });
+ink(moon, { closed: true, w: 2.2, col: '#2a2447', j: 1.6 });
+// Mondschatten
+g.globalAlpha = 0.18; g.fillStyle = '#b7a47a';
+g.beginPath(); g.arc(1555, 210, 22, 0, 7); g.fill(); g.beginPath(); g.arc(1510, 170, 13, 0, 7); g.fill(); g.globalAlpha = 1;
+
+// Sterne: handgetupft, einige mit kleinem Kreuz
+for (let i = 0; i < 170; i++) {
+  const x = R(0, W), y = R(0, H * 0.5);
+  if (Math.hypot(x - 1530, y - 190) < 140) continue;
+  const s = R(1, 3.4);
+  g.fillStyle = rnd() < 0.7 ? '#fff6dc' : '#cfe0ff'; g.globalAlpha = R(0.5, 1);
+  g.beginPath(); g.ellipse(x, y, s, s * R(0.6, 1), R(0, 3), 0, 7); g.fill();
+  if (s > 2.7) { g.strokeStyle = '#fff6dc'; g.lineWidth = 1.2; g.beginPath(); g.moveTo(x - 8, y + R(-1, 1)); g.lineTo(x + 8, y + R(-1, 1)); g.moveTo(x + R(-1, 1), y - 8); g.lineTo(x + R(-1, 1), y + 8); g.stroke(); }
+}
+g.globalAlpha = 1;
+
+// ---------- 2. Hintergrund-Hügel & Wald ----------
+paint([[0, 640], [300, 590], [700, 620], [1100, 575], [1500, 610], [1920, 580], [1920, 760], [0, 760]], '#3c4f86', { strokes: 160, shadow: 'rgba(20,25,60,.4)' });
+for (let i = 0; i < 22; i++) { const x = R(-20, W + 20); pine(x, R(640, 680), R(140, 230), R(70, 110), '#16244a'); }
+
+{ const t=document.createElement('canvas'); t.width=W; t.height=H; t.getContext('2d').drawImage(cv,0,0);
+  g.save(); g.filter='blur(2.2px)'; g.drawImage(t,0,0); g.restore();
+  g.fillStyle='rgba(70,95,160,.18)'; g.fillRect(0,0,W,760); }
+// ---------- 3. Schneeboden ----------
+paint([[0, 700], [400, 680], [900, 705], [1400, 690], [1920, 700], [1920, 1080], [0, 1080]], '#8d9fd6', { strokes: 420, dir: 0, shadow: 'rgba(40,40,110,.45)' });
+// Weg zur Haustür (lavendel, Fußspuren)
+paint([[1000, 760], [1110, 760], [1260, 1080], [760, 1080]], '#a7a9dd', { strokes: 90, dir: 1.4 });
+ink([[1000, 762], [880, 1080]], { w: 1.6, col: '#3a3870', j: 3, gaps: 0.12, passes: 1 });
+ink([[1110, 762], [1250, 1080]], { w: 1.6, col: '#3a3870', j: 3, gaps: 0.12, passes: 1 });
+
+// ---------- 4. Kleines Haus links hinten ----------
+{
+  const wall = [[260, 520], [520, 520], [520, 720], [260, 720]];
+  paint(wall, '#6b3f3a', { strokes: 120, dir: 1.57, shadow: 'rgba(20,10,30,.5)' });
+  ink(wall, { closed: true, w: 2.6 });
+  const roof = [[230, 535], [390, 400], [550, 535], [548, 548], [232, 548]];
+  paint(roof, '#e6ebfb', { strokes: 70, shadow: 'rgba(90,100,170,.45)' });
+  ink([[226, 548], [390, 398], [554, 548]], { w: 3 });
+  ink([[232, 550], [270, 562], [300, 552], [345, 566], [390, 553], [440, 565], [500, 552], [548, 560]], { w: 2.2, gaps: 0.06 });
+  const win = [[320, 590], [380, 590], [380, 650], [320, 650]];
+  glow(350, 620, 120, 'rgba(255,190,90,A)', 0.35);
+  paint(win, '#f6c560', { strokes: 30, off: 2 });
+  ink(win, { closed: true, w: 2.4 }); ink([[350, 590], [350, 650]], { w: 1.8 }); ink([[320, 620], [380, 620]], { w: 1.8 });
+}
+
+// ---------- 5. Hauptcottage ----------
+// Schornstein
+const chim = [[1310, 300], [1370, 300], [1370, 420], [1310, 420]];
+paint(chim, '#8a3b2e', { strokes: 40, dir: 0 }); ink(chim, { closed: true, w: 2.6 });
+for (let r = 0; r < 4; r++) ink([[1312, 325 + r * 25], [1368, 325 + r * 25]], { w: 1.2, passes: 1, gaps: 0.2 });
+paint(lumpy(1300, 1380, 285, 310, 5), '#eef1fc', { strokes: 10, off: 2 });
+// Rauch: lockere, gemalte Schlingen
+g.save(); g.filter='blur(6px)';
+for (let i = 0; i < 16; i++) { const x = 1340 + Math.sin(i * 0.55) * (10 + i * 5) + i * 12, y = 275 - i * 17, r = 14 + i * 2.6;
+  g.globalAlpha = 0.32 * (1 - i / 18); g.fillStyle = '#c3cbe8'; g.beginPath(); g.ellipse(x, y, r, r * 0.8, 0, 0, 7); g.fill(); }
+g.restore();
+g.save(); g.globalAlpha = 0.35;
+{ const p = []; for (let i = 0; i < 10; i++) p.push([1340 + Math.sin(i * 0.55) * (10 + i * 5) + i * 12 - 14 - i*2, 275 - i * 17]); ink(p, { w: 1.4, col: '#8f9ac8', j: 2, passes: 1, gaps: 0.2 }); }
+g.restore();
+
+// Wand (Fachwerk)
+const wall = [[768, 474], [1418, 466], [1432, 782], [748, 778]];
+paint(wall, '#7a4a3a', { strokes: 320, dir: 1.57, shadow: 'rgba(25,12,35,.55)' });
+// Fachwerkbalken
+for (let y = 590; y < 780; y += 22) ink([[760, y + R(-3,3)], [1425, y + R(-3,3)]], { w: 1, passes: 1, gaps: 0.35, col: '#4a2a2c', j: 2 });
+const beams = [[[760, 560], [1425, 560]], [[800, 470], [796, 780]], [[1000, 470], [1003, 780]], [[1180, 470], [1176, 780]], [[1380, 470], [1384, 780]], [[800, 560], [1000, 470]], [[1180, 560], [1380, 470]]];
+for (const b of beams) { const [a, c] = b; const t = [[a[0] - 7, a[1]], [c[0] - 7, c[1]], [c[0] + 7, c[1]], [a[0] + 7, a[1]]]; paint(t, '#3a2026', { strokes: 12, off: 1.5 }); ink([t[0],t[1]], { w: 2, j: 2 }); ink([t[3],t[2]], { w: 2, j: 2 }); }
+ink(wall, { closed: true, w: 3.4 });
+
+// Großes Fenster mit Baum
+glow(1090, 650, 320, 'rgba(255,184,80,A)', 0.42);
+const win = [[1030, 590], [1150, 590], [1150, 720], [1030, 720]];
+paint(win, '#f4bf5a', { strokes: 40, off: 2 });
+// Weihnachtsbaum im Fenster
+const tree = [[1090, 600], [1135, 712], [1045, 712]];
+paint(tree, '#2f5a3b', { strokes: 25, off: 1.5, dir: 1 });
+ink(tree, { closed: true, w: 1.6, col: '#13251a', j: 1.8 });
+for (let i = 0; i < 12; i++) { g.fillStyle = ['#d23b2f', '#3a6fd1', '#f6e07a', '#e07ab6'][i % 4]; g.beginPath(); g.arc(R(1065, 1115), R(630, 705), R(3, 5), 0, 7); g.fill(); }
+ink(win, { closed: true, w: 3 });
+ink([[1090, 590], [1090, 720]], { w: 2.4 }); ink([[1030, 655], [1150, 655]], { w: 2.4 });
+paint(lumpy(1022, 1158, 716, 728, 6), '#eef1fc', { strokes: 10, off: 1.5 });
+ink([[1020, 722], [1060, 729], [1110, 724], [1160, 730]], { w: 1.8 });
+
+// Tür mit Kranz
+const door = [[1240, 600], [1340, 600], [1340, 780], [1240, 780]];
+paint(door, '#4b2a2f', { strokes: 60, dir: 1.57 });
+ink([[1240, 780], [1240, 630], [1260, 602], [1290, 594], [1320, 602], [1340, 630], [1340, 780]], { w: 3 });
+for (const x of [1265, 1290, 1315]) ink([[x, 615], [x, 775]], { w: 1.2, passes: 1, gaps: 0.15 });
+const wreath = []; for (let a = 0; a < 6.3; a += 0.4) wreath.push([1290 + Math.cos(a) * 26, 665 + Math.sin(a) * 26]);
+g.lineWidth = 15; g.strokeStyle = '#2e5a35'; smoothTrace(jitterPath(wreath, 2, true), true); g.stroke();
+ink(wreath, { closed: true, w: 1.4, col: '#10261a', passes: 1 });
+for (let i = 0; i < 8; i++) { g.fillStyle = '#d33a2c'; g.beginPath(); g.arc(1290 + Math.cos(i * 0.8) * 26, 665 + Math.sin(i * 0.8) * 26, 3.5, 0, 7); g.fill(); }
+paint([[1278, 688], [1302, 688], [1312, 712], [1290, 698], [1268, 712]], '#c8312a', { strokes: 6, off: 1 });
+ink([[1278, 688], [1302, 688], [1312, 712], [1290, 698], [1268, 712], [1278, 688]], { w: 1.4, passes: 1 });
+// Kleines Seitenfenster (Buntglas)
+const sg = [[860, 600], [940, 600], [940, 700], [860, 700]];
+glow(900, 650, 140, 'rgba(240,140,140,A)', 0.25);
+paint([[860, 600], [940, 600], [940, 650], [860, 650]], '#e79a8c', { strokes: 10, off: 1.5 });
+paint([[860, 650], [940, 650], [940, 700], [860, 700]], '#f1c46a', { strokes: 10, off: 1.5 });
+ink(sg, { closed: true, w: 2.6 }); ink([[900, 600], [900, 700]], { w: 1.6 }); ink([[860, 650], [940, 650]], { w: 1.6 });
+
+// Großes, klumpiges Schneedach
+const roof = [[700, 490], [880, 300], [1300, 300], [1480, 490]];
+const roofFull = roof.concat([[1478, 500], [1430, 512], [1380, 498], [1320, 520], [1250, 500], [1180, 518], [1100, 500], [1020, 522], [950, 500], [880, 516], [800, 498], [740, 512], [702, 500]]);
+paint(roofFull, '#eef1fc', { strokes: 220, dir: 0.1, shadow: 'rgba(100,110,190,.55)' });
+ink([[696, 492], [880, 298], [1300, 298], [1486, 492]], { w: 3.6 });
+ink(roofFull.slice(4), { w: 2.6, gaps: 0.05 });
+// Dachkante: Holz unter dem Schnee
+ink([[742, 520], [1440, 520]], { w: 1.6, passes: 1, gaps: 0.25 });
+// Eiszapfen
+for (let x = 760; x < 1430; x += R(28, 55)) { const l = R(14, 38), t = [[x - 4, 512], [x + 4, 512], [x + R(-1, 1), 512 + l]]; paint(t, '#cfd9f5', { strokes: 2, off: 0.5 }); ink(t, { closed: true, w: 1, passes: 1 }); }
+
+g.save(); g.globalCompositeOperation='lighter'; g.filter='blur(10px)';
+g.fillStyle='rgba(255,170,70,.28)'; g.beginPath(); g.moveTo(1030,782); g.lineTo(1150,782); g.lineTo(1250,900); g.lineTo(960,900); g.fill();
+g.fillStyle='rgba(255,150,120,.16)'; g.beginPath(); g.moveTo(860,782); g.lineTo(940,782); g.lineTo(990,860); g.lineTo(820,860); g.fill();
+g.filter='none'; glow(1090,650,260,'rgba(255,170,70,A)',0.22); g.restore();
+// ---------- 6. Zaun ----------
+for (let i = 0; i < 9; i++) {
+  const x = 140 + i * 72 + R(-6, 6), top = 800 + R(-8, 8), tilt = R(-6, 6);
+  const post = [[x - 9, top], [x + 9, top - 2], [x + 9 + tilt, 905], [x - 9 + tilt, 905]];
+  paint(post, '#7b3a2c', { strokes: 8, off: 1.5, dir: 1.57 }); ink(post, { closed: true, w: 2.2 });
+  paint(lumpy(x - 13, x + 13, top - 8, top + 4, 3), '#eef1fc', { strokes: 3, off: 1 });
+}
+for (const y of [835, 875]) {
+  const rail = [[120, y], [760, y + R(-10, 10)], [760, y + 14], [120, y + 14]];
+  paint(rail, '#8c4433', { strokes: 20, off: 1.5 }); ink([[118, y], [762, y + R(-6, 6)]], { w: 2 }); ink([[118, y + 14], [762, y + 14 + R(-6, 6)]], { w: 1.6, passes: 1 });
+}
+
+// ---------- 7. Laterne links ----------
+glow(470, 470, 380, 'rgba(255,214,120,A)', 0.4);
+glow(470, 470, 130, 'rgba(255,240,190,A)', 0.55);
+const pole = [[462, 520], [478, 520], [484, 940], [456, 940]];
+paint(pole, '#18152a', { strokes: 10, off: 1 }); ink(pole, { closed: true, w: 2.4 });
+paint([[440, 940], [500, 940], [508, 965], [432, 965]], '#18152a', { strokes: 4, off: 1 });
+const lamp = [[440, 440], [500, 440], [508, 520], [432, 520]];
+paint(lamp, '#ffe7a3', { strokes: 15, off: 1.5 });
+ink(lamp, { closed: true, w: 2.8 });
+ink([[470, 440], [470, 520]], { w: 1.4, passes: 1 });
+const cap = [[426, 442], [470, 405], [514, 442]];
+paint(cap, '#18152a', { strokes: 4, off: 1 }); ink(cap, { closed: true, w: 2.6 });
+paint(lumpy(436, 504, 418, 436, 4), '#eef1fc', { strokes: 4, off: 1 });
+g.save(); g.globalCompositeOperation='lighter'; glow(470, 480, 420, 'rgba(255,190,90,A)', 0.32); glow(470, 480, 150, 'rgba(255,230,170,A)', 0.5); g.restore();
+// Lichtkegel auf dem Schnee
+g.save(); g.globalAlpha = 0.25; g.fillStyle = '#ffd98a';
+g.beginPath(); g.ellipse(470, 960, 170, 34, 0, 0, 7); g.fill(); g.restore();
+
+// ---------- 8. Vordergrund-Schneewehen ----------
+paint([[0, 930], [200, 900], [420, 950], [600, 985], [760, 1080], [0, 1080]], '#7d8fd0', { strokes: 160, shadow: 'rgba(30,30,90,.5)' });
+ink([[0, 932], [200, 900], [420, 950], [600, 985], [770, 1080]], { w: 2.6, col: '#272457' });
+paint([[1350, 1080], [1500, 960], [1700, 930], [1920, 960], [1920, 1080]], '#7d8fd0', { strokes: 160, shadow: 'rgba(30,30,90,.5)' });
+ink([[1340, 1080], [1500, 960], [1700, 930], [1922, 960]], { w: 2.6, col: '#272457' });
+pine(1760, 960, 520, 260, '#14203f');
+pine(90, 980, 430, 200, '#14203f');
+
+// ---------- 9. Schneefall ----------
+for (let i = 0; i < 420; i++) {
+  const x = R(0, W), y = R(0, H), s = R(1.5, 5.5);
+  g.globalAlpha = R(0.45, 0.95); g.fillStyle = '#f3f5ff';
+  g.beginPath(); g.ellipse(x, y, s, s * R(0.7, 1), R(0, 3), 0, 7); g.fill();
+}
+g.globalAlpha = 1;
+
+// ---------- 10. Papier, Korn, Vignette ----------
+const img = g.getImageData(0, 0, W, H), d = img.data;
+for (let i = 0; i < d.length; i += 4) {
+  const px = (i / 4) % W, py = (i / 4 / W) | 0;
+  const n = (rnd() - 0.5) * 26;                                     // Korn
+  const fiber = Math.sin(px * 0.013 + Math.sin(py * 0.05) * 2) * 4; // Papierfaser
+  d[i] += n + fiber + 6; d[i + 1] += n + fiber + 3; d[i + 2] += n + fiber - 4; // leicht warm/vergilbt
+}
+g.putImageData(img, 0, 0);
+const vg = g.createRadialGradient(W / 2, H / 2, H * 0.35, W / 2, H / 2, H * 1.05);
+vg.addColorStop(0, 'rgba(0,0,0,0)'); vg.addColorStop(1, 'rgba(10,6,20,.6)');
+g.fillStyle = vg; g.fillRect(0, 0, W, H);
+document.title = 'done';
+</script></body></html>
