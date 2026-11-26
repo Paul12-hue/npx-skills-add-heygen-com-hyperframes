@@ -213,3 +213,22 @@ Grobe Laufzeit-Architektur (Vorschlag):
 - [Tubefilter – Little Dot video length whitepaper 2026](https://www.tubefilter.com/2026/02/12/little-dot-youtube-video-length-whitepaper-viewer-habits-2026/amp/)
 - [AIR Media-Tech – 38-minute AVD case](https://air.io/en/creators-spotlight/38-minute-view-duration-247-streaming-case)
 - [Uppbeat – Audience retention tips](https://uppbeat.io/blog/youtube-growth/youtube-analytics/youtube-audience-retention)
+
+---
+
+## 9. Kurswechsel (Feedback): Reines Ambient-Loop-Video
+
+Keine Story, kaum Figuren, Fokus auf Hintergrund und Atmosphäre. Folgen für die Insights:
+- **Gilt weiter:** 1 (Lücke: Vintage-Look + ruhiges Tempo), 3, 4 (kein Intro), 6 (Länge), 7 (ein Set, mehrere Lichtstimmungen), 8 (eigene Musik), 9 (Saison), 10.
+- **Angepasst:** Insight 2 → statt Hauptfigur ein **kleines wiederkehrendes Signatur-Detail** (z. B. eine schlafende Katze im Fenster), das Wiedererkennung schafft, ohne Handlung.
+- **Entfällt:** Insight 5 (Zwei-Phasen-Story). Ersatz: ein **Tag-zu-Nacht-Lichtverlauf** über die gesamte Laufzeit.
+- **Neu:** Statt Story-Beats alle 3–5 min ein **Mikro-Ereignis** (Laterne geht an, Windstoß mit Blättern, ferner Zug, Eule, Kerze wird angezündet), damit das Bild lebendig bleibt, ohne zu stören.
+
+### Ambient-Konzepte
+| | Szene | Bewegte Elemente | Audio |
+|---|---|---|---|
+| **1** | *Teeladen am Waldrand im Herbstregen* (Außenansicht, warm erleuchtete Fenster) | Regen, Dampf aus dem Schornstein, flackernde Laterne, fallende Blätter, Katze im Fenster | Regen, Tropfen, leises Wasserkessel-Pfeifen, Celesta/Klavier |
+| **2** | *Laternengasse bei Nacht* (Dorfgasse, Kopfsteinpflaster, Mond) | Laternen-Flackern, Nebel, Blätter, Fensterlichter gehen an/aus | Wind, ferne Glocke, Grillen, Akkordeon |
+| **3** | *Bibliothek in den Wolken* (Innenraum, Kamin, großes Rundfenster) | Kaminfeuer, ziehende Wolken, Kerzen, Staub im Licht | Kaminknistern, Uhrticken, Streicher |
+
+**Empfehlung: Konzept 1.** Regen trägt das ganze Audio. Die warmen Fenster gegen das kühle Blau ergeben ein starkes Thumbnail. Die Katze ist das Signatur-Detail. Die Szene funktioniert für Schlafen, Lernen und Lesen gleichermaßen.
